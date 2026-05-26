@@ -36,6 +36,11 @@
     <PackageReference Include="ClosedXML" Version="0.102.3" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
   <ItemGroup>
     <Resource Include="Resources\**\*.png" />
   </ItemGroup>

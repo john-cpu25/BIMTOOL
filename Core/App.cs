@@ -29,21 +29,14 @@ namespace RincoNhan
         {
             try
             {
-                // If it's one of our complex dependencies, try to find it in our folder
-                if (args.Name.Contains("System.Text.Json") || 
-                    args.Name.Contains("System.Runtime.CompilerServices.Unsafe") ||
-                    args.Name.Contains("Microsoft.Bcl.AsyncInterfaces") ||
-                    args.Name.Contains("System.Memory") ||
-                    args.Name.Contains("System.Buffers"))
-                {
-                    string assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                    string assemblyName = new AssemblyName(args.Name).Name + ".dll";
-                    string targetPath = Path.Combine(assemblyDir, assemblyName);
+                // Try to find any unresolved assembly in our plugin folder
+                string assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string assemblyName = new AssemblyName(args.Name).Name + ".dll";
+                string targetPath = Path.Combine(assemblyDir, assemblyName);
 
-                    if (File.Exists(targetPath))
-                    {
-                        return Assembly.LoadFrom(targetPath);
-                    }
+                if (File.Exists(targetPath))
+                {
+                    return Assembly.LoadFrom(targetPath);
                 }
             }
             catch

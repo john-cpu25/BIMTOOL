@@ -10,6 +10,7 @@ namespace RincoNhan.Tools.CreateLevel
     {
         public List<LevelData> LevelsToCreate { get; set; }
         public bool DeleteExistingLevels { get; set; }
+        public ElementId TemplateLevelId { get; set; }
         public Action<string> NotifyStatus { get; set; }
         public Action<string> NotifyResult { get; set; }
 
@@ -32,28 +33,41 @@ namespace RincoNhan.Tools.CreateLevel
                     int skipped = 0;
                     var messages = new List<string>();
 
-                    // Get existing levels for duplicate checking
+                    // Get template level
+                    Level templateLevel = null;
+                    if (TemplateLevelId != null)
+                    {
+                        templateLevel = doc.GetElement(TemplateLevelId) as Level;
+                    }
+
+                    // Get existing levels
                     var existingLevels = new FilteredElementCollector(doc)
                         .OfClass(typeof(Level))
                         .Cast<Level>()
                         .ToList();
 
-                    // Optionally delete existing levels first
                     if (DeleteExistingLevels && existingLevels.Count > 0)
                     {
-                        // Cannot delete all levels — Revit requires at least one.
-                        // We create new levels first, then delete old ones.
                         var oldIds = existingLevels.Select(l => l.Id).ToList();
+
+                        // Rename old levels to avoid name conflicts
+                        int tempIdx = 0;
+                        foreach (var oldLevel in existingLevels)
+                        {
+                            try
+                            {
+                                oldLevel.Name = $"__TEMP_DELETE_{tempIdx++}__";
+                            }
+                            catch { }
+                        }
 
                         foreach (var levelData in LevelsToCreate)
                         {
                             double elevationFeet = MmToFeet(levelData.Elevation);
-                            Level newLevel = Level.Create(doc, elevationFeet);
-                            newLevel.Name = GetUniqueName(doc, levelData.Name);
-                            created++;
+                            Level newLevel = CreateLevelByCopy(doc, templateLevel, elevationFeet, levelData.Name);
+                            if (newLevel != null) created++;
                         }
 
-                        // Now delete old levels
                         int deleted = 0;
                         foreach (var id in oldIds)
                         {
@@ -62,16 +76,12 @@ namespace RincoNhan.Tools.CreateLevel
                                 doc.Delete(id);
                                 deleted++;
                             }
-                            catch
-                            {
-                                // Some levels may not be deletable (e.g., referenced by views)
-                            }
+                            catch { }
                         }
                         messages.Add($"Deleted {deleted}/{oldIds.Count} existing levels.");
                     }
                     else
                     {
-                        // Create levels, skipping duplicates by name
                         var existingNames = existingLevels.Select(l => l.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                         foreach (var levelData in LevelsToCreate)
@@ -83,9 +93,8 @@ namespace RincoNhan.Tools.CreateLevel
                             }
 
                             double elevationFeet = MmToFeet(levelData.Elevation);
-                            Level newLevel = Level.Create(doc, elevationFeet);
-                            newLevel.Name = levelData.Name;
-                            created++;
+                            Level newLevel = CreateLevelByCopy(doc, templateLevel, elevationFeet, levelData.Name);
+                            if (newLevel != null) created++;
                         }
                     }
 
@@ -104,6 +113,49 @@ namespace RincoNhan.Tools.CreateLevel
                     NotifyStatus?.Invoke("Error: " + ex.Message);
                 }
             }
+        }
+
+        /// <summary>
+        /// Copy template level to create a new level at the specified elevation.
+        /// This preserves all properties: LevelType, bubble visibility, line extents, etc.
+        /// Does NOT create new plan views (unlike Level.Create).
+        /// </summary>
+        private Level CreateLevelByCopy(Document doc, Level templateLevel, double elevationFeet, string name)
+        {
+            if (templateLevel != null)
+            {
+                double templateElevation = templateLevel.Elevation;
+                double offset = elevationFeet - templateElevation;
+                XYZ translation = new XYZ(0, 0, offset);
+
+                var copiedIds = ElementTransformUtils.CopyElement(doc, templateLevel.Id, translation);
+
+                if (copiedIds != null && copiedIds.Count > 0)
+                {
+                    // CopyElement may copy associated views too — find the Level element
+                    Level copiedLevel = null;
+                    foreach (var id in copiedIds)
+                    {
+                        var elem = doc.GetElement(id) as Level;
+                        if (elem != null)
+                        {
+                            copiedLevel = elem;
+                            break;
+                        }
+                    }
+
+                    if (copiedLevel != null)
+                    {
+                        copiedLevel.Name = name;
+                        return copiedLevel;
+                    }
+                }
+            }
+
+            // Fallback: create normally if no template
+            Level newLevel = Level.Create(doc, elevationFeet);
+            newLevel.Name = name;
+            return newLevel;
         }
 
         private double MmToFeet(double mm)
@@ -135,8 +187,8 @@ namespace RincoNhan.Tools.CreateLevel
     public class LevelData
     {
         public string Name { get; set; }
-        public double FloorHeight { get; set; }  // chiều cao tầng (mm)
-        public double Elevation { get; set; }     // cao trình tuyệt đối (mm), tính cộng dồn
+        public double FloorHeight { get; set; }
+        public double Elevation { get; set; }
         public bool IsSelected { get; set; } = true;
     }
 }

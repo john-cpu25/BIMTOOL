@@ -1,13 +1,11 @@
 using System;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.DB;
-using ClosedXML.Excel;
 using System.Collections.Generic;
 
 namespace RincoNhan.Tools.CreateLevel.ViewModels
@@ -50,6 +48,12 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
         [ObservableProperty]
         private ObservableCollection<ExistingLevelInfo> _existingLevels = new ObservableCollection<ExistingLevelInfo>();
 
+        [ObservableProperty]
+        private ObservableCollection<TemplateLevelItem> _templateLevels = new ObservableCollection<TemplateLevelItem>();
+
+        [ObservableProperty]
+        private TemplateLevelItem _selectedTemplateLevel;
+
         public CreateLevelViewModel(CreateLevelHandler handler, Document doc)
         {
             _handler = handler;
@@ -74,6 +78,8 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
         private void LoadExistingLevels()
         {
             ExistingLevels.Clear();
+            TemplateLevels.Clear();
+
             var levels = new FilteredElementCollector(_doc)
                 .OfClass(typeof(Level))
                 .Cast<Level>()
@@ -82,11 +88,23 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
             foreach (var l in levels)
             {
+                double elevMm = Math.Round(l.Elevation * 304.8, 1);
                 ExistingLevels.Add(new ExistingLevelInfo
                 {
                     Name = l.Name,
-                    Elevation = Math.Round(l.Elevation * 304.8, 1) // feet to mm
+                    Elevation = elevMm
                 });
+
+                TemplateLevels.Add(new TemplateLevelItem
+                {
+                    Name = $"{l.Name} ({elevMm:F0} mm)",
+                    Id = l.Id
+                });
+            }
+
+            if (TemplateLevels.Any())
+            {
+                SelectedTemplateLevel = TemplateLevels.First();
             }
         }
 
@@ -109,7 +127,9 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
             }
             catch (Exception ex)
             {
-                StatusMessage = "Error browsing file: " + ex.Message;
+                string msg = GetFullExceptionMessage(ex);
+                StatusMessage = msg;
+                System.Windows.MessageBox.Show(msg, "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -121,15 +141,12 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
             try
             {
-                using (var fs = new FileStream(ExcelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                // Use SimpleExcelReader (built-in .NET, no ClosedXML)
+                var sheetNames = SimpleExcelReader.GetSheetNames(ExcelFilePath);
+
+                foreach (var name in sheetNames)
                 {
-                    using (var wb = new XLWorkbook(fs))
-                    {
-                        foreach (var ws in wb.Worksheets)
-                        {
-                            Worksheets.Add(ws.Name);
-                        }
-                    }
+                    Worksheets.Add(name);
                 }
 
                 if (Worksheets.Any())
@@ -143,7 +160,9 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
             }
             catch (Exception ex)
             {
-                StatusMessage = "Error reading Excel: " + ex.Message;
+                string msg = GetFullExceptionMessage(ex);
+                StatusMessage = msg;
+                System.Windows.MessageBox.Show(msg, "Error Loading Excel", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -159,96 +178,46 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
             try
             {
-                using (var fs = new FileStream(ExcelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                // Use SimpleExcelReader (built-in .NET, no ClosedXML)
+                var rawData = SimpleExcelReader.ReadLevelData(ExcelFilePath, SelectedWorksheet);
+
+                if (rawData.Count == 0)
                 {
-                    using (var wb = new XLWorkbook(fs))
+                    StatusMessage = "No level data found in the worksheet.";
+                    return;
+                }
+
+                // Calculate cumulative elevation
+                // GROUND (first level) = elevation 0
+                // Each subsequent level = previous elevation + previous floor height
+                double cumulativeElevation = 0;
+
+                for (int i = 0; i < rawData.Count; i++)
+                {
+                    var item = rawData[i];
+                    var levelData = new LevelData
                     {
-                        var ws = wb.Worksheet(SelectedWorksheet);
-                        if (ws == null)
-                        {
-                            StatusMessage = "Worksheet not found.";
-                            return;
-                        }
+                        Name = item.name,
+                        FloorHeight = item.height ?? 0,
+                        Elevation = cumulativeElevation,
+                        IsSelected = true
+                    };
 
-                        var range = ws.RangeUsed();
-                        if (range == null)
-                        {
-                            StatusMessage = "Worksheet is empty.";
-                            return;
-                        }
+                    LevelDataList.Add(levelData);
 
-                        int firstRow = range.FirstRow().RowNumber();
-                        int lastRow = range.LastRow().RowNumber();
-
-                        // Read data: Column A = Name, Column B = Floor height (mm)
-                        var rawData = new List<(string name, double? height)>();
-
-                        for (int r = firstRow; r <= lastRow; r++)
-                        {
-                            var nameCell = ws.Cell(r, 1);
-                            string name = nameCell.IsEmpty() ? null : nameCell.GetFormattedString()?.Trim();
-                            if (string.IsNullOrEmpty(name)) continue;
-
-                            double? height = null;
-                            var heightCell = ws.Cell(r, 2);
-                            if (!heightCell.IsEmpty())
-                            {
-                                if (heightCell.TryGetValue(out double h))
-                                {
-                                    height = h;
-                                }
-                                else
-                                {
-                                    string hStr = heightCell.GetFormattedString()?.Trim();
-                                    if (!string.IsNullOrEmpty(hStr) && double.TryParse(hStr, out double parsed))
-                                    {
-                                        height = parsed;
-                                    }
-                                }
-                            }
-
-                            rawData.Add((name, height));
-                        }
-
-                        if (rawData.Count == 0)
-                        {
-                            StatusMessage = "No level data found in the worksheet.";
-                            return;
-                        }
-
-                        // Calculate cumulative elevation
-                        // GROUND (first level) = elevation 0
-                        // Each subsequent level = previous elevation + previous floor height
-                        double cumulativeElevation = 0;
-
-                        for (int i = 0; i < rawData.Count; i++)
-                        {
-                            var item = rawData[i];
-                            var levelData = new LevelData
-                            {
-                                Name = item.name,
-                                FloorHeight = item.height ?? 0,
-                                Elevation = cumulativeElevation,
-                                IsSelected = true
-                            };
-
-                            LevelDataList.Add(levelData);
-
-                            // Add this level's floor height for the next level
-                            if (item.height.HasValue)
-                            {
-                                cumulativeElevation += item.height.Value;
-                            }
-                        }
-
-                        UpdateSummary();
-                        StatusMessage = $"Loaded {LevelDataList.Count} levels from Excel.";
+                    if (item.height.HasValue)
+                    {
+                        cumulativeElevation += item.height.Value;
                     }
                 }
+
+                UpdateSummary();
+                StatusMessage = $"Loaded {LevelDataList.Count} levels from Excel.";
             }
             catch (Exception ex)
             {
-                StatusMessage = "Error loading data: " + ex.Message;
+                string msg = GetFullExceptionMessage(ex);
+                StatusMessage = msg;
             }
         }
 
@@ -287,6 +256,7 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
                 _handler.LevelsToCreate = selected;
                 _handler.DeleteExistingLevels = DeleteExistingLevels;
+                _handler.TemplateLevelId = SelectedTemplateLevel?.Id;
                 _externalEvent.Raise();
 
                 StatusMessage = "Creating levels...";
@@ -322,11 +292,29 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
             }
             catch { }
         }
+
+        private static string GetFullExceptionMessage(Exception ex)
+        {
+            string msg = ex.GetType().Name + ": " + ex.Message;
+            var inner = ex.InnerException;
+            while (inner != null)
+            {
+                msg += "\n→ " + inner.GetType().Name + ": " + inner.Message;
+                inner = inner.InnerException;
+            }
+            return msg;
+        }
     }
 
     public class ExistingLevelInfo
     {
         public string Name { get; set; }
         public double Elevation { get; set; }
+    }
+
+    public class TemplateLevelItem
+    {
+        public string Name { get; set; }
+        public Autodesk.Revit.DB.ElementId Id { get; set; }
     }
 }
