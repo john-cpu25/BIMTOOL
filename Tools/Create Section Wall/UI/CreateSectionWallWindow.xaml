@@ -1,0 +1,103 @@
+<Window x:Class="RincoNhan.Tools.CreateSectionWall.UI.CreateSectionWallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Create Section Wall" Height="400" Width="400"
+        WindowStartupLocation="CenterScreen" Background="#F8FAFC"
+        Foreground="#1E293B" FontFamily="Segoe UI"
+        Topmost="True">
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="SECTION CREATOR" FontSize="18" FontWeight="Bold" Foreground="#1E3A8A"/>
+            <TextBlock Text="Generate sections parallel to walls." Foreground="#64748B" FontSize="12" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="15">
+            <StackPanel>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Height (mm):" VerticalAlignment="Center" Foreground="#475569" FontWeight="SemiBold"/>
+                    <TextBox Grid.Column="1" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Offset (mm):" VerticalAlignment="Center" Foreground="#475569" FontWeight="SemiBold"/>
+                    <TextBox Grid.Column="1" Text="{Binding Offset, UpdateSourceTrigger=PropertyChanged}" ToolTip="Extra width added to the wall thickness."/>
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,15">
+                    <CheckBox Content="Flip Direction" IsChecked="{Binding FlipDirection}" Foreground="#475569" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,30,0"/>
+                    <RadioButton Content="CW." IsChecked="{Binding IsCWSelected}" Foreground="#475569" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                    <RadioButton Content="W." IsChecked="{Binding IsWSelected}" Foreground="#475569" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Button Grid.Row="2" Command="{Binding PickAndCreateCommand}" Style="{StaticResource PrimaryButton}" 
+                Content="Pick Walls &amp; Create Sections" Margin="0,15,0,15"/>
+
+        <!-- Status -->
+        <Border Grid.Row="3" Padding="10" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="6">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="ℹ" Foreground="#0284C7" FontWeight="Bold" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#0369A1" FontWeight="Medium" FontSize="12"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

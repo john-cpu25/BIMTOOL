@@ -1,0 +1,307 @@
+<Window x:Class="RincoNhan.Tools.WallDivide.UI.WallDivideWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Wall Divide Tool" Height="650" Width="900"
+        WindowStartupLocation="CenterScreen" Background="#FFFFFF"
+        Foreground="#1F2937" FontFamily="Segoe UI">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Foreground" Value="#1F2937"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="Auto"/> <!-- Global Toolbar -->
+            <RowDefinition Height="*"/>    <!-- Main Content -->
+            <RowDefinition Height="Auto"/> <!-- Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="WALL TOOLBOX" FontSize="24" FontWeight="Bold" Foreground="#1E3A8A"/>
+            <TextBlock Text="Advanced management for Precast Walls and Soffit offsets." Foreground="#64748B" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Global Toolbar -->
+        <Border Grid.Row="1" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12" CornerRadius="8" Margin="0,0,0,20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <Button Command="{Binding PickGroupCommand}" Style="{StaticResource PrimaryButton}" Content="📁 Pick Group" Width="130"/>
+                <Button Grid.Column="1" Command="{Binding PickWallsCommand}" Style="{StaticResource SecondaryButton}" Content="🧱 Pick Walls" Width="130" Margin="10,0,0,0"/>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0" Visibility="{Binding HasGroup, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Source: " FontWeight="SemiBold" Foreground="#475569"/>
+                    <TextBlock Text="{Binding GroupName}" Foreground="#2563EB" FontWeight="Bold"/>
+                    <TextBlock Text=" (" Foreground="#94A3B8"/>
+                    <TextBlock Text="{Binding WallCountText}" Foreground="#64748B"/>
+                    <TextBlock Text=")" Foreground="#94A3B8"/>
+                </StackPanel>
+                
+                <Button Grid.Column="3" Command="{Binding HighlightCommand}" Style="{StaticResource SecondaryButton}" Content="✨ Highlight Selection" Width="160"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content (Tabs + Grid) -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="320"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side: Wall List (Visible always when has walls) -->
+            <Grid Grid.Column="0" Margin="0,0,15,0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasWalls}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                
+                <DataGrid ItemsSource="{Binding WallItems}" AutoGenerateColumns="False" CanUserAddRows="False" 
+                          Background="White" BorderBrush="#E2E8F0" BorderThickness="1" RowHeaderWidth="0"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9" SelectionUnit="FullRow">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="40">
+                            <DataGridTemplateColumn.Header>
+                                <CheckBox IsChecked="{Binding DataContext.IsSelectAll, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        
+                        <DataGridTextColumn Header="ID" Binding="{Binding IdString}" Width="80" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Type Name" Binding="{Binding TypeName}" Width="*" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Wt (T)" Binding="{Binding Weight}" Width="60" IsReadOnly="True"/>
+                        
+                        <DataGridTemplateColumn Header="Parts" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding SelectedParts, UpdateSourceTrigger=PropertyChanged}" 
+                                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="22" FontSize="11"
+                                             IsEnabled="{Binding IsInGroup, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Status" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding StatusIcon}" ToolTip="{Binding ToolTip}" 
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="14" FontWeight="Bold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <Trigger Property="Text" Value="✓"> <Setter Property="Foreground" Value="#10B981"/> </Trigger>
+                                                    <Trigger Property="Text" Value="×"> <Setter Property="Foreground" Value="#EF4444"/> </Trigger>
+                                                    <Trigger Property="Text" Value="🔒"> <Setter Property="Foreground" Value="#64748B"/> </Trigger>
+                                                    <DataTrigger Binding="{Binding IsInGroup}" Value="True">
+                                                        <Setter Property="Foreground" Value="#F59E0B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <!-- Right Side: Action Tabs -->
+            <TabControl Grid.Column="1" Background="Transparent" BorderThickness="0">
+                <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Padding" Value="10,8"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border Name="Border" BorderThickness="0,0,0,2" Margin="0,0,10,10">
+                                        <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                        ContentSource="Header" Margin="{TemplateBinding Padding}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="#2563EB"/>
+                                            <Setter Property="Foreground" Value="#2563EB"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="False">
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="#64748B"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TabControl.Resources>
+
+                <!-- Tab 1: Wall Divide -->
+                <TabItem Header="✂ DIVIDE">
+                    <Border Background="#F8FAFC" CornerRadius="8" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="WEIGHT-BASED DIVISION" FontWeight="Bold" FontSize="14" Foreground="#1E293B" Margin="0,0,0,15"/>
+                            
+                            <!-- Conditions -->
+                            <Border Background="#FEFCE8" BorderBrush="#FEF08A" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,20">
+                                <StackPanel>
+                                    <TextBlock Text="Threshold: 15 Tons" FontWeight="SemiBold" Foreground="#854D0E" Margin="0,0,0,8"/>
+                                    <TextBlock Text="Walls exceeding this limit will be split into multiple panels automatically." FontSize="11" Foreground="#A16207" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="Action:" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <Button Command="{Binding DivideCommand}" IsEnabled="{Binding IsDivideAllowed}" Height="45"
+                                    Style="{StaticResource PrimaryButton}" Content="Execute Division"/>
+                            
+                            <TextBlock Text="* Cannot divide walls in groups." FontSize="11" Foreground="#EF4444" Margin="0,10,0,0" 
+                                     Visibility="{Binding IsDivideAllowed, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"/>
+                        </StackPanel>
+                    </Border>
+                </TabItem>
+
+                <!-- Tab 2: Soffit Offset -->
+                <TabItem Header="📐 SOFFIT">
+                    <Border Background="#F0FDF4" CornerRadius="8" Padding="15" BorderBrush="#DCFCE7" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="WALL UNDER SLAB SOFFIT" FontWeight="Bold" FontSize="14" Foreground="#166534" Margin="0,0,0,15"/>
+                            
+                            <Button Command="{Binding PickFloorCommand}" Style="{StaticResource SecondaryButton}" 
+                                    Content="🔍 Pick Reference Floor" Height="40" Margin="0,0,0,15"/>
+
+                            <Border Background="White" CornerRadius="6" Padding="12" BorderBrush="#DCFCE7" BorderThickness="1" Margin="0,0,0,20">
+                                <StackPanel>
+                                    <TextBlock Text="Selected Floor:" FontSize="11" Foreground="#15803D" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding FloorName}" FontWeight="Bold" Margin="0,2" Visibility="{Binding HasFloor, Converter={StaticResource BoolToVis}}"/>
+                                    <TextBlock Text="No floor selected" Foreground="#94A3B8" FontStyle="Italic" Visibility="{Binding HasFloor, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"/>
+                                    
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding HasFloor, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Thickness: " Foreground="#15803D"/>
+                                        <TextBlock Text="{Binding FloorThickness, StringFormat={}{0:F0}mm}" FontWeight="Bold" Foreground="#166534"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Button Command="{Binding ApplyTopOffsetCommand}" IsEnabled="{Binding HasFloor}" Height="45"
+                                    Background="#10B981" Foreground="White" BorderThickness="0" Cursor="Hand" FontWeight="Bold">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Apply Top Offset"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </TabItem>
+
+                <!-- Tab 3: Join Control -->
+                <TabItem Header="🔒 JOIN">
+                    <Border Background="#FFF7ED" CornerRadius="8" Padding="15" BorderBrush="#FFEDD5" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="DISALLOW WALL JOIN" FontWeight="Bold" FontSize="14" Foreground="#9A3412" Margin="0,0,0,15"/>
+                            
+                            <TextBlock Text="Prevent walls from automatically joining with neighbors at both ends." FontSize="12" Foreground="#C2410C" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                            <Button Command="{Binding DisallowJoinCommand}" Height="45"
+                                    Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand" FontWeight="Bold">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <TextBlock Text="Disable Join for Selected"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </TabItem>
+            </TabControl>
+
+            <!-- Empty State -->
+            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#F8FAFC" CornerRadius="8" Margin="0,0,0,0" Panel.ZIndex="100">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasGroup}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="⚡" FontSize="48" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Get started by picking a Group or individual Walls." Foreground="#64748B" FontSize="15" FontWeight="Medium" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <!-- Status Bar -->
+        <Border Grid.Row="3" Margin="0,20,0,0" Padding="12" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="6"
+                Visibility="{Binding StatusMessage, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="ℹ" Foreground="#0284C7" FontWeight="Bold" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#0369A1" FontWeight="Medium"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

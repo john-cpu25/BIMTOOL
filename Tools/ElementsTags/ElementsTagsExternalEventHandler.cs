@@ -1,0 +1,712 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+
+namespace RincoNhan.Tools.ElementsTags
+{
+    public class ElementsTagsExternalEventHandler : IExternalEventHandler
+    {
+        public string Action { get; set; }
+        public List<ViewModels.CategoryItemViewModel> SelectedCategories { get; set; }
+        public bool AddLeader { get; set; }
+        public bool OnlyUntagged { get; set; }
+        public Action<string> NotifyStatus { get; set; }
+        public Action<List<ViewModels.ErrorItemViewModel>> ReportErrors { get; set; }
+        public ElementId ElementIdToShow { get; set; }
+
+        // Session-level set: tracks tag IDs that had leaders auto-added by the tool (no leader originally)
+        private readonly HashSet<ElementId> _autoAddedLeaderTagIds = new HashSet<ElementId>();
+
+        public void Execute(UIApplication app)
+        {
+            Document doc = app.ActiveUIDocument.Document;
+            View view = doc.ActiveView;
+
+            using (Transaction trans = new Transaction(doc, "Elements Tags Operation"))
+            {
+                trans.Start();
+
+                try
+                {
+                    if (Action == "TagAll")
+                    {
+                        TagAll(doc, view);
+                    }
+                    else if (Action == "CheckTag2D")
+                    {
+                        CheckOrFixTags(doc, view, checkOnly: true);
+                    }
+                    else if (Action == "ClashTag")
+                    {
+                        CheckClashTags(doc, view);
+                    }
+                    else if (Action == "ResetAll")
+                    {
+                        ResetOverrides(doc, view, "All");
+                    }
+                    else if (Action == "ShowElement" && ElementIdToShow != null)
+                    {
+                        app.ActiveUIDocument.Selection.SetElementIds(new List<ElementId> { ElementIdToShow });
+                        app.ActiveUIDocument.ShowElements(ElementIdToShow);
+                    }
+
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    trans.RollBack();
+                    NotifyStatus?.Invoke("Error: " + ex.Message);
+                }
+            }
+        }
+
+        private void TagAll(Document doc, View view)
+        {
+            if (SelectedCategories == null || !SelectedCategories.Any())
+            {
+                NotifyStatus?.Invoke("Please select at least one category to tag.");
+                return;
+            }
+
+            int totalCount = 0;
+            var collector = new RevitDataCollector(doc, view);
+
+            // Calculate Cut Plane elevation for view filtering
+            double? cutPlaneElevation = null;
+            if (view is ViewPlan viewPlan)
+            {
+                try
+                {
+                    PlanViewRange range = viewPlan.GetViewRange();
+                    ElementId levelId = range.GetLevelId(PlanViewPlane.CutPlane);
+                    double offset = range.GetOffset(PlanViewPlane.CutPlane);
+                    Level level = doc.GetElement(levelId) as Level;
+                    if (level != null)
+                    {
+                        cutPlaneElevation = level.Elevation + offset;
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var item in SelectedCategories)
+            {
+                var elementsToTag = collector.GetUntaggedElements(item.Category);
+                
+                int count = 0;
+                foreach (var elem in elementsToTag)
+                {
+                    try
+                    {
+                        // USER REQUIREMENT: Filter Walls and Columns by Cut Plane
+                        if (cutPlaneElevation.HasValue && IsVerticalCategory(elem.Category))
+                        {
+                            BoundingBoxXYZ bbox = elem.get_BoundingBox(null);
+                            if (bbox != null)
+                            {
+                                // Check if Cut Plane is between Min.Z and Max.Z
+                                if (cutPlaneElevation < bbox.Min.Z || cutPlaneElevation > bbox.Max.Z)
+                                {
+                                    continue; // Skip if not cut
+                                }
+                            }
+                        }
+
+                        XYZ point = GetElementCenter(elem, view);
+                        if (point == null) continue;
+
+                        Reference hostRef = new Reference(elem);
+                        IndependentTag tag = IndependentTag.Create(doc, item.SelectedTagType.Id, view.Id, hostRef, AddLeader, TagOrientation.Horizontal, point);
+                        
+                        if (tag != null) count++;
+                    }
+                    catch { }
+                }
+                totalCount += count;
+            }
+
+            NotifyStatus?.Invoke($"Tagged {totalCount} elements across {SelectedCategories.Count} categories.");
+        }
+
+        private bool IsVerticalCategory(Category category)
+        {
+            if (category == null) return false;
+            int bic = category.Id.IntegerValue;
+            return bic == (int)BuiltInCategory.OST_Walls || 
+                   bic == (int)BuiltInCategory.OST_Columns || 
+                   bic == (int)BuiltInCategory.OST_StructuralColumns;
+        }
+
+        private void CheckOrFixTags(Document doc, View view, bool checkOnly)
+        {
+            // Get all tags in view
+            var tagsArr = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(IndependentTag))
+                .Cast<IndependentTag>()
+                .ToList();
+
+            int warningCount = 0;
+            var errorList = new List<ViewModels.ErrorItemViewModel>();
+
+            var selectedCatIds = new HashSet<int>();
+            if (SelectedCategories != null)
+            {
+                foreach (var cat in SelectedCategories)
+                {
+                    selectedCatIds.Add(cat.Category.Id.IntegerValue);
+                }
+            }
+
+            foreach (var tag in tagsArr)
+            {
+
+
+                // Resolve Host Element (handle Link instances)
+                Element currentHost = null;
+                Transform linkTransform = Transform.Identity;
+                
+                var refs = tag.GetTaggedReferences();
+                if (refs.Any())
+                {
+                    Reference r = refs.First();
+                    Element localElem = doc.GetElement(r.ElementId);
+                    if (localElem is RevitLinkInstance linkInst)
+                    {
+                        Document linkDoc = linkInst.GetLinkDocument();
+                        if (linkDoc != null) 
+                        {
+                            currentHost = linkDoc.GetElement(r.LinkedElementId);
+                            linkTransform = linkInst.GetTotalTransform();
+                        }
+                    }
+                    else
+                    {
+                        currentHost = localElem;
+                    }
+                }
+                else
+                {
+                    // SMART RE-HOST: If orphaned, try to find the nearest host
+                    currentHost = FindNearestHost(doc, view, tag, selectedCatIds);
+                    if (currentHost != null)
+                    {
+                        // Save properties from old tag
+                        ElementId symbolId = tag.GetTypeId();
+                        TagOrientation orientation = tag.TagOrientation;
+                        XYZ headPos = tag.TagHeadPosition;
+                        bool hasLeader = tag.HasLeader;
+                        
+                        // Create NEW tag with identified host
+                        IndependentTag newTag = IndependentTag.Create(doc, symbolId, view.Id, new Reference(currentHost), hasLeader, orientation, headPos);
+                        
+                        // Delete old orphaned tag
+                        doc.Delete(tag.Id);
+                        
+                        // Switch current processing to the new tag so overrides/checks continue
+                        var oldTag = tag;
+                        // Since tag is the loop variable, we can't reassignment it in a FOREACH.
+                        // We will just report success and skip the rest of this check for this specific tag
+                        // because the new tag will be caught next time or doesn't need immediate re-overriding.
+                        warningCount++;
+                        continue; 
+                    }
+                }
+
+                if (currentHost == null || currentHost.Category == null) continue;
+
+                // Only check tags of selected categories
+                if (!selectedCatIds.Contains(currentHost.Category.Id.IntegerValue)) continue;
+
+                bool isVerticalCat = false;
+                if (currentHost.Category != null)
+                {
+                    int bic = currentHost.Category.Id.IntegerValue;
+                    if (bic == (int)BuiltInCategory.OST_Walls ||
+                        bic == (int)BuiltInCategory.OST_Columns ||
+                        bic == (int)BuiltInCategory.OST_StructuralColumns ||
+                        bic == (int)BuiltInCategory.OST_StructuralFoundation)
+                    {
+                        isVerticalCat = true;
+                    }
+                }
+
+                // Capture original leader state BEFORE any modification
+                bool originallyHadLeader = tag.HasLeader;
+
+                // --- AUTO-ADD ATTACHED LEADER if tag has no leader (vertical cat) ---
+                // Step 1: Set Attached → Revit auto-snaps leader end onto the element surface
+                // Step 2: Convert to Free End → "freezes" that snapped point so GetLeaderEnd() can read it
+                if (!originallyHadLeader && isVerticalCat)
+                {
+                    tag.HasLeader = true;
+                    tag.LeaderEndCondition = LeaderEndCondition.Attached;
+                    tag.LeaderEndCondition = LeaderEndCondition.Free; // Freeze the snapped point
+                    _autoAddedLeaderTagIds.Add(tag.Id);
+                }
+
+                // --- GET LEADER END POINT ---
+                // For Free End Leader (including auto-converted): GetLeaderEnd() reliably returns the touch point.
+                // For Attached Leader (original): GetLeaderEnd() may throw; fallback to deprecated LeaderEnd.
+                XYZ leaderEndPoint = null;
+                if (tag.HasLeader)
+                {
+                    try
+                    {
+                        var refsCol = tag.GetTaggedReferences();
+                        if (refsCol.Any()) leaderEndPoint = tag.GetLeaderEnd(refsCol.First());
+                    }
+                    catch
+                    {
+#if !NETCOREAPP
+                        try { leaderEndPoint = tag.LeaderEnd; } catch { }
+#endif
+                    }
+                }
+
+                // --- VALIDATE ---
+                bool isValid = true;
+
+                if (tag.HasLeader)
+                {
+                    // Both Attached and Free leader: leader end must touch the element.
+                    // For Attached: Revit guarantees it touches → if GetLeaderEnd succeeded, verify; if not, trust Revit.
+                    if (leaderEndPoint != null)
+                    {
+                        XYZ evalPoint = linkTransform.IsIdentity ? leaderEndPoint : linkTransform.Inverse.OfPoint(leaderEndPoint);
+
+                        if (currentHost is Floor floorL)
+                        {
+                            isValid = IsPointInFloorBoundary(floorL, evalPoint, view);
+                        }
+                        else
+                        {
+                            double tol = 0.5; // Leader end must be close to the element
+                            BoundingBoxXYZ bbox = currentHost.get_BoundingBox(null);
+                            if (bbox != null)
+                            {
+                                var min = bbox.Min - new XYZ(tol, tol, 0.1);
+                                var max = bbox.Max + new XYZ(tol, tol, 0.1);
+                                if (evalPoint.X < min.X || evalPoint.X > max.X ||
+                                    evalPoint.Y < min.Y || evalPoint.Y > max.Y)
+                                {
+                                    isValid = false;
+                                }
+                            }
+                        }
+                    }
+                    else if (originallyHadLeader && tag.LeaderEndCondition == LeaderEndCondition.Attached)
+                    {
+                        // GetLeaderEnd failed for Attached Leader → Revit guarantees it touches, accept as valid.
+                        isValid = true;
+                    }
+                    else
+                    {
+                        // GetLeaderEnd failed for Free End Leader → cannot verify, mark as invalid.
+                        isValid = false;
+                    }
+                }
+                else
+                {
+                    // No leader (non-vertical cat): check tag head position against element
+                    XYZ headPos = tag.TagHeadPosition;
+                    XYZ evalHead = linkTransform.IsIdentity ? headPos : linkTransform.Inverse.OfPoint(headPos);
+
+                    if (currentHost is Floor floorN)
+                    {
+                        isValid = IsPointInFloorBoundary(floorN, evalHead, view);
+                    }
+                    else
+                    {
+                        BoundingBoxXYZ bbox = currentHost.get_BoundingBox(null);
+                        if (bbox != null)
+                        {
+                            var min = bbox.Min - new XYZ(0.1, 0.1, 0.1);
+                            var max = bbox.Max + new XYZ(0.1, 0.1, 0.1);
+                            if (evalHead.X < min.X || evalHead.X > max.X ||
+                                evalHead.Y < min.Y || evalHead.Y > max.Y)
+                            {
+                                isValid = false;
+                            }
+                        }
+                    }
+                }
+
+                if (!isValid)
+                {
+                    Color highlightColor = new Color(255, 0, 0);
+                    var matchingCat = SelectedCategories?.FirstOrDefault(c => c.Category.Id.IntegerValue == currentHost.Category.Id.IntegerValue);
+                    if (matchingCat != null) highlightColor = matchingCat.OverrideColor;
+
+                    OverrideGraphicSettings settings = new OverrideGraphicSettings();
+                    settings.SetProjectionLineColor(highlightColor);
+
+                    view.SetElementOverrides(tag.Id, settings);
+                    warningCount++;
+
+
+                    errorList.Add(new ViewModels.ErrorItemViewModel 
+                    {
+                        ElementId = tag.Id,
+#if NETCOREAPP
+                        IdValue = currentHost.Id.Value.ToString(),
+#else
+                        IdValue = currentHost.Id.IntegerValue.ToString(),
+#endif
+                        Category = currentHost.Category?.Name ?? "Unknown",
+                        ErrorType = "Misplaced Tag"
+                    });
+                }
+                else
+                {
+                    view.SetElementOverrides(tag.Id, new OverrideGraphicSettings());
+                }
+            }
+
+            ReportErrors?.Invoke(errorList);
+            NotifyStatus?.Invoke($"Found {warningCount} misplaced tags (Red).");
+        }
+
+        private void ResetOverrides(Document doc, View view, string target)
+        {
+            var selectedCatIds = SelectedCategories?.Select(c => c.Category.Id).ToList() ?? new List<ElementId>();
+
+            if (target == "Tags" || target == "All")
+            {
+                var tags = new FilteredElementCollector(doc, view.Id)
+                    .OfClass(typeof(IndependentTag))
+                    .Cast<IndependentTag>()
+                    .ToList();
+
+                foreach (var tag in tags)
+                {
+                    if (selectedCatIds.Any())
+                    {
+                        // Resolve Host (support Links)
+                        Element host = null;
+                        var rCol = tag.GetTaggedReferences();
+                        if (rCol.Any())
+                        {
+                            Reference r = rCol.First();
+                            Element localElem = doc.GetElement(r.ElementId);
+                            if (localElem is RevitLinkInstance linkInst)
+                            {
+                                Document linkDoc = linkInst.GetLinkDocument();
+                                if (linkDoc != null) host = linkDoc.GetElement(r.LinkedElementId);
+                            }
+                            else host = localElem;
+                        }
+
+                        if (host == null || host.Category == null || !selectedCatIds.Contains(host.Category.Id))
+                        {
+                            continue;
+                        }
+
+                        // Only remove leaders that were AUTO-ADDED by the tool (tracked during check)
+                        if (_autoAddedLeaderTagIds.Contains(tag.Id))
+                        {
+                            tag.HasLeader = false;
+                        }
+                    }
+                    view.SetElementOverrides(tag.Id, new OverrideGraphicSettings());
+                }
+                _autoAddedLeaderTagIds.Clear();
+            }
+
+            if (target == "Floors" || target == "All")
+            {
+                if (selectedCatIds.Any())
+                {
+                    foreach (var catId in selectedCatIds)
+                    {
+                        var elements = new FilteredElementCollector(doc, view.Id)
+                            .OfCategoryId(catId)
+                            .WhereElementIsNotElementType()
+                            .ToList();
+
+                        foreach (var elem in elements)
+                        {
+                            view.SetElementOverrides(elem.Id, new OverrideGraphicSettings());
+                        }
+                    }
+                }
+            }
+
+            NotifyStatus?.Invoke($"All {target.ToLower()} overrides have been reset.");
+        }
+
+        private void CheckClashTags(Document doc, View view)
+        {
+            var selectedCatIds = SelectedCategories?.Select(c => c.Category.Id.IntegerValue).ToHashSet() ?? new HashSet<int>();
+            
+            var allTags = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(IndependentTag))
+                .Cast<IndependentTag>()
+                .Where(t => {
+                    var hostId = t.GetTaggedLocalElementIds().FirstOrDefault();
+                    if (hostId == null) return false;
+                    var host = doc.GetElement(hostId);
+                    return host != null && host.Category != null && selectedCatIds.Contains(host.Category.Id.IntegerValue);
+                })
+                .ToList();
+
+            var other2D = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(TextNote))
+                .Cast<TextNote>()
+                .ToList();
+
+            var errorList = new List<ViewModels.ErrorItemViewModel>();
+            int clashCount = 0;
+            Color orange = new Color(255, 165, 0);
+            OverrideGraphicSettings orangeSettings = new OverrideGraphicSettings();
+            orangeSettings.SetProjectionLineColor(orange);
+
+            for (int i = 0; i < allTags.Count; i++)
+            {
+                var tag1 = allTags[i];
+                BoundingBoxXYZ bbox1 = tag1.get_BoundingBox(view);
+                if (bbox1 == null) continue;
+
+                bool clashing = false;
+
+                // Check vs other tags
+                for (int j = 0; j < allTags.Count; j++)
+                {
+                    if (i == j) continue;
+                    var tag2 = allTags[j];
+                    BoundingBoxXYZ bbox2 = tag2.get_BoundingBox(view);
+                    if (bbox2 != null && Intersects(bbox1, bbox2))
+                    {
+                        clashing = true;
+                        break;
+                    }
+                }
+
+                // Check vs TextNotes
+                if (!clashing)
+                {
+                    foreach (var tn in other2D)
+                    {
+                        BoundingBoxXYZ bboxTn = tn.get_BoundingBox(view);
+                        if (bboxTn != null && Intersects(bbox1, bboxTn))
+                        {
+                            clashing = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (clashing)
+                {
+                    view.SetElementOverrides(tag1.Id, orangeSettings);
+                    clashCount++;
+                    errorList.Add(new ViewModels.ErrorItemViewModel 
+                    {
+                        ElementId = tag1.Id,
+                        IdValue = tag1.Id.IntegerValue.ToString(),
+                        Category = "Tag",
+                        ErrorType = "Clash"
+                    });
+                }
+                else
+                {
+                    view.SetElementOverrides(tag1.Id, new OverrideGraphicSettings());
+                }
+            }
+
+            ReportErrors?.Invoke(errorList);
+            NotifyStatus?.Invoke($"Found {clashCount} clashing tags (Orange).");
+        }
+
+        private bool Intersects(BoundingBoxXYZ b1, BoundingBoxXYZ b2)
+        {
+            return b1.Min.X < b2.Max.X && b1.Max.X > b2.Min.X &&
+                   b1.Min.Y < b2.Max.Y && b1.Max.Y > b2.Min.Y;
+        }
+
+        private void CheckUntaggedFloors(Document doc, View view)
+        {
+            if (SelectedCategories == null || !SelectedCategories.Any())
+            {
+                NotifyStatus?.Invoke("Please select at least one category to check.");
+                return;
+            }
+
+            var tags = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(IndependentTag))
+                .Cast<IndependentTag>()
+                .ToList();
+
+            var taggedElementIds = new HashSet<ElementId>();
+            foreach (var tag in tags)
+            {
+                var hostIds = tag.GetTaggedLocalElementIds();
+                foreach (var hostId in hostIds)
+                {
+                    taggedElementIds.Add(hostId);
+                }
+            }
+
+            ElementId solidFillPatternId = new FilteredElementCollector(doc)
+                .OfClass(typeof(FillPatternElement))
+                .Cast<FillPatternElement>()
+                .FirstOrDefault(f => f.GetFillPattern().IsSolidFill)?.Id;
+
+            int warningCount = 0;
+            var errorList = new List<ViewModels.ErrorItemViewModel>();
+            
+            foreach (var item in SelectedCategories)
+            {
+                Color catColor = item.OverrideColor;
+                OverrideGraphicSettings settings = new OverrideGraphicSettings();
+                settings.SetProjectionLineColor(catColor);
+                settings.SetCutLineColor(catColor);
+
+                if (solidFillPatternId != null)
+                {
+                    settings.SetSurfaceForegroundPatternId(solidFillPatternId);
+                    settings.SetSurfaceForegroundPatternColor(catColor);
+                    settings.SetCutForegroundPatternId(solidFillPatternId);
+                    settings.SetCutForegroundPatternColor(catColor);
+                }
+
+                var elements = new FilteredElementCollector(doc, view.Id)
+                    .OfCategoryId(item.Category.Id)
+                    .WhereElementIsNotElementType()
+                    .ToList();
+
+                foreach (var elem in elements)
+                {
+                    if (!taggedElementIds.Contains(elem.Id))
+                    {
+                        view.SetElementOverrides(elem.Id, settings);
+                        warningCount++;
+
+                        errorList.Add(new ViewModels.ErrorItemViewModel 
+                        {
+                            ElementId = elem.Id,
+#if NETCOREAPP
+                            IdValue = elem.Id.Value.ToString(),
+#else
+                            IdValue = elem.Id.IntegerValue.ToString(),
+#endif
+                            Category = item.Category.Name,
+                            ErrorType = "Untagged"
+                        });
+                    }
+                    else
+                    {
+                        view.SetElementOverrides(elem.Id, new OverrideGraphicSettings());
+                    }
+                }
+            }
+
+            ReportErrors?.Invoke(errorList);
+            NotifyStatus?.Invoke($"Found {warningCount} untagged 3D elements (Cyan).");
+        }
+
+        private XYZ GetElementCenter(Element elem, View view)
+        {
+            BoundingBoxXYZ bbox = elem.get_BoundingBox(null);
+            if (bbox == null) return null;
+            return (bbox.Min + bbox.Max) / 2;
+        }
+
+        private bool IsPointInFloorBoundary(Floor floor, XYZ point, View view)
+        {
+            Options opt = new Options { View = view, ComputeReferences = true };
+            GeometryElement geo = floor.get_Geometry(opt);
+
+            foreach (GeometryObject obj in geo)
+            {
+                if (obj is Solid solid && !solid.Faces.IsEmpty)
+                {
+                    if (IsPointInSolidHorizontalProjection(solid, point)) return true;
+                }
+                else if (obj is GeometryInstance instance)
+                {
+                    GeometryElement instGeo = instance.GetInstanceGeometry();
+                    foreach (GeometryObject instObj in instGeo)
+                    {
+                        if (instObj is Solid instSolid && !instSolid.Faces.IsEmpty)
+                        {
+                            if (IsPointInSolidHorizontalProjection(instSolid, point)) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool IsPointInSolidHorizontalProjection(Solid solid, XYZ point)
+        {
+            foreach (Face face in solid.Faces)
+            {
+                if (face is PlanarFace pf)
+                {
+                    // Check mostly horizontal faces (up or down)
+                    if (Math.Abs(pf.FaceNormal.Z) > 0.01)
+                    {
+                        IntersectionResult projectResult = face.Project(point);
+                        if (projectResult != null)
+                        {
+                            // Important: face.IsInside only cares about UV boundaries, regardless of face elevation
+                            if (face.IsInside(projectResult.UVPoint)) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private Element FindNearestHost(Document doc, View view, IndependentTag tag, HashSet<int> categoryIds)
+        {
+            XYZ headPos = tag.TagHeadPosition;
+            double searchRadius = 5.0; // 5 feet
+
+            Outline searchOutline = new Outline(headPos - new XYZ(searchRadius, searchRadius, 0.5), 
+                                               headPos + new XYZ(searchRadius, searchRadius, 0.5));
+            
+            var collector = new FilteredElementCollector(doc, view.Id)
+                .WherePasses(new BoundingBoxIntersectsFilter(searchOutline))
+                .WhereElementIsNotElementType();
+
+            Element nearest = null;
+            double minDistance = double.MaxValue;
+
+            foreach (Element elem in collector)
+            {
+                if (elem.Category == null || !categoryIds.Contains(elem.Category.Id.IntegerValue)) continue;
+
+                BoundingBoxXYZ bbox = elem.get_BoundingBox(null);
+                if (bbox == null) continue;
+                
+                XYZ center = (bbox.Min + bbox.Max) / 2;
+                double dist = headPos.DistanceTo(center);
+
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    nearest = elem;
+                }
+            }
+
+            return nearest;
+        }
+
+        public string GetName() => "ElementsTagsHandler";
+    }
+
+    public static class TagExtensions
+    {
+        public static bool IsTaggingCategory(this IndependentTag tag, ElementId categoryId)
+        {
+            var hostIds = tag.GetTaggedLocalElementIds();
+            if (!hostIds.Any()) return false;
+            var doc = tag.Document;
+            var firstHost = doc.GetElement(hostIds.First());
+            return firstHost != null && firstHost.Category != null && firstHost.Category.Id == categoryId;
+        }
+    }
+}

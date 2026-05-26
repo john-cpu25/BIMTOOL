@@ -1,0 +1,231 @@
+<Window x:Class="RincoNhan.Tools.ImportEXtoLegend.ImportEXtoLegendWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Import Excel to Legend" Height="700" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
+        Background="White">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Modern Style Definitions -->
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+        </Style>
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FDFDFD"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Padding" Value="12"/>
+        </Style>
+
+        <Style TargetType="Button" x:Key="PrimaryButtonStyle">
+            <Setter Property="Background" Value="#2E5C9A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="17"/>
+                </Style>
+            </Style.Resources>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E3C6A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="Button" x:Key="SecondaryButtonStyle" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#388E3C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="Button" x:Key="ToolButtonStyle">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E0E0E0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ExcelDataGridStyle" TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DCDDE1"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+            <Setter Property="GridLinesVisibility" Value="All"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#E0E0E0"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#E0E0E0"/>
+            <Setter Property="HeadersVisibility" Value="All"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="SelectionMode" Value="Extended"/>
+            <Setter Property="SelectionUnit" Value="Cell"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="#F5F7F9">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="340"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Side: Settings Panel -->
+        <Grid Grid.Column="0" Background="White">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Banner Small -->
+            <Grid Grid.Row="0" Height="80">
+                <Image Source="/RincoNhan;component/Resources/excel_to_revit_banner.png" Stretch="UniformToFill"/>
+                <Border Background="#AA000000"/>
+                <TextBlock Text="SETTINGS" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="15">
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="SOURCE EXCEL" Foreground="#2E5C9A" FontWeight="Bold" FontSize="10" Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding ExcelFilePath}" IsReadOnly="True" Height="28" VerticalContentAlignment="Center" Padding="5,0"/>
+                                <Button Content="..." Command="{Binding BrowseCommand}" Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Margin="8,0,0,0" Width="30" Height="28"/>
+                            </Grid>
+                            <TextBlock Text="Sheet:" Margin="0,10,0,4" Foreground="#34495E" FontSize="11"/>
+                            <ComboBox ItemsSource="{Binding Worksheets}" SelectedItem="{Binding SelectedWorksheet}" Height="28" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="REVIT TARGET" Foreground="#2E5C9A" FontWeight="Bold" FontSize="10" Margin="0,0,0,8"/>
+                            <TextBlock Text="Legend View:" Margin="0,0,0,4" Foreground="#34495E" FontSize="11"/>
+                            <ComboBox ItemsSource="{Binding Legends}" SelectedItem="{Binding SelectedLegend}" DisplayMemberPath="Name" Height="28" Margin="0,0,0,10" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="Text Style:" Margin="0,0,0,4" Foreground="#34495E" FontSize="11"/>
+                            <ComboBox ItemsSource="{Binding TextTypes}" SelectedItem="{Binding SelectedTextType}" DisplayMemberPath="Name" Height="28" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="LAYOUT OPTIONS" Foreground="#2E5C9A" FontWeight="Bold" FontSize="10" Margin="0,0,0,8"/>
+                            <TextBlock Text="Row Spacing Multiplier:" Margin="0,0,0,4" Foreground="#34495E" FontSize="11"/>
+                            <ComboBox ItemsSource="{Binding RowSpacings}" SelectedItem="{Binding SelectedRowSpacing}" Height="28" Margin="0,0,0,10" VerticalContentAlignment="Center"/>
+                            
+                            <CheckBox Content="Split If Exceeds Height" IsChecked="{Binding IsSplitEnabled}" Margin="0,5,0,8" FontSize="11" Foreground="#34495E"/>
+                            <StackPanel Visibility="{Binding IsSplitEnabled, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Titleblock Size:" Margin="0,0,0,4" Foreground="#34495E" FontSize="11"/>
+                                <ComboBox ItemsSource="{Binding Titleblocks}" SelectedItem="{Binding SelectedTitleblock}" DisplayMemberPath="Name" Height="28" VerticalContentAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#E74C3C" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" Margin="0,10" MinHeight="24"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Bottom Actions -->
+            <Border Grid.Row="2" Padding="15" Background="#F8FAFC" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0">
+                <StackPanel>
+                    <Button Content="Add To Legend" Command="{Binding ImportCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,10" Height="40" FontSize="14"/>
+                    <Button Content="Reload Existing" Command="{Binding ReloadCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="34" FontSize="12"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Right Side: Interactive Editor -->
+        <Grid Grid.Column="1" Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Editor Header & Toolbar -->
+            <Border Grid.Row="0" Background="White" CornerRadius="8,8,0,0" Padding="12" BorderBrush="#E0E0E0" BorderThickness="1,1,1,0">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="INTERACTIVE EDITOR" Foreground="#2C3E50" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                        
+                        <!-- Toolbar Separator -->
+                        <Border Width="1" Height="24" Background="#E0E0E0" Margin="0,0,10,0"/>
+
+                        <!-- Horizontal Alignment -->
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Align Left" Click="AlignLeft_Click">
+                            <TextBlock Text="⬅️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Align Center" Click="AlignCenter_Click">
+                            <TextBlock Text="⏺️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Align Right" Click="AlignRight_Click">
+                            <TextBlock Text="➡️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+
+                        <!-- Vertical Alignment -->
+                        <Border Width="1" Height="24" Background="#E0E0E0" Margin="5,0,5,0"/>
+                        
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Align Top" Click="AlignTop_Click">
+                            <TextBlock Text="🔼" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Align Middle" Click="AlignMiddle_Click">
+                            <TextBlock Text="⏸️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Align Bottom" Click="AlignBottom_Click">
+                            <TextBlock Text="🔽" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                    </StackPanel>
+                    
+                    <TextBlock Text="Drag headers to resize columns" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#7F8C8D" FontSize="11"/>
+                </Grid>
+            </Border>
+
+            <!-- Grid Content -->
+            <Border Grid.Row="1" Background="White" CornerRadius="0,0,8,8" BorderBrush="#E0E0E0" BorderThickness="1">
+                <DataGrid x:Name="PreviewDataGrid" ItemsSource="{Binding PreviewTable}" 
+                          Style="{StaticResource ExcelDataGridStyle}"
+                          LayoutUpdated="PreviewDataGrid_LayoutUpdated">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Align Left" Click="AlignLeft_Click"/>
+                            <MenuItem Header="Align Center" Click="AlignCenter_Click"/>
+                            <MenuItem Header="Align Right" Click="AlignRight_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Align Top" Click="AlignTop_Click"/>
+                            <MenuItem Header="Align Middle" Click="AlignMiddle_Click"/>
+                            <MenuItem Header="Align Bottom" Click="AlignBottom_Click"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                </DataGrid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,1000 @@
+<Window x:Class="RincoNhan.Tools.RebarColumn.UI.RebarColumnWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Column Rebar 1.1" 
+        Height="780" Width="1020"
+        WindowStartupLocation="CenterScreen"
+        Background="#F8FAFC"
+        FontFamily="Segoe UI, Inter">
+    <Window.Resources>
+        <!-- Custom styled labels -->
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <!-- Form controls styling -->
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="4"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <!-- Dropdown Styling -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Flat TabControl Styling -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <!-- Premium Card Border -->
+        <Style TargetType="Border" x:Key="CardStyle">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <!-- Tab Item Custom ControlTemplate -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Border" BorderThickness="0,0,0,2.5" BorderBrush="Transparent" Padding="16,10" Background="Transparent" SnapsToDevicePixels="True">
+                            <ContentPresenter x:Name="ContentSite" ContentSource="Header" RecognizesAccessKey="True" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter Property="TextElement.Foreground" Value="#1E293B"/>
+                                <Setter Property="TextElement.FontWeight" Value="Bold"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="False">
+                                <Setter Property="TextElement.Foreground" Value="#64748B"/>
+                                <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="TextElement.Foreground" Value="#2563EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============ MAIN TABBED PAGES ============ -->
+        <TabControl Grid.Row="0" Margin="10,10,10,0">
+            <!-- ==================== TAB 1: GEOMETRY & REBAR ==================== -->
+            <TabItem Header="Hình học &amp; Bố trí thép">
+                <Grid Margin="12,12,12,6">
+                    <Grid.ColumnDefinitions>
+                        <!-- Left Pane: Storey Visualizer (Width 280) -->
+                        <ColumnDefinition Width="280"/>
+                        <!-- Middle Pane: Parameters Editor (Width 380) -->
+                        <ColumnDefinition Width="380"/>
+                        <!-- Right Pane: Cross Section Canvas (Width *) -->
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 1. LEFT PANE: STOREY SELECTOR -->
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="Số lượng: 6 Tầng" FontSize="12.5" FontWeight="Bold" Foreground="#DC2626" Margin="0,0,0,12"/>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Grid.IsSharedSizeScope="True">
+                                    <!-- TẦNG 5 -->
+                                    <Grid Height="75">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="▼ TẦNG 5" FontSize="11" FontWeight="Bold" Foreground="#334155"/>
+                                            <TextBlock Text="H = 3600 (mm)" FontSize="10" Foreground="#64748B" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Column="1">
+                                            <Rectangle Fill="#0F766E" Width="10"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <TextBlock Text="S = 400x300" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="4Ø6" FontSize="11" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="#E2E8F0" Margin="0"/>
+
+                                    <!-- TẦNG 4 -->
+                                    <Grid Height="75">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="▼ TẦNG 4" FontSize="11" FontWeight="Bold" Foreground="#334155"/>
+                                            <TextBlock Text="H = 3600 (mm)" FontSize="10" Foreground="#64748B" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Column="1">
+                                            <Rectangle Fill="#0F766E" Width="10"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <TextBlock Text="S = 400x300" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="4Ø6" FontSize="11" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="#E2E8F0" Margin="0"/>
+
+                                    <!-- TẦNG 3 -->
+                                    <Grid Height="75">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="▼ TẦNG 3" FontSize="11" FontWeight="Bold" Foreground="#334155"/>
+                                            <TextBlock Text="H = 3600 (mm)" FontSize="10" Foreground="#64748B" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Column="1">
+                                            <Rectangle Fill="#0F766E" Width="10"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <TextBlock Text="S = 400x300" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="4Ø6" FontSize="11" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="#E2E8F0" Margin="0"/>
+
+                                    <!-- TẦNG 2 -->
+                                    <Grid Height="75">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="▼ TẦNG 2" FontSize="11" FontWeight="Bold" Foreground="#334155"/>
+                                            <TextBlock Text="H = 3600 (mm)" FontSize="10" Foreground="#64748B" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Column="1">
+                                            <Rectangle Fill="#0F766E" Width="10"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <TextBlock Text="S = 400x300" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="4Ø6" FontSize="11" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="#E2E8F0" Margin="0"/>
+
+                                    <!-- TẦNG 1 -->
+                                    <Grid Height="75">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="▼ TẦNG 1" FontSize="11" FontWeight="Bold" Foreground="#334155"/>
+                                            <TextBlock Text="H = 3900 (mm)" FontSize="10" Foreground="#64748B" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Column="1">
+                                            <Rectangle Fill="#0F766E" Width="10"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <TextBlock Text="S = 400x300" FontSize="10" Foreground="#64748B" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="4Ø6" FontSize="11" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="#E2E8F0" Margin="0"/>
+
+                                    <!-- MÓNG (Active Selected Storey) -->
+                                    <Grid Height="85">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="▼ MÓNG" FontSize="11.5" FontWeight="Bold" Foreground="#DC2626"/>
+                                            <TextBlock Text="{Binding ColumnHeight, StringFormat='H = {0:0} (mm)'}" FontSize="10" Foreground="#64748B" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <Grid Grid.Column="1">
+                                            <!-- Dashed Selection Highlight Box -->
+                                            <Border BorderBrush="#DC2626" BorderThickness="1.5" CornerRadius="2" Margin="3,3,3,3">
+                                                <Border.Resources>
+                                                    <DoubleCollection x:Key="Dash">3,3</DoubleCollection>
+                                                </Border.Resources>
+                                            </Border>
+                                            <Rectangle Fill="#0D9488" Width="10" Margin="0,6,0,6"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding ColumnDimensionsText}" FontSize="10.5" Foreground="#334155" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{Binding TotalRebarText}" FontSize="11" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <!-- 2. MIDDLE PANE: PARAMETERS EDITOR -->
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="0,0,12,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="Hiệu chỉnh cốt thép" FontSize="12.5" FontWeight="Bold" Foreground="#DC2626" Margin="0,0,0,12"/>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="0,0,4,0">
+                                    <!-- Main Rebar Section Title -->
+                                    <TextBlock Text="Cốt thép dọc" FontSize="11.5" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,8"/>
+
+                                    <!-- Count X -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Số lượng thép cạnh Cx" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox Grid.Column="1" Text="{Binding CountX, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+
+                                    <!-- Count Y -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Số lượng thép cạnh Cy" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox Grid.Column="1" Text="{Binding CountY, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+
+                                    <!-- Main Rebar Diameter -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Đường kính cốt thép chính" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding MainDiameters}" SelectedItem="{Binding MainDiameter}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding StringFormat='{}{0}-A-II'}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <!-- Additional Rebar Diameter -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Đường kính cốt thép bổ sung" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" IsEnabled="False" SelectedIndex="0">
+                                            <ComboBoxItem Content="18-A-II"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Separator Background="#E2E8F0" Margin="0,8,0,12"/>
+
+                                    <!-- Stirrup Rebar Section Title -->
+                                    <TextBlock Text="Cốt thép đai" FontSize="11.5" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,8"/>
+
+                                    <!-- Total Main Bars calculated -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Tổng số thanh thép chính" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding TotalMainBars}" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
+                                    </Grid>
+
+                                    <!-- Total Rebar Area (cm2) -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Diện tích cốt thép (cm2)" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding TotalRebarArea, StringFormat='{}{0:F3} cm2'}" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
+                                    </Grid>
+
+                                    <!-- Rebar Ratio -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Hàm lượng cốt thép" Style="{StaticResource LabelStyle}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding RebarRatio, StringFormat='{}{0:F3}%'}" FontSize="12.5" FontWeight="Bold" Foreground="#2563EB"/>
+                                    </Grid>
+
+                                    <!-- Stirrup Diameter -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Đường kính cốt đai chính" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding StirrupDiameters}" SelectedItem="{Binding StirrupDiameter}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding StringFormat='{}{0}-A-I'}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <!-- Stirrup Shape -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Hình dạng cốt đai" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableShapes}" SelectedItem="{Binding SelectedStirrupShapeName}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- Apply to Other Storeys Button -->
+                            <Button Grid.Row="2" Content="Áp dụng cho các tầng còn lại" Click="OnApplyToOtherFloorsClick" Background="White" Foreground="#DC2626" 
+                                    BorderBrush="#DC2626" BorderThickness="1" FontWeight="SemiBold" Height="34" Margin="0,10,0,0">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- 3. RIGHT PANE: CROSS SECTION PREVIEW -->
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header and Radio Options -->
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Tiết diện &amp; Loại đai" FontSize="12.5" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Center"/>
+
+                                <!-- Radio buttons aligned perfectly in a horizontal line -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <RadioButton Content="Phân bố đều" IsChecked="{Binding IsUniform, Mode=TwoWay}" FontSize="10.5" FontWeight="SemiBold" Foreground="#475569" Margin="10,0,0,0"/>
+                                    <RadioButton Content="Tập trung" IsChecked="{Binding IsSeismic, Mode=TwoWay}" FontSize="10.5" FontWeight="SemiBold" Foreground="#475569" Margin="14,0,0,0"/>
+                                    <RadioButton Content="Đai móc" IsChecked="{Binding IsInternalLinksPattern, Mode=TwoWay}" FontSize="10.5" FontWeight="SemiBold" Foreground="#475569" Margin="14,0,0,0"/>
+                                    <RadioButton Content="Đai lồng kín" IsChecked="{Binding IsStandardPattern, Mode=TwoWay}" FontSize="10.5" FontWeight="SemiBold" Foreground="#475569" Margin="14,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Canvas Section -->
+                            <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" ClipToBounds="True">
+                                <Grid>
+                                    <!-- Grid pattern for professional look -->
+                                    <Viewbox Stretch="Uniform" Margin="14">
+                                        <Canvas x:Name="CrossSectionCanvas" Width="200" Height="200" Background="White"/>
+                                    </Viewbox>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ==================== TAB 2: FOUNDATION REBAR ==================== -->
+            <TabItem Header="Thép móng">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header Checkbox -->
+                    <CheckBox Grid.Row="0" IsChecked="{Binding EnableFoundationRebar}" Content="Cài đặt thép chờ móng" 
+                              FontSize="13.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,16"/>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Parameters group -->
+                        <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,12,0">
+                            <StackPanel>
+                                <TextBlock Text="Thép chủ và khoảng rải đai" FontSize="12.5" FontWeight="Bold" Foreground="#334155" Margin="0,0,0,16"/>
+
+                                <CheckBox Content="Tách thép thành 2 đoạn ở vị trí thép chờ móng" IsChecked="{Binding SplitRebarAtFooting}" Margin="0,0,0,16" FontSize="11.5" Foreground="#475569"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0" Content="K/C cốt đai (mm)" IsChecked="{Binding UseStirrupSpacing}" VerticalAlignment="Center" FontSize="11.5" Foreground="#475569"/>
+                                    <TextBox Grid.Column="1" Text="{Binding FootingStirrupSpacing}" Height="28"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Hm (mm)" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                    <TextBox Grid.Column="1" Text="{Binding FootingDepthHm}" Height="28"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Lb (mm)" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                    <TextBox Grid.Column="1" Text="{Binding FootingBendLb}" Height="28"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right Column: Diagram & Direction keypad -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- L-Rebar Bend diagram (Simple Canvas representation) -->
+                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12" Height="140">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Canvas Grid.Column="0" Width="80" Height="100" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <!-- Horizontal/Vertical L bend rebar -->
+                                        <Polyline Points="15,10 15,85 70,85" Stroke="#991B1B" StrokeThickness="4"/>
+                                        <!-- Dimension labels -->
+                                        <TextBlock Text="Hm" Canvas.Left="22" Canvas.Top="40" Foreground="#334155" FontSize="11" FontWeight="Bold"/>
+                                        <TextBlock Text="Lb" Canvas.Left="35" Canvas.Top="60" Foreground="#334155" FontSize="11" FontWeight="Bold"/>
+                                    </Canvas>
+                                </Grid>
+                            </Border>
+
+                            <!-- Direction selector -->
+                            <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="Bố trí hướng thép móng" FontSize="12.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+
+                                    <!-- Arrow layout grid -->
+                                    <Grid Grid.Row="1" Width="160" Height="160" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <!-- Center dot -->
+                                        <Ellipse Width="40" Height="40" Fill="#991B1B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                        <!-- Up Arrow Button -->
+                                        <Button Width="40" Height="30" HorizontalAlignment="Center" VerticalAlignment="Top" BorderThickness="0" Background="Transparent" Command="{Binding DirectionUpCommand}">
+                                            <Path Data="M0,12 L15,0 L30,12 L21,12 L15,6 L9,12 Z" Fill="#991B1B" Stretch="Fill"/>
+                                        </Button>
+
+                                        <!-- Down Arrow Button -->
+                                        <Button Width="40" Height="30" HorizontalAlignment="Center" VerticalAlignment="Bottom" BorderThickness="0" Background="Transparent" Command="{Binding DirectionDownCommand}">
+                                            <Path Data="M0,0 L15,12 L30,0 L21,0 L15,6 L9,0 Z" Fill="#991B1B" Stretch="Fill"/>
+                                        </Button>
+
+                                        <!-- Left Arrow Button -->
+                                        <Button Width="30" Height="40" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Background="Transparent" Command="{Binding DirectionLeftCommand}">
+                                            <Path Data="M12,0 L0,15 L12,30 L12,21 L6,15 L12,9 Z" Fill="#991B1B" Stretch="Fill"/>
+                                        </Button>
+
+                                        <!-- Right Arrow Button -->
+                                        <Button Width="30" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center" BorderThickness="0" Background="Transparent" Command="{Binding DirectionRightCommand}">
+                                            <Path Data="M0,0 L12,15 L0,30 L0,21 L6,15 L0,9 Z" Fill="#991B1B" Stretch="Fill"/>
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ==================== TAB 3: STIRRUPS ==================== -->
+            <TabItem Header="Thép đai">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 1. Đoạn rải cốt đai -->
+                        <Border Grid.Row="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Đoạn rải cốt đai" FontSize="12.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,10"/>
+
+                                <RadioButton Content="Rải thép đai tới đáy dầm hoặc Sàn" IsChecked="{Binding SpacingToBeamBottom}" Margin="0,0,0,8" FontSize="11.5" Foreground="#475569"/>
+                                <RadioButton Content="Rải tới cao độ lớn nhất của đỉnh cột dầm hoặc sàn" IsChecked="{Binding SpacingToMaxTop}" Margin="0,0,0,12" FontSize="11.5" Foreground="#475569"/>
+
+                                <!-- Nested group -->
+                                <Border BorderBrush="#F1F5F9" BorderThickness="1" Background="#F8FAFC" Padding="12" CornerRadius="4" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="Thép đai kháng chấn ở trong dầm sàn" FontSize="11" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,8"/>
+
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <RadioButton Grid.Column="0" Content="Bố trí theo khoảng cách (mm)" IsChecked="{Binding SeismicSpacingByDist}" FontSize="11" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="1" Text="{Binding SeismicSpacingVal}" Height="26" Width="100" HorizontalAlignment="Left"/>
+                                        </Grid>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <RadioButton Grid.Column="0" Content="Bố trí theo số lượng" IsChecked="{Binding SeismicSpacingByCount}" FontSize="11" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="1" ItemsSource="{Binding SeismicCounts}" SelectedItem="{Binding SeismicCountVal}" Height="26" Width="100" HorizontalAlignment="Left"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="260"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Bắt đầu rải đai cách các mép 1 đoạn (mm)" FontSize="11.5" Foreground="#475569" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Column="1" Text="{Binding StirrupStartOffset}" Height="26" Width="100" HorizontalAlignment="Left"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 2. Quy tắc rải cốt đai chính -->
+                        <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Quy tắc rải cốt đai chính" FontSize="12.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,10"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <RadioButton Content="Bố trí đều" IsChecked="{Binding SpacingUniform}" FontSize="11.5" Foreground="#475569" Margin="0,0,0,8"/>
+                                        <RadioButton Content="Bố trí theo các khoảng A1 và A2" IsChecked="{Binding SpacingVariable}" FontSize="11.5" Foreground="#475569"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1">
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="A1 (mm) =" FontSize="11" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="1" Text="{Binding SpacingValA1}" Height="26" Width="100" HorizontalAlignment="Left"/>
+                                        </Grid>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="A2 (mm) =" FontSize="11" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="1" Text="{Binding SpacingValA2}" Height="26" Width="100" HorizontalAlignment="Left" IsEnabled="{Binding SpacingVariable}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Nested condition box -->
+                                <Border BorderBrush="#F1F5F9" BorderThickness="1" Background="#F8FAFC" Padding="12" CornerRadius="4">
+                                    <StackPanel>
+                                        <TextBlock Text="A1 được bố trí trong đoạn L1 tính từ mép nút khung." FontSize="11.5" FontWeight="Bold" Foreground="#334155" Margin="0,0,0,2"/>
+                                        <TextBlock Text="L1 lấy lớn nhất trong các giá trị sau:" FontSize="10.5" Foreground="#64748B" Margin="0,0,0,8"/>
+
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" Content="Giá trị tối thiểu (mm)" IsChecked="{Binding L1UseMinVal}" FontSize="11.5" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="1" Text="{Binding L1MinVal}" Height="26" Width="100" HorizontalAlignment="Left" IsEnabled="{Binding L1UseMinVal}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" Content="Chiều cao thông thủy cột chia cho" IsChecked="{Binding L1UseHeightDiv}" FontSize="11.5" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="1" Text="{Binding L1HeightDivVal}" Height="26" Width="100" HorizontalAlignment="Left" IsEnabled="{Binding L1UseHeightDiv}"/>
+                                        </Grid>
+
+                                        <CheckBox Content="Chiều cao tiết diện cột" IsChecked="{Binding L1UseColSection}" FontSize="11.5" Foreground="#475569"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 3. Quy tắc rải cốt đai bổ sung -->
+                        <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Quy tắc rải cốt đai bổ sung" FontSize="12.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,10"/>
+
+                                <CheckBox Content="Bố trí toàn bộ khoảng cách đai bổ sung như đai chính" IsChecked="{Binding ApplyAllAdditionalStirrup}" Margin="0,0,0,10" FontSize="11.5" Foreground="#475569"/>
+
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Đường kính đai bổ sung" FontSize="11.5" Foreground="#475569" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding StirrupDiameters}" SelectedItem="{Binding AdditionalStirrupDiameter}" Height="26" Width="100" HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Khoảng cách cốt đai bổ sung (mm)" FontSize="11.5" Foreground="#475569" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Column="1" Text="{Binding AdditionalStirrupSpacing}" Height="26" Width="100" HorizontalAlignment="Left" IsEnabled="{Binding IsNotApplyAllAdditionalStirrup}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== TAB 4: DETAILING / SHEETS LAYOUT ==================== -->
+            <TabItem Header="Triển khai">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header Checkbox -->
+                        <CheckBox Grid.Row="0" IsChecked="{Binding EnableDetailingLayout}" Content="Cài đặt triển khai bản vẽ cột" 
+                                  FontSize="13.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,12"/>
+
+                        <!-- Top sheet setup -->
+                        <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock Text="Sheet Name" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                                    <ComboBox ItemsSource="{Binding SheetNames}" SelectedItem="{Binding SelectedSheetName}" Height="28"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="6,0,12,0">
+                                    <TextBlock Text="Sheet Number" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                                    <ComboBox ItemsSource="{Binding SheetNumbers}" SelectedItem="{Binding SelectedSheetNumber}" Height="28"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Margin="6,0,0,0">
+                                    <TextBlock Text="Title Block" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
+                                    <ComboBox ItemsSource="{Binding TitleBlocks}" SelectedItem="{Binding SelectedTitleBlock}" Height="28"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Two column detailing setup -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Cross-section setup -->
+                            <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="Thiết lập mặt cắt ngang" FontSize="12.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,12"/>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="View Scale" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox Grid.Column="1" Text="{Binding CrossSectionScale}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="View Template" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding ViewTemplates}" SelectedItem="{Binding CrossSectionTemplate}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="View Family Type" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding ViewFamilyTypes}" SelectedItem="{Binding CrossSectionFamilyType}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Dimension Type" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding DimensionTypes}" SelectedItem="{Binding CrossSectionDimType}" Height="26"/>
+                                    </Grid>
+
+                                    <!-- Nested group -->
+                                    <Border BorderBrush="#F1F5F9" BorderThickness="1" Background="#F8FAFC" Padding="12" CornerRadius="4">
+                                        <StackPanel>
+                                            <CheckBox IsChecked="{Binding StretchCrossSectionRebar}" Content="Kéo thép mặt cắt ngang" FontWeight="Bold" FontSize="11" Foreground="#334155" Margin="0,0,0,8"/>
+
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="Detail Item (Text Size):" FontSize="11" Foreground="#475569" VerticalAlignment="Center"/>
+                                                <ComboBox Grid.Column="1" ItemsSource="{Binding TextSizes}" SelectedItem="{Binding CrossSectionTextSize}" Height="24"/>
+                                            </Grid>
+
+                                            <Grid Margin="0,0,0,10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="Detail Item (Stirrup Tag):" FontSize="11" Foreground="#475569" VerticalAlignment="Center"/>
+                                                <ComboBox Grid.Column="1" ItemsSource="{Binding StirrupTags}" SelectedItem="{Binding CrossSectionStirrupTag}" Height="24"/>
+                                            </Grid>
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" Content="Detail Item (Show Tag)" IsChecked="{Binding CrossSectionShowTag}" FontSize="10.5" Foreground="#475569"/>
+                                                <CheckBox Grid.Column="1" Content="Detail Item (Show Value)" IsChecked="{Binding CrossSectionShowVal}" FontSize="10.5" Foreground="#475569"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Right: Longitudinal section setup -->
+                            <Border Grid.Column="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Thiết lập mặt cắt dọc" FontSize="12.5" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,12"/>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Type Tag :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding TypeTags}" SelectedItem="{Binding LongSectionTypeTag}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="View Scale :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <TextBox Grid.Column="1" Text="{Binding LongSectionScale}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Break Line :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding BreakLines}" SelectedItem="{Binding LongSectionBreakLine}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="View Template :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding ViewTemplates}" SelectedItem="{Binding LongSectionTemplate}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="View Family Type :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding ViewFamilyTypes}" SelectedItem="{Binding LongSectionFamilyType}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Dimension Type :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding DimensionTypes}" SelectedItem="{Binding LongSectionDimType}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Detail Item (Text Size) :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding TextSizes}" SelectedItem="{Binding LongSectionTextSize}" Height="26"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Detail Item (Standard Tag) :" VerticalAlignment="Center" Style="{StaticResource LabelStyle}"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding StandardTags}" SelectedItem="{Binding LongSectionStandardTag}" Height="26"/>
+                                    </Grid>
+
+                                    <!-- Row with checkboxes -->
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" Content="Detail Item (Show Tag)" IsChecked="{Binding LongSectionShowTag}" FontSize="11" Foreground="#475569"/>
+                                        <CheckBox Grid.Column="1" Content="Detail Item (Show Value)" IsChecked="{Binding LongSectionShowVal}" FontSize="11" Foreground="#475569"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================== TAB 5: GENERAL CONFIG ==================== -->
+            <TabItem Header="Cài đặt chung">
+                <Grid Margin="16">
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="Cài đặt chung hệ thống" FontSize="14" FontWeight="Bold" Foreground="#1E3A8A" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Cấu hình hệ thống chung và các cài đặt nâng cao." FontSize="12" Foreground="#64748B" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- ============ BOTTOM: DETAILED SETTINGS PANEL & RUN BUTTON ============ -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <!-- Settings layout -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- Run Button layout -->
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Thông tin cột tại cao độ: -1100" FontSize="11.5" FontWeight="Bold" Foreground="#334155" Margin="0,0,0,8"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Beam height -->
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Chiều cao dầm sàn (mm)" Style="{StaticResource LabelStyle}"/>
+                            <TextBox Text="{Binding SlabHeight, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <!-- Top cover -->
+                        <StackPanel Grid.Column="1" Margin="8,0,8,0">
+                            <TextBlock Text="Lớp bê tông bảo vệ mặt trên (mm)" Style="{StaticResource LabelStyle}"/>
+                            <TextBox Text="{Binding TopCover, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <!-- Component category -->
+                        <StackPanel Grid.Column="2" Margin="8,0,8,0">
+                            <TextBlock Text="Loại cấu kiện dầm sàn" Style="{StaticResource LabelStyle}"/>
+                            <TextBox Text="Structural Framing" IsEnabled="False"/>
+                        </StackPanel>
+
+                        <!-- Other cover -->
+                        <StackPanel Grid.Column="3" Margin="8,0,0,0">
+                            <TextBlock Text="Lớp bê tông bảo vệ khác (mm)" Style="{StaticResource LabelStyle}"/>
+                            <TextBox Text="{Binding OtherCover, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ============ RUN FOOTER ACTION ============ -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="24,0,0,0">
+                    <!-- Logo and Brand -->
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                        <TextBlock Text="RINCO NHAN" FontSize="13" FontWeight="Black" Foreground="#1E3A8A" HorizontalAlignment="Right"/>
+                        <TextBlock Text="Save your time" FontSize="9" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Right"/>
+                    </StackPanel>
+
+                    <!-- Indigo Run Button -->
+                    <Button Content="Run" Command="{Binding GenerateCommand}" Background="#1E3A8A" Foreground="White" 
+                            FontWeight="Bold" FontSize="13.5" Width="100" Height="36" BorderThickness="0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

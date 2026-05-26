@@ -1,0 +1,89 @@
+<Window x:Class="RincoNhan.Tools.ViewRef.UI.ViewRefWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Place View Reference" Height="320" Width="400"
+        WindowStartupLocation="CenterScreen" Background="#F8FAFC"
+        Foreground="#1E293B" FontFamily="Segoe UI"
+        Topmost="True">
+    
+    <Window.Resources>
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="VIEW REFERENCE PLACER" FontSize="18" FontWeight="Bold" Foreground="#1E3A8A"/>
+            <TextBlock Text="Place view reference symbols on selected walls." Foreground="#64748B" FontSize="12" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <Button Grid.Row="1" Command="{Binding PickAndApplyCommand}" Style="{StaticResource PrimaryButton}" 
+                Content="Pick Walls &amp; Place" Margin="0,0,0,15"/>
+
+        <Grid Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,10,0,15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- North -->
+            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="10,0,10,15" HorizontalAlignment="Center">
+                <CheckBox IsChecked="{Binding IsNSelected}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding FamilyTypes}" SelectedItem="{Binding SelectedNFamily}" DisplayMemberPath="Name" Width="150" Padding="4,2"/>
+            </StackPanel>
+
+            <!-- West -->
+            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,15,15" HorizontalAlignment="Right">
+                <CheckBox IsChecked="{Binding IsWSelected}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding FamilyTypes}" SelectedItem="{Binding SelectedWFamily}" DisplayMemberPath="Name" Width="150" Padding="4,2"/>
+            </StackPanel>
+
+            <!-- East -->
+            <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="15,0,0,15" HorizontalAlignment="Left">
+                <CheckBox IsChecked="{Binding IsESelected}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding FamilyTypes}" SelectedItem="{Binding SelectedEFamily}" DisplayMemberPath="Name" Width="150" Padding="4,2"/>
+            </StackPanel>
+
+            <!-- South -->
+            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="10,0,10,0" HorizontalAlignment="Center">
+                <CheckBox IsChecked="{Binding IsSSelected}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding FamilyTypes}" SelectedItem="{Binding SelectedSFamily}" DisplayMemberPath="Name" Width="150" Padding="4,2"/>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="10" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="6">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="ℹ" Foreground="#0284C7" FontWeight="Bold" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#0369A1" FontWeight="Medium" FontSize="12" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

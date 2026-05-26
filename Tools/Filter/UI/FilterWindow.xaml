@@ -1,0 +1,518 @@
+<Window x:Class="RincoNhan.Tools.Filter.UI.FilterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:RincoNhan.Tools.Filter.ViewModels"
+        Title="BIM Filter Builder" Height="700" Width="1100"
+        WindowStartupLocation="CenterScreen" 
+        Background="{DynamicResource AppBackground}"
+        Foreground="{DynamicResource TextPrimary}" 
+        FontFamily="Segoe UI">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="DarkTheme.xaml"/>
+                <ResourceDictionary>
+                    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+                    <vm:InverseBoolConverter x:Key="InverseBoolConverter"/>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <Style x:Key="ThemeToggleStyle" TargetType="ToggleButton">
+                <Setter Property="Width" Value="44"/>
+                <Setter Property="Height" Value="22"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Track" CornerRadius="11" Background="{DynamicResource HeaderBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1.5">
+                                <Ellipse x:Name="Thumb" Width="16" Height="16" Fill="{DynamicResource TextPrimary}" HorizontalAlignment="Left" Margin="2,0,0,0"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0"/>
+                                    <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBlue}"/>
+                                    <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBlue}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource AccentBlue}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Padding" Value="10,5"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Opacity" Value="0.8"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+        <!-- Outline Combo Box Style -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="5,0"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border CornerRadius="4" Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </ResourceDictionary>
+</Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Background="{DynamicResource SidebarBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- Project Info -->
+                    <RowDefinition Height="Auto"/> <!-- Search -->
+                    <RowDefinition Height="Auto"/> <!-- Categories Header -->
+                    <RowDefinition Height="Auto"/> <!-- Categories List (Capped) -->
+                    <RowDefinition Height="Auto"/> <!-- Saved Filters Header -->
+                    <RowDefinition Height="Auto"/> <!-- Filter Name Input -->
+                    <RowDefinition Height="*"/>    <!-- Saved Filters List (Fill & Scroll) -->
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="Project Elements" Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,10,0,0"/>
+                    <TextBlock FontSize="14" FontWeight="Bold" Margin="0,2,0,20" Foreground="{DynamicResource TextPrimary}">
+                        <Run Text="{Binding TotalElementCount}"/><Run Text=" TOTAL"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Search Box -->
+                <Grid Grid.Row="1" Margin="0,0,0,20">
+                    <TextBox x:Name="TxtCategorySearch"
+                             Text="{Binding CategorySearch, UpdateSourceTrigger=PropertyChanged}"
+                             Background="{DynamicResource InputBackground}" BorderThickness="0" Foreground="{DynamicResource TextPrimary}"
+                             Height="32" Padding="10,0" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="🔍  Search categories..."
+                               Foreground="{DynamicResource TextSecondary}" IsHitTestVisible="False"
+                               VerticalAlignment="Center" Margin="10,0,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CategorySearch}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CategorySearch}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <Grid Grid.Row="2" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="CATEGORIES" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Command="{Binding UncheckAllCategoriesCommand}" 
+                            Visibility="{Binding IsUncheckAllVisible, Converter={StaticResource BoolToVis}}"
+                            Background="Transparent" Padding="0" VerticalAlignment="Center">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="14" Height="14" BorderBrush="{DynamicResource TextSecondary}" BorderThickness="1" Margin="0,0,5,0" Background="{DynamicResource CardBackground}" CornerRadius="2">
+                                        <TextBlock Text="✓" Foreground="{DynamicResource TextSecondary}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                                    </Border>
+                                    <TextBlock x:Name="text" Text="UNCHECK" Foreground="{DynamicResource TextSecondary}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="text" Property="Foreground" Value="#E2E8F0"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+
+                <!-- Dynamic category list from Revit -->
+                <ScrollViewer Grid.Row="3" MaxHeight="250" VerticalScrollBarVisibility="Auto" Margin="0,0,0,20">
+                    <ItemsControl ItemsSource="{Binding CategoryCounts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <CheckBox.LayoutTransform>
+                                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                        </CheckBox.LayoutTransform>
+                                    </CheckBox>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <Border Grid.Column="2" Background="{DynamicResource CardBackground}" CornerRadius="10"
+                                            Padding="7,2" Margin="6,0,0,0">
+                                        <TextBlock Text="{Binding Count}" Foreground="{DynamicResource TextSecondary}"
+                                                   FontSize="11" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                
+                <TextBlock Grid.Row="4" Text="SAVED FILTERS" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="0,10,0,6"/>
+                
+                <!-- Filter naming and save -->
+                <Grid Grid.Row="5" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding NewFilterName, UpdateSourceTrigger=PropertyChanged}" 
+                             Tag="Filter name..." Background="{DynamicResource InputBackground}" BorderThickness="0" Height="28" Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock Text="Filter name..." Foreground="{DynamicResource TextSecondary}" IsHitTestVisible="False"
+                               VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding NewFilterName}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding NewFilterName}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Button Grid.Column="1" Content="Save" Command="{Binding SaveFilterCommand}" 
+                            Background="{DynamicResource AccentBlue}" Foreground="White" FontSize="10" Margin="5,0,0,0" Padding="8,2"/>
+                </Grid>
+                
+                <!-- Scrollable saved filters list - Grid.Row 6 takes remaining space -->
+                <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding SavedFilters}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="ItemBorder" Background="{DynamicResource InputBackground}" CornerRadius="4" Margin="0,0,0,8" Padding="10,8" Cursor="Hand">
+                                    <!-- Mouse interaction for selection -->
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick" 
+                                                      Command="{Binding DataContext.LoadSavedFilterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                    </Border.InputBindings>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel IsHitTestVisible="False">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Description}" Foreground="{DynamicResource TextSecondary}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="×" 
+                                                Command="{Binding DataContext.RemoveSavedFilterCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" Foreground="{DynamicResource TextSecondary}" FontSize="14" Padding="4,0" VerticalAlignment="Top" HorizontalAlignment="Right"
+                                                ToolTip="Delete Filter"/>
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True" SourceName="ItemBorder">
+                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource HeaderBackground}"/>
+                                    </Trigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Main Area -->
+        <Grid Grid.Column="1" Margin="30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border BorderBrush="#1E293B" BorderThickness="0,0,0,1" Margin="0,0,0,20" Padding="0,0,0,10">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <TextBlock Text="Filter Builder" FontWeight="Bold" FontSize="14" Margin="0,0,30,0" Foreground="#3B82F6"/>
+                        
+                        <!-- Scope Selector -->
+                        <Border Background="{DynamicResource CardBackground}" CornerRadius="4" Padding="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="IN CURRENT VIEW" Command="{Binding SetScopeCommand}" CommandParameter="View" FontSize="10" Padding="12,6">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsInProjectView}" Value="False">
+                                                    <Setter Property="Background" Value="{DynamicResource HeaderBackground}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="IN PROJECT" Command="{Binding SetScopeCommand}" CommandParameter="Project" FontSize="10" Padding="12,6">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsInProjectView}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource HeaderBackground}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Visibility Action Bar -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,25,0">
+                            <TextBlock Text="DARK" Foreground="{DynamicResource TextSecondary}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <ToggleButton Style="{StaticResource ThemeToggleStyle}" IsChecked="{Binding IsDarkMode, Converter={StaticResource InverseBoolConverter}}" ToolTip="Switch between Light and Dark mode"/>
+                            <TextBlock Text="LIGHT" Foreground="{DynamicResource TextSecondary}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        </StackPanel>
+                        <Button Content="OVERRIDE" Command="{Binding VisibilityActionCommand}" CommandParameter="OVERRIDE" 
+                                ToolTip="Ghi đè hiển thị (Override Graphics - Color/Line)" Width="100" Height="32" 
+                                Background="{DynamicResource CardBackground}" BorderBrush="{DynamicResource BorderBrush}" 
+                                BorderThickness="1" Foreground="{DynamicResource TextPrimary}" Margin="5,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Groups Area -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Groups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- Group Box -->
+                                <Border Background="{DynamicResource SidebarBackground}" CornerRadius="8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,0,20" Padding="15">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="≡  " Foreground="{DynamicResource TextSecondary}"/>
+                                                <TextBlock Text="{Binding GroupNumber, StringFormat='Group {0}'}" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                                                <TextBlock Text=" (2 rules, 1 active)" Foreground="{DynamicResource TextSecondary}" Margin="5,0,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- Logic Gate Selector -->
+                                            <Border Grid.Column="1" Background="{DynamicResource AppBackground}" CornerRadius="6" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,15,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <!-- AND Button -->
+                                                    <Button Content="AND" Padding="15,4" Command="{Binding SetAndLogicCommand}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAndLogic}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource AccentBlue}"/>
+                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                    <!-- OR Button -->
+                                                    <Button Content="OR" Padding="15,4" Command="{Binding SetOrLogicCommand}">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAndLogic}" Value="False">
+                                                                        <Setter Property="Background" Value="{DynamicResource AccentBlue}"/>
+                                                                        <Setter Property="Foreground" Value="White"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <StackPanel Orientation="Horizontal" Grid.Column="2">
+                                                <Button Content="+ Add Rule" Command="{Binding AddRuleCommand}" Background="Transparent" Foreground="#3B82F6" BorderBrush="#3B82F6" BorderThickness="1" Padding="15,4"/>
+                                                <Button Content="Delete" Command="{Binding RemoveGroupCommand}" Background="Transparent" Foreground="#64748B" Margin="10,0,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Headers -->
+                                        <Grid Margin="0,0,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30"/>
+                                                <ColumnDefinition Width="0.8*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="35"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="1" Text="CATEGORIES" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="5,0"/>
+                                            <TextBlock Grid.Column="2" Text="FAMILY &amp; TYPE" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="5,0"/>
+                                            <TextBlock Grid.Column="3" Text="PARAMETER" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="5,0"/>
+                                            <TextBlock Grid.Column="4" Text="OPERATOR" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="5,0"/>
+                                            <TextBlock Grid.Column="5" Text="VALUES" Foreground="{DynamicResource TextSecondary}" FontSize="11" FontWeight="Bold" Margin="5,0"/>
+                                        </Grid>
+
+                                        <!-- Rules List -->
+                                        <ItemsControl ItemsSource="{Binding Rules}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,10">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="30"/> <!-- Num -->
+                                                            <ColumnDefinition Width="0.8*"/> <!-- Cat -->
+                                                            <ColumnDefinition Width="1*"/> <!-- Param -->
+                                                            <ColumnDefinition Width="1*"/> <!-- Fam -->
+                                                            <ColumnDefinition Width="1*"/> <!-- Operator -->
+                                                            <ColumnDefinition Width="1*"/> <!-- Value -->
+                                                            <ColumnDefinition Width="35"/> <!-- Actions -->
+                                                        </Grid.ColumnDefinitions>
+                                                        
+                                                        <TextBlock Text="1" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        
+                                                        <ComboBox Grid.Column="1" ItemsSource="{Binding Categories}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedCategory}"/>
+                                                        <ComboBox Grid.Column="2" ItemsSource="{Binding AvailableFamilies}" SelectedItem="{Binding SelectedFamily}" Margin="5,0" />
+                                                        <ComboBox Grid.Column="3" ItemsSource="{Binding AvailableParameters}" DisplayMemberPath="Definition.Name" SelectedItem="{Binding SelectedParameter}"/>
+                                                        <ComboBox Grid.Column="4" ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}"/>
+                                                        <ComboBox Grid.Column="5" ItemsSource="{Binding AvailableValues}" SelectedItem="{Binding Value}" IsEditable="True" Margin="5,0"/>
+
+                                                        <Button Grid.Column="6" Content="X" Command="{Binding RemoveRuleCommand}" Background="Transparent" Foreground="{DynamicResource TextSecondary}" Width="30" HorizontalAlignment="Right"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Content="+ Add Filter Group" Command="{Binding AddGroupCommand}" Background="Transparent" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Left" Padding="15,8">
+                    </Button>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Bottom Action Bar -->
+            <Grid Grid.Row="2" Margin="0,20,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <!-- Status message area -->
+                    <Grid VerticalAlignment="Center">
+                        <!-- Default element count display -->
+                        <TextBlock Text="{Binding TotalElementCount, StringFormat='{}{0} elements in current view'}" 
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="12">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"> <!-- Keep base text style -->
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding StatusVisible}" Value="True">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        
+                        <!-- Dynamic Status Message -->
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" FontWeight="SemiBold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground" Value="#3B82F6"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSuccessStatus}" Value="False">
+                                            <Setter Property="Foreground" Value="#F87171"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding StatusVisible}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="↺ Clear All" Command="{Binding ClearAllCommand}" Background="Transparent" Foreground="#E2E8F0" Margin="0,0,20,0"/>
+                    <Button Content="▶ Apply Filter " Click="BtnApplyFilter_Click" Background="#2563EB" Foreground="White" Width="130" Padding="10"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

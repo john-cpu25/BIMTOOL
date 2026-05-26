@@ -1,0 +1,159 @@
+<Window x:Class="RincoNhan.Tools.ElevationView.UI.ElevationViewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Elevation View Optimizer" Height="650" Width="400"
+        WindowStartupLocation="CenterScreen" Background="#F8FAFC"
+        Topmost="True" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True">
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <Style x:Key="ModernLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+        
+        <Style x:Key="NumericInput" TargetType="TextBox">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Background="White">
+        <Grid Margin="25">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <Grid>
+                    <TextBlock Text="VIEW OPTIMIZER" FontSize="20" FontWeight="Bold" Foreground="#1E3A8A"/>
+                    <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                            Background="Transparent" BorderThickness="0" Foreground="#94A3B8"
+                            Click="Close_Click" Cursor="Hand"/>
+                </Grid>
+                <TextBlock Text="{Binding ViewName, StringFormat='Active View: {0}'}" Foreground="#64748B" FontSize="12" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Step 1: Pick Wall -->
+            <Border Grid.Row="1" Background="#F1F5F9" Padding="15" CornerRadius="8" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="STEP 1: REFERENCE" Style="{StaticResource ModernLabel}" Foreground="#1E40AF"/>
+                    <Button Command="{Binding PickWallCommand}" Style="{StaticResource PrimaryButton}" 
+                            Content="🎯 Pick 1 Wall" Margin="0,5,0,5"/>
+                    <Button Command="{Binding PickWallsCommand}" Style="{StaticResource PrimaryButton}" 
+                            Content="🎯 Pick Multiple Walls" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding RefWallWidth, StringFormat='Wall Length: {0:F0} mm'}" 
+                               Visibility="{Binding HasRefWall, Converter={StaticResource BoolToVis}}"
+                               Foreground="#059669" FontWeight="Bold" Margin="0,5,0,0" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Step 2: Offsets -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="STEP 2: OFFSETS (mm)" Grid.Row="0" Grid.ColumnSpan="2" 
+                           Style="{StaticResource ModernLabel}" Foreground="#1E40AF" Margin="0,0,0,10"/>
+
+                <!-- Top -->
+                <StackPanel Grid.Row="0" Grid.ColumnSpan="2" HorizontalAlignment="Center" Width="120" Margin="0,0,0,15">
+                    <TextBlock Text="TOP OFFSET" Style="{StaticResource ModernLabel}" HorizontalAlignment="Center"/>
+                    <TextBox Text="{Binding OffsetTop, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumericInput}"/>
+                </StackPanel>
+
+                <!-- Left -->
+                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,15">
+                    <TextBlock Text="LEFT OFFSET" Style="{StaticResource ModernLabel}"/>
+                    <TextBox Text="{Binding OffsetLeft, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumericInput}"/>
+                </StackPanel>
+
+                <!-- Right -->
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="10,0,0,15">
+                    <TextBlock Text="RIGHT OFFSET" Style="{StaticResource ModernLabel}"/>
+                    <TextBox Text="{Binding OffsetRight, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumericInput}"/>
+                </StackPanel>
+
+                <!-- Bottom -->
+                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" HorizontalAlignment="Center" Width="120">
+                    <TextBlock Text="BOTTOM OFFSET" Style="{StaticResource ModernLabel}" HorizontalAlignment="Center"/>
+                    <TextBox Text="{Binding OffsetBottom, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumericInput}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Actions -->
+            <StackPanel Grid.Row="3" VerticalAlignment="Bottom" Margin="0,20,0,0">
+                <!-- Level Head Offset -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="LEVEL HEAD OFFSET (from Left Crop)" Style="{StaticResource ModernLabel}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding LevelHeadOffset, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumericInput}"/>
+                        <TextBlock Text="mm" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#94A3B8"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Level Tail Offset -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock Text="LEVEL TAIL OFFSET (Right side)" Style="{StaticResource ModernLabel}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding LevelTailOffset, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource NumericInput}"/>
+                        <TextBlock Text="mm" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#94A3B8"/>
+                    </Grid>
+                </StackPanel>
+
+                <Button Command="{Binding AlignLevelsCommand}" Style="{StaticResource PrimaryButton}" 
+                        Content="📐 Align Levels" Height="45" Margin="0,0,0,10"/>
+                
+                <Button Command="{Binding ResetOffsetsCommand}" Content="↺ Reset Offsets" 
+                        Background="Transparent" BorderThickness="0" Foreground="#64748B" Cursor="Hand"/>
+            </StackPanel>
+
+            <!-- Status Bar -->
+            <Border Grid.Row="4" Margin="0,20,0,0" Padding="10" Background="#F1F5F9" CornerRadius="6">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#475569" FontSize="11" FontStyle="Italic"/>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

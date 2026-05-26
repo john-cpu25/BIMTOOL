@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+*.DS_Store
+
+# Visual Studio
+.vs/
+*.vcxproj.filters
+*.vcxproj.user
+
+# Temporary project files
+*_wpftmp.csproj
+
+# NuGet
+packages/
+*.nupkg
+
+# OS
+Thumbs.db
+Desktop.ini

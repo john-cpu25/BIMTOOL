@@ -1,0 +1,156 @@
+<Window x:Class="RincoNhan.Tools.JoinElements.UI.JoinElementsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Join Elements" Height="600" Width="800"
+        WindowStartupLocation="CenterScreen" 
+        Background="#FFFFFF"
+        Foreground="#1F2937" 
+        FontFamily="Segoe UI">
+    <Window.Resources>
+        <ResourceDictionary>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <!-- Base Button Style: Gray Background, Rounded -->
+            <Style TargetType="Button">
+                <Setter Property="Background" Value="#F3F4F6"/>
+                <Setter Property="Foreground" Value="#1F2937"/>
+                <Setter Property="Padding" Value="15,8"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                    CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#E5E7EB"/>
+                        <Setter Property="BorderBrush" Value="#D1D5DB"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Action Specific Text Colors -->
+            <Style x:Key="JoinButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Foreground" Value="#2563EB"/>
+            </Style>
+            <Style x:Key="UnjoinButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Foreground" Value="#EF4444"/>
+            </Style>
+            <Style x:Key="SwitchButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Foreground" Value="#10B981"/>
+            </Style>
+            
+            <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="10,5"/>
+                <Setter Property="FontWeight" Value="Normal"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Status -->
+            <RowDefinition Height="Auto"/> <!-- Toolbar -->
+            <RowDefinition Height="Auto"/> <!-- Header "ALL" -->
+            <RowDefinition Height="Auto"/> <!-- ALL Action -->
+            <RowDefinition Height="*"/>    <!-- Category Pairs -->
+        </Grid.RowDefinitions>
+
+        <!-- Status Notification Bar -->
+        <Border Grid.Row="0" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="6" Margin="0,0,0,20" Padding="15,12" Visibility="{Binding StatusVisible, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="✦" Foreground="#0284C7" FontSize="16" FontWeight="Bold" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#0369A1" VerticalAlignment="Center" FontWeight="Medium"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Top Toolbar Actions -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,25">
+            <Button Command="{Binding JoinAllCommand}" Width="160" Style="{StaticResource JoinButton}" Margin="0,0,15,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="✦ " FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="Join Geometry" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding UnjoinAllCommand}" Style="{StaticResource UnjoinButton}" Width="160" Margin="0,0,15,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="✕ " FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="Unjoin Geometry" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding SwitchAllCommand}" Style="{StaticResource SwitchButton}" Width="160">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⇅ " FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="Switch Order" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- ALL Section -->
+        <Border Grid.Row="2" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12" Margin="0,0,0,20" CornerRadius="8">
+            <TextBlock Text="BATCH PROCESSING" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" FontSize="14"/>
+        </Border>
+
+        <!-- Category Matching Header -->
+        <Grid Grid.Row="3" Margin="0,10,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="CATEGORY MATCHING" FontWeight="Bold" Foreground="#1F2937" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding AddPairCommand}" Content="+ Add Pair"/>
+        </Grid>
+
+        <!-- Pairs List -->
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding CategoryPairs}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#F9FAFB" Margin="0,0,0,10" Padding="15" CornerRadius="8" BorderBrush="#E5E7EB" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableCategories, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                              SelectedItem="{Binding CategoryA}" DisplayMemberPath="Name" Height="35" VerticalContentAlignment="Center"/>
+                                    
+                                    <TextBlock Grid.Column="1" Text="=" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" Foreground="#9CA3AF"/>
+
+                                    <ComboBox Grid.Column="2" ItemsSource="{Binding DataContext.AvailableCategories, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
+                                              SelectedItem="{Binding CategoryB}" DisplayMemberPath="Name" Height="35" VerticalContentAlignment="Center"/>
+
+                                    <Button Grid.Column="3" Content="✕" Style="{StaticResource SecondaryButton}" 
+                                            Command="{Binding RemoveCommand}" CommandParameter="{Binding}"
+                                            Margin="10,0,0,0" Width="35" Height="35"
+                                            Foreground="#EF4444" BorderBrush="#FECACA" FontWeight="Bold"
+                                            ToolTip="Remove Pair"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Actions for Pairs -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                    <Button Command="{Binding JoinPairsCommand}" Content="Join Pairs" Style="{StaticResource JoinButton}" Margin="0,0,12,0"/>
+                    <Button Command="{Binding UnjoinPairsCommand}" Content="Unjoin Pairs" Style="{StaticResource UnjoinButton}" Margin="0,0,12,0"/>
+                    <Button Command="{Binding SwitchPairsCommand}" Content="Switch Pairs" Style="{StaticResource SwitchButton}"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
