@@ -29,7 +29,10 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
         partial void OnSelectedWorksheetChanged(string value)
         {
-            LoadLevelData();
+            if (!string.IsNullOrEmpty(value))
+            {
+                LoadLevelData();
+            }
         }
 
         [ObservableProperty]
@@ -53,9 +56,19 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
             _doc = doc;
             _externalEvent = ExternalEvent.Create(_handler);
 
-            _handler.NotifyStatus = msg => StatusMessage = msg;
+            _handler.NotifyStatus = msg =>
+            {
+                try { StatusMessage = msg; } catch { }
+            };
 
-            LoadExistingLevels();
+            try
+            {
+                LoadExistingLevels();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = "Warning: Could not load existing levels. " + ex.Message;
+            }
         }
 
         private void LoadExistingLevels()
@@ -80,22 +93,32 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
         [RelayCommand]
         private void Browse()
         {
-            var dialog = new OpenFileDialog
+            try
             {
-                Filter = "Excel Files (*.xlsx)|*.xlsx|All Files (*.*)|*.*",
-                Title = "Select Excel File with Level Data"
-            };
+                var dialog = new OpenFileDialog
+                {
+                    Filter = "Excel Files (*.xlsx)|*.xlsx|All Files (*.*)|*.*",
+                    Title = "Select Excel File with Level Data"
+                };
 
-            if (dialog.ShowDialog() == true)
+                if (dialog.ShowDialog() == true)
+                {
+                    ExcelFilePath = dialog.FileName;
+                    LoadSheets();
+                }
+            }
+            catch (Exception ex)
             {
-                ExcelFilePath = dialog.FileName;
-                LoadSheets();
+                StatusMessage = "Error browsing file: " + ex.Message;
             }
         }
 
         private void LoadSheets()
         {
             Worksheets.Clear();
+            LevelDataList.Clear();
+            SummaryText = "";
+
             try
             {
                 using (var fs = new FileStream(ExcelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
@@ -108,9 +131,14 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
                         }
                     }
                 }
+
                 if (Worksheets.Any())
                 {
                     SelectedWorksheet = Worksheets.First();
+                }
+                else
+                {
+                    StatusMessage = "No worksheets found in the Excel file.";
                 }
             }
             catch (Exception ex)
@@ -122,7 +150,12 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
         private void LoadLevelData()
         {
             LevelDataList.Clear();
-            if (string.IsNullOrEmpty(ExcelFilePath) || string.IsNullOrEmpty(SelectedWorksheet)) return;
+            SummaryText = "";
+
+            if (string.IsNullOrEmpty(ExcelFilePath) || string.IsNullOrEmpty(SelectedWorksheet))
+            {
+                return;
+            }
 
             try
             {
@@ -131,10 +164,18 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
                     using (var wb = new XLWorkbook(fs))
                     {
                         var ws = wb.Worksheet(SelectedWorksheet);
-                        if (ws == null) return;
+                        if (ws == null)
+                        {
+                            StatusMessage = "Worksheet not found.";
+                            return;
+                        }
 
                         var range = ws.RangeUsed();
-                        if (range == null) return;
+                        if (range == null)
+                        {
+                            StatusMessage = "Worksheet is empty.";
+                            return;
+                        }
 
                         int firstRow = range.FirstRow().RowNumber();
                         int lastRow = range.LastRow().RowNumber();
@@ -144,7 +185,8 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
                         for (int r = firstRow; r <= lastRow; r++)
                         {
-                            string name = ws.Cell(r, 1).GetFormattedString()?.Trim();
+                            var nameCell = ws.Cell(r, 1);
+                            string name = nameCell.IsEmpty() ? null : nameCell.GetFormattedString()?.Trim();
                             if (string.IsNullOrEmpty(name)) continue;
 
                             double? height = null;
@@ -157,9 +199,8 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
                                 }
                                 else
                                 {
-                                    // Try parse from formatted string
                                     string hStr = heightCell.GetFormattedString()?.Trim();
-                                    if (double.TryParse(hStr, out double parsed))
+                                    if (!string.IsNullOrEmpty(hStr) && double.TryParse(hStr, out double parsed))
                                     {
                                         height = parsed;
                                     }
@@ -167,6 +208,12 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
                             }
 
                             rawData.Add((name, height));
+                        }
+
+                        if (rawData.Count == 0)
+                        {
+                            StatusMessage = "No level data found in the worksheet.";
+                            return;
                         }
 
                         // Calculate cumulative elevation
@@ -207,46 +254,73 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
         private void UpdateSummary()
         {
-            int count = LevelDataList.Count(l => l.IsSelected);
-            double minElev = LevelDataList.Where(l => l.IsSelected).Min(l => l.Elevation);
-            double maxElev = LevelDataList.Where(l => l.IsSelected).Max(l => l.Elevation);
-            SummaryText = $"{count} levels | Elevation: {minElev:F0} → {maxElev:F0} mm";
+            try
+            {
+                var selected = LevelDataList.Where(l => l.IsSelected).ToList();
+                if (selected.Count == 0)
+                {
+                    SummaryText = "No levels selected";
+                    return;
+                }
+
+                double minElev = selected.Min(l => l.Elevation);
+                double maxElev = selected.Max(l => l.Elevation);
+                SummaryText = $"{selected.Count} levels | Elevation: {minElev:F0} → {maxElev:F0} mm";
+            }
+            catch
+            {
+                SummaryText = "";
+            }
         }
 
         [RelayCommand]
         private void CreateLevels()
         {
-            var selected = LevelDataList.Where(l => l.IsSelected).ToList();
-            if (selected.Count == 0)
+            try
             {
-                StatusMessage = "No levels selected.";
-                return;
+                var selected = LevelDataList.Where(l => l.IsSelected).ToList();
+                if (selected.Count == 0)
+                {
+                    StatusMessage = "No levels selected.";
+                    return;
+                }
+
+                _handler.LevelsToCreate = selected;
+                _handler.DeleteExistingLevels = DeleteExistingLevels;
+                _externalEvent.Raise();
+
+                StatusMessage = "Creating levels...";
             }
-
-            _handler.LevelsToCreate = selected;
-            _handler.DeleteExistingLevels = DeleteExistingLevels;
-            _externalEvent.Raise();
-
-            StatusMessage = "Creating levels...";
+            catch (Exception ex)
+            {
+                StatusMessage = "Error: " + ex.Message;
+            }
         }
 
         [RelayCommand]
         private void SelectAll()
         {
-            foreach (var l in LevelDataList) l.IsSelected = true;
-            // Force refresh
-            var temp = new ObservableCollection<LevelData>(LevelDataList);
-            LevelDataList = temp;
-            UpdateSummary();
+            try
+            {
+                foreach (var l in LevelDataList) l.IsSelected = true;
+                var temp = new ObservableCollection<LevelData>(LevelDataList);
+                LevelDataList = temp;
+                UpdateSummary();
+            }
+            catch { }
         }
 
         [RelayCommand]
         private void DeselectAll()
         {
-            foreach (var l in LevelDataList) l.IsSelected = false;
-            var temp = new ObservableCollection<LevelData>(LevelDataList);
-            LevelDataList = temp;
-            UpdateSummary();
+            try
+            {
+                foreach (var l in LevelDataList) l.IsSelected = false;
+                var temp = new ObservableCollection<LevelData>(LevelDataList);
+                LevelDataList = temp;
+                UpdateSummary();
+            }
+            catch { }
         }
     }
 

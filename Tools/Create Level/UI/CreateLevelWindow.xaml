@@ -172,8 +172,6 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="(no levels)" Foreground="#BDC3C7" FontSize="10" Margin="0,4,0,0"
-                                       Visibility="{Binding ExistingLevels.Count, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"/>
                         </StackPanel>
                     </Border>
 
