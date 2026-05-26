@@ -43,6 +43,7 @@ namespace RincoNhan.Core
             AddCreateSectionWallButton(generalPanel);
             AddViewRefButton(generalPanel);
             AddRebarColumnButton(generalPanel);
+            AddCreateLevelButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -239,6 +240,21 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("RebarColumn.png");
             pb.Image = LoadIcon("RebarColumn.png", 16);
+        }
+
+        private static void AddCreateLevelButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdCreateLevel",
+                "Create\nLevel",
+                _assemblyPath,
+                "RincoNhan.Tools.CreateLevel.Command"
+            );
+            btnData.ToolTip = "Create Revit levels from an Excel file with floor-to-floor heights.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("CreateLevel.png");
+            pb.Image = LoadIcon("CreateLevel.png", 16);
         }
     }
 }
