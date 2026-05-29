@@ -44,6 +44,8 @@ namespace RincoNhan.Core
             AddViewRefButton(generalPanel);
             AddRebarColumnButton(generalPanel);
             AddCreateLevelButton(generalPanel);
+            AddSmartLinkCadButton(generalPanel);
+            AddSmartLinkRevitButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -255,6 +257,32 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("CreateLevel.png");
             pb.Image = LoadIcon("CreateLevel.png", 16);
+        }
+
+        private static void AddSmartLinkCadButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdSmartLinkCad",
+                "Smart\nLink Cad",
+                _assemblyPath,
+                "RincoNhan.Tools.SmartLinkCad.SmartLinkCadCommand"
+            );
+            btnData.ToolTip = "Batch override graphics of CAD files and layers.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddSmartLinkRevitButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdSmartLinkRevit",
+                "Smart\nLink RVT",
+                _assemblyPath,
+                "RincoNhan.Tools.SmartLinkRevit.SmartLinkRevitCommand"
+            );
+            btnData.ToolTip = "Batch apply RVT Link Display Settings across multiple host views.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
         }
     }
 }
