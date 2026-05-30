@@ -141,39 +141,93 @@ namespace RincoNhan.Tools.SmartLinkCad
 
             _allLayers = _allLayers.OrderBy(l => l.CadFileName).ThenBy(l => l.LayerName).ToList();
 
-            // Populate CAD filter combo
-            var filterItems = new List<CADCategoryInfo>();
-            filterItems.Insert(0, new CADCategoryInfo { Name = "<All CAD Files>", Category = null });
-            filterItems.AddRange(_cadList);
-            cboCadFilter.ItemsSource = filterItems;
-            cboCadFilter.SelectedIndex = 0;
+            // Populate CAD filter list (multi-select) — select all by default
+            foreach (var cad in _cadList)
+            {
+                cad.IsSelected = true;
+            }
+            lstCadFilter.ItemsSource = _cadList;
 
             _filteredLayers = new ObservableCollection<CADLayerInfo>(_allLayers);
             lstLayers.ItemsSource = _filteredLayers;
         }
 
-        private void CboCadFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ChkCadFilter_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyLayerFilters();
+        }
+
+        private void BtnCadFilterAll_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var cad in _cadList)
+                cad.IsSelected = true;
+            ApplyLayerFilters();
+        }
+
+        private void BtnCadFilterNone_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var cad in _cadList)
+                cad.IsSelected = false;
+            ApplyLayerFilters();
+        }
+
+        private void TxtLayerFilter_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplyLayerFilters();
+        }
+
+        private void BtnClearFilter_Click(object sender, RoutedEventArgs e)
+        {
+            txtLayerFilter.Text = "";
+            // TextChanged event will auto-trigger ApplyLayerFilters()
+        }
+
+        /// <summary>
+        /// Central filter method: combines multi-select CAD file filter + layer name search.
+        /// </summary>
+        private void ApplyLayerFilters()
         {
             if (_allLayers == null || _filteredLayers == null) return;
 
-            var selected = cboCadFilter.SelectedItem as CADCategoryInfo;
-
-            _filteredLayers.Clear();
-
+            // 1. Filter by selected CAD files (multi-select)
+            var selectedCadNames = _cadList.Where(c => c.IsSelected).Select(c => c.Name).ToHashSet();
             IEnumerable<CADLayerInfo> source;
-            if (selected == null || selected.Category == null)
+
+            if (selectedCadNames.Count == 0 || selectedCadNames.Count == _cadList.Count)
             {
-                // Show all
+                // None selected or all selected → show all
                 source = _allLayers;
             }
             else
             {
-                source = _allLayers.Where(l => l.CadFileName == selected.Name);
+                source = _allLayers.Where(l => selectedCadNames.Contains(l.CadFileName));
             }
 
+            int totalForCad = source.Count();
+
+            // 2. Filter by layer name (search text)
+            string searchText = txtLayerFilter?.Text?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(searchText))
+            {
+                source = source.Where(l =>
+                    l.LayerName != null &&
+                    l.LayerName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+            // 3. Update collection
+            _filteredLayers.Clear();
             foreach (var layer in source)
             {
                 _filteredLayers.Add(layer);
+            }
+
+            // 4. Update count label
+            if (txtLayerCount != null)
+            {
+                if (!string.IsNullOrEmpty(searchText))
+                    txtLayerCount.Text = $"Showing: {_filteredLayers.Count} / {totalForCad} layers";
+                else
+                    txtLayerCount.Text = $"{totalForCad} layers";
             }
         }
 

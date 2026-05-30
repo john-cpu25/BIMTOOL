@@ -95,18 +95,67 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- CAD file filter -->
+                    <!-- CAD file filter (multi-select) -->
                     <StackPanel Grid.Row="0" Margin="0,0,0,5">
-                        <TextBlock Text="Filter by CAD File:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <ComboBox x:Name="cboCadFilter" DisplayMemberPath="Name" Height="25" SelectionChanged="CboCadFilter_SelectionChanged"/>
+                        <Grid Margin="0,0,0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Filter by CAD File:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="All" Width="40" Height="20" FontSize="10"
+                                    Margin="0,0,3,0" ToolTip="Select all CAD files"
+                                    Click="BtnCadFilterAll_Click"/>
+                            <Button Grid.Column="2" Content="None" Width="40" Height="20" FontSize="10"
+                                    ToolTip="Deselect all CAD files"
+                                    Click="BtnCadFilterNone_Click"/>
+                        </Grid>
+                        <Border BorderBrush="#DDDDDD" BorderThickness="1" MaxHeight="90">
+                            <ListBox x:Name="lstCadFilter" BorderThickness="0"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Name}" 
+                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                                  Margin="2,1"
+                                                  Click="ChkCadFilter_Click"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Layer name search filter -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,5">
+                        <TextBlock Text="🔍 Search Layer:" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="txtLayerFilter" 
+                                     Grid.Column="0" Height="25" 
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="TxtLayerFilter_TextChanged"
+                                     ToolTip="Type to filter layers by name"/>
+                            <Button x:Name="btnClearFilter" Grid.Column="1" Content="✕" 
+                                    Width="25" Height="25" Margin="3,0,0,0" 
+                                    ToolTip="Clear filter"
+                                    Click="BtnClearFilter_Click"/>
+                        </Grid>
+                        <TextBlock x:Name="txtLayerCount" 
+                                   Text="" FontSize="11" 
+                                   Foreground="Gray" Margin="0,3,0,0"/>
                     </StackPanel>
 
                     <!-- Per-layer override settings -->
-                    <GroupBox Grid.Row="1" Header="Layer Override (for selected layers)" Margin="0,0,0,5">
+                    <GroupBox Grid.Row="2" Header="Layer Override (for selected layers)" Margin="0,0,0,5">
                         <Grid Margin="5">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -140,7 +189,7 @@
                     </GroupBox>
 
                     <!-- Layer list with visibility checkbox -->
-                    <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
+                    <Border Grid.Row="3" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
                         <ListView x:Name="lstLayers" BorderThickness="0"
                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.View>
@@ -163,7 +212,7 @@
                     </Border>
 
                     <!-- Layer action buttons -->
-                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,5,0,0">
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,5,0,0">
                         <Button Content="Apply Visibility" Width="110" Height="25" Margin="0,0,5,0" Click="BtnApplyVisibility_Click" Background="#0078D7" Foreground="White"/>
                         <Button Content="Apply Override" Width="110" Height="25" Click="BtnApplyLayerOverride_Click" Background="#D77800" Foreground="White"/>
                     </StackPanel>
