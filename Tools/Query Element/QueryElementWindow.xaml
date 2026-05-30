@@ -1,0 +1,98 @@
+<Window x:Class="RincoNhan.Tools.QueryElement.QueryElementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Query Element Location" Height="350" Width="500"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        Background="#F5F6F7"
+        FontFamily="Segoe UI">
+    
+    <Window.Resources>
+        <!-- DataTemplate for ListBox items so they look like clickable links/buttons -->
+        <DataTemplate x:Key="LocationItemTemplate">
+            <Button Content="{Binding Name}" 
+                    CommandParameter="{Binding Id}"
+                    Click="BtnLocation_Click"
+                    IsEnabled="{Binding IsClickable}"
+                    Background="Transparent" 
+                    BorderThickness="0" 
+                    Foreground="#005A9E" 
+                    Cursor="Hand"
+                    HorizontalAlignment="Left"
+                    Margin="2"/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TabControl x:Name="MainTabControl" Grid.Row="0" Background="White" BorderBrush="#DDDDDD">
+            <!-- View Tab -->
+            <TabItem Header="Query View">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="Select a View:" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#333333"/>
+                    <ComboBox x:Name="CmbViews" Grid.Row="1" IsEditable="True" Height="30" Padding="5" 
+                              SelectionChanged="CmbViews_SelectionChanged"/>
+                    
+                    <TextBlock Grid.Row="2" Text="Placed on Sheet:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
+                    <ListBox x:Name="ListViewLocations" Grid.Row="3" BorderBrush="Transparent" Background="Transparent" 
+                             ItemTemplate="{StaticResource LocationItemTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                </Grid>
+            </TabItem>
+            
+            <!-- Legend Tab -->
+            <TabItem Header="Query Legend">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="Select a Legend:" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#333333"/>
+                    <ComboBox x:Name="CmbLegends" Grid.Row="1" IsEditable="True" Height="30" Padding="5" 
+                              SelectionChanged="CmbLegends_SelectionChanged"/>
+                    
+                    <TextBlock Grid.Row="2" Text="Placed on Sheets:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
+                    <ListBox x:Name="ListLegendLocations" Grid.Row="3" BorderBrush="#DDDDDD" Background="#FAFAFA" Padding="5"
+                             ItemTemplate="{StaticResource LocationItemTemplate}"/>
+                </Grid>
+            </TabItem>
+            
+            <!-- Group Tab -->
+            <TabItem Header="Query Group (2D)">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="Select a 2D Detail Group:" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#333333"/>
+                    <ComboBox x:Name="CmbGroups" Grid.Row="1" IsEditable="True" Height="30" Padding="5" 
+                              SelectionChanged="CmbGroups_SelectionChanged"/>
+                    
+                    <TextBlock Grid.Row="2" Text="Belongs to View:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
+                    <ListBox x:Name="ListGroupLocations" Grid.Row="3" BorderBrush="Transparent" Background="Transparent" 
+                             ItemTemplate="{StaticResource LocationItemTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        
+        <Button x:Name="BtnClose" Grid.Row="1" Content="Close" Width="100" Height="30" 
+                HorizontalAlignment="Right" Margin="0,15,0,0"
+                Click="BtnClose_Click" Background="#0078D7" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+    </Grid>
+</Window>

@@ -46,6 +46,7 @@ namespace RincoNhan.Core
             AddCreateLevelButton(generalPanel);
             AddSmartLinkCadButton(generalPanel);
             AddSmartLinkRevitButton(generalPanel);
+            AddQueryElementButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -281,6 +282,19 @@ namespace RincoNhan.Core
                 "RincoNhan.Tools.SmartLinkRevit.SmartLinkRevitCommand"
             );
             btnData.ToolTip = "Batch apply RVT Link Display Settings across multiple host views.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddQueryElementButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdQueryElement",
+                "Query\nElement",
+                _assemblyPath,
+                "RincoNhan.Tools.QueryElement.Command"
+            );
+            btnData.ToolTip = "Query the location of Views, Legends, and Groups.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
         }
