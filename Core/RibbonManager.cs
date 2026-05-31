@@ -47,6 +47,7 @@ namespace RincoNhan.Core
             AddSmartLinkCadButton(generalPanel);
             AddSmartLinkRevitButton(generalPanel);
             AddQueryElementButton(generalPanel);
+            AddMtoSmartTagButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -297,6 +298,21 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Query the location of Views, Legends, and Groups.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddMtoSmartTagButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdMtoSmartTag",
+                "MTO\nSmart Tag",
+                _assemblyPath,
+                "RincoNhan.Tools.MtoSmartTag.Command"
+            );
+            btnData.ToolTip = "Tag Reinforcement Distribution detail items near their insertion point.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("MtoSmartTag.png");
+            pb.Image = LoadIcon("MtoSmartTag.png", 16);
         }
     }
 }
