@@ -47,6 +47,8 @@ namespace RincoNhan.Core
             AddSmartLinkCadButton(generalPanel);
             AddSmartLinkRevitButton(generalPanel);
             AddQueryElementButton(generalPanel);
+            AddMtoQueryButton(generalPanel);
+            AddMtoGroupBarButton(generalPanel);
             AddMtoSmartTagButton(generalPanel);
         }
 
@@ -313,6 +315,32 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("MtoSmartTag.png");
             pb.Image = LoadIcon("MtoSmartTag.png", 16);
+        }
+
+        private static void AddMtoQueryButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdMtoQuery",
+                "MTO\nQuery",
+                _assemblyPath,
+                "RincoNhan.Tools.MTOQuery.Command"
+            );
+            btnData.ToolTip = "Query and summarize Reinforcement Distribution and ZBar detail items in the current view.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddMtoGroupBarButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdMtoGroupBar",
+                "MTO\nGroup Bar",
+                _assemblyPath,
+                "RincoNhan.Tools.MtoGroupBar.Command"
+            );
+            btnData.ToolTip = "Group lapped reinforcement bars automatically.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
         }
     }
 }
