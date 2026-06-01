@@ -31,7 +31,7 @@ namespace RincoNhan.Tools.ExportFamilyData
                     Type = curve.GetType().Name,
                     LineStyle = curve.LineStyle?.Name ?? "None",
                     CurveShape = geomCurve.GetType().Name,
-                    IsReferenceLine = curve.Category != null && curve.Category.Id.IntegerValue == (int)BuiltInCategory.OST_ReferenceLines
+                    IsReferenceLine = curve.Category != null && curve.Category.Id.GetIdValue() == (long)BuiltInCategory.OST_ReferenceLines
                 };
 
                 if (geomCurve.IsBound)

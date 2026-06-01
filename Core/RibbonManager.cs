@@ -54,6 +54,7 @@ namespace RincoNhan.Core
             AddAddSharedParamButton(generalPanel);
             AddExportFamilyDataButton(generalPanel);
             AddImportFamilyDataButton(generalPanel);
+            AddExportExcelButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -397,6 +398,21 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Import Lines and Ref Planes from JSON into current Family.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddExportExcelButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdExportExcel",
+                "Export\nSchedules",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportExcel.Command"
+            );
+            btnData.ToolTip = "Export all schedules to an Excel file.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("ExportExcel.png");
+            pb.Image = LoadIcon("ExportExcel.png", 16);
         }
     }
 }

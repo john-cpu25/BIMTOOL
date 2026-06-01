@@ -103,7 +103,7 @@
     
     <ItemGroup>
       <MainBinaries Include="$(TargetDir)*.dll" />
-      <AddinFile Include="$(ProjectDir)..\RincoNhan.addin" />
+      <AddinFile Include="$(ProjectDir)RincoNhan.addin" />
     </ItemGroup>
     
     <Copy SourceFiles="@(MainBinaries)" DestinationFolder="$(BundleFolder)\Contents\$(RevitVersion)" />
@@ -118,6 +118,6 @@
     <Copy SourceFiles="@(ToolIcons)" DestinationFolder="$(BundleFolder)\Contents\Resources\" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(ToolIcons)" DestinationFolder="$(TargetDir)Resources\" SkipUnchangedFiles="true" />
     
-    <Copy SourceFiles="$(ProjectDir)..\PackageContents.xml" DestinationFolder="$(BundleFolder)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(ProjectDir)PackageContents.xml" DestinationFolder="$(BundleFolder)" SkipUnchangedFiles="true" />
   </Target>
 </Project>
