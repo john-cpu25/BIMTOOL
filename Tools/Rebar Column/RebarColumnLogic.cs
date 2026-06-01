@@ -66,8 +66,13 @@ namespace RincoNhan.Tools.RebarColumn
 
                 if (barType == null) { trans.RollBack(); return; }
 
+#if REVIT2022_OR_GREATER
                 double d_stirrup = stirrupType.BarNominalDiameter;
                 double d_main = barType.BarNominalDiameter;
+#else
+                double d_stirrup = stirrupType.BarDiameter;
+                double d_main = barType.BarDiameter;
+#endif
 
                 // Stirrup dimensions: centerline to centerline. The outer edge sits exactly at the cover boundary.
                 double b_stirrup = b - 2 * cover - d_stirrup;
@@ -172,7 +177,7 @@ namespace RincoNhan.Tools.RebarColumn
                     {
                         try
                         {
-#if NET48
+#if !REVIT2024_OR_GREATER
                             rebar.SetSolidInView(view3D, true);
 #endif
                             rebar.SetUnobscuredInView(view3D, true);

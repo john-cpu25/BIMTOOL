@@ -1,0 +1,59 @@
+using System;
+using System.IO;
+using System.Text.Json;
+using Autodesk.Revit.Attributes;
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+
+namespace RincoNhan.Tools.ExportFamilyData
+{
+    [Transaction(TransactionMode.Manual)]
+    public class ExportFamilyDataCommand : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            var uiapp = commandData.Application;
+            var uidoc = uiapp.ActiveUIDocument;
+            var doc = uidoc.Document;
+
+            if (!doc.IsFamilyDocument)
+            {
+                TaskDialog.Show("Lỗi", "Lệnh này chỉ chạy được trong môi trường Family Document (.rfa).");
+                return Result.Failed;
+            }
+
+            try
+            {
+                // Mở hộp thoại chọn vị trí lưu file JSON
+                using (var saveFileDialog = new System.Windows.Forms.SaveFileDialog())
+                {
+                    saveFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+                    saveFileDialog.Title = "Lưu file dữ liệu Family";
+                    saveFileDialog.FileName = $"{doc.Title}_Data.json";
+
+                    if (saveFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    {
+                        // 1. Trích xuất dữ liệu
+                        var data = ExportDataLogic.ExtractData(doc);
+
+                        // 2. Serialize JSON
+                        var options = new JsonSerializerOptions { WriteIndented = true };
+                        string jsonString = JsonSerializer.Serialize(data, options);
+
+                        // 3. Ghi ra file
+                        File.WriteAllText(saveFileDialog.FileName, jsonString);
+
+                        TaskDialog.Show("Thành công", $"Đã xuất dữ liệu ra file:\n{saveFileDialog.FileName}");
+                    }
+                }
+
+                return Result.Succeeded;
+            }
+            catch (Exception ex)
+            {
+                TaskDialog.Show("Lỗi", "Đã xảy ra lỗi:\n" + ex.Message);
+                return Result.Failed;
+            }
+        }
+    }
+}

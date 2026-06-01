@@ -55,9 +55,15 @@ namespace RincoNhan.Tools.WallDivide
             double lengthFt = wall.get_Parameter(BuiltInParameter.CURVE_ELEM_LENGTH).AsDouble();
             double volumeCuFt = wall.get_Parameter(BuiltInParameter.HOST_VOLUME_COMPUTED).AsDouble();
 
+#if REVIT2021_OR_GREATER
             double heightMm = UnitUtils.ConvertFromInternalUnits(heightFt, UnitTypeId.Millimeters);
             double lengthMm = UnitUtils.ConvertFromInternalUnits(lengthFt, UnitTypeId.Millimeters);
             double volumeM3 = UnitUtils.ConvertFromInternalUnits(volumeCuFt, UnitTypeId.CubicMeters);
+#else
+            double heightMm = UnitUtils.ConvertFromInternalUnits(heightFt, DisplayUnitType.DUT_MILLIMETERS);
+            double lengthMm = UnitUtils.ConvertFromInternalUnits(lengthFt, DisplayUnitType.DUT_MILLIMETERS);
+            double volumeM3 = UnitUtils.ConvertFromInternalUnits(volumeCuFt, DisplayUnitType.DUT_CUBIC_METERS);
+#endif
 
             // Check hosted elements (doors/windows)
             var hosted = new FilteredElementCollector(_doc)
@@ -96,7 +102,11 @@ namespace RincoNhan.Tools.WallDivide
 
             if (thickParam != null)
             {
+#if REVIT2021_OR_GREATER
                 return UnitUtils.ConvertFromInternalUnits(thickParam.AsDouble(), UnitTypeId.Millimeters);
+#else
+                return UnitUtils.ConvertFromInternalUnits(thickParam.AsDouble(), DisplayUnitType.DUT_MILLIMETERS);
+#endif
             }
             return 0;
         }

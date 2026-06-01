@@ -1,0 +1,26 @@
+<Window x:Class="RincoNhan.Tools.ExportSharedParameters.UI.ExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Export Shared Parameters" Height="300" Width="400"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Topmost="True">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Export Shared Parameters Tool" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+            <TextBlock Text="{Binding StatusMessage}" FontSize="14" Foreground="Blue" Margin="0,0,0,20" TextWrapping="Wrap"/>
+            <TextBlock Text="Choose export format:" Margin="0,0,0,10"/>
+            
+            <Button Content="Export to Excel (.xlsx)" Command="{Binding ExportExcelCommand}" Height="35" Margin="0,0,0,10" Background="#FF4CAF50" Foreground="White" FontWeight="Bold"/>
+            <Button Content="Export to Revit TXT (.txt)" Command="{Binding ExportTxtCommand}" Height="35" Background="#FF2196F3" Foreground="White" FontWeight="Bold"/>
+        </StackPanel>
+
+        <Button Grid.Row="2" Content="Close" Click="Close_Click" Height="30" Width="100" HorizontalAlignment="Right" Margin="0,10,0,0"/>
+    </Grid>
+</Window>

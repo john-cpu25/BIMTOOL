@@ -166,8 +166,10 @@ namespace RincoNhan.Tools.Filter.ViewModels
             if (!Groups.Any()) AddGroup();
         }
 
+#pragma warning disable CS0067
         public event EventHandler OnResetViewRequested;
         public event EventHandler<string> OnVisibilityActionRequested;
+#pragma warning restore CS0067
 
         [RelayCommand]
         private void AddGroup()

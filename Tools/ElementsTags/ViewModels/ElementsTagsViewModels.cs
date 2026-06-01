@@ -31,7 +31,7 @@ namespace RincoNhan.Tools.ElementsTags.ViewModels
             SelectedTagType = TagTypes.FirstOrDefault();
             IsSelected = true;
 
-            int bic = category?.Id.IntegerValue ?? 0;
+            int bic = (int)(category?.Id.GetIdValue() ?? 0);
             if (bic == (int)BuiltInCategory.OST_Floors) OverrideColor = new Color(0, 255, 255); 
             else if (bic == (int)BuiltInCategory.OST_StructuralColumns) OverrideColor = new Color(0, 255, 0); 
             else if (bic == (int)BuiltInCategory.OST_StructuralFoundation) OverrideColor = new Color(255, 255, 0); 

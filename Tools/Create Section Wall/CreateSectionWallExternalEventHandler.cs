@@ -124,8 +124,13 @@ namespace RincoNhan.Tools.CreateSectionWall
                         t.BasisY = up;
                         t.BasisZ = right;
 
+#if REVIT2021_OR_GREATER
                         double heightFt = UnitUtils.ConvertToInternalUnits(ViewModel.Height, UnitTypeId.Millimeters);
                         double offsetFt = UnitUtils.ConvertToInternalUnits(ViewModel.Offset, UnitTypeId.Millimeters);
+#else
+                        double heightFt = UnitUtils.ConvertToInternalUnits(ViewModel.Height, DisplayUnitType.DUT_MILLIMETERS);
+                        double offsetFt = UnitUtils.ConvertToInternalUnits(ViewModel.Offset, DisplayUnitType.DUT_MILLIMETERS);
+#endif
 
                         double thickness = wall.Width;
                         double totalDepth = thickness + offsetFt;

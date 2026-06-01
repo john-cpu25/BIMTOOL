@@ -50,6 +50,10 @@ namespace RincoNhan.Core
             AddMtoQueryButton(generalPanel);
             AddMtoGroupBarButton(generalPanel);
             AddMtoSmartTagButton(generalPanel);
+            AddExportSharedParamButton(generalPanel);
+            AddAddSharedParamButton(generalPanel);
+            AddExportFamilyDataButton(generalPanel);
+            AddImportFamilyDataButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -339,6 +343,58 @@ namespace RincoNhan.Core
                 "RincoNhan.Tools.MtoGroupBar.Command"
             );
             btnData.ToolTip = "Group lapped reinforcement bars automatically.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddExportSharedParamButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdExportSharedParam",
+                "Export\nShared Param",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportSharedParameters.ExportSharedParamCommand"
+            );
+            btnData.ToolTip = "Export all Shared Parameters in the document to a TXT or Excel file.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddAddSharedParamButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdAddSharedParam",
+                "Add\nShared Param",
+                _assemblyPath,
+                "RincoNhan.Tools.AddSharedParameters.AddSharedParamCommand"
+            );
+            btnData.ToolTip = "Batch add Shared Parameters to the current Family.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddExportFamilyDataButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdExportFamilyData",
+                "Export\nFamily JSON",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ExportFamilyDataCommand"
+            );
+            btnData.ToolTip = "Export Family's Lines, Ref Planes, and Dimensions to JSON.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddImportFamilyDataButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdImportFamilyData",
+                "Import\nFamily JSON",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ImportFamilyDataCommand"
+            );
+            btnData.ToolTip = "Import Lines and Ref Planes from JSON into current Family.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
         }

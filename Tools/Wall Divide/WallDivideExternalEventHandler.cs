@@ -119,7 +119,11 @@ namespace RincoNhan.Tools.WallDivide
         {
             if (ViewModel.FloorId == null) return;
             double thickMm = ViewModel.FloorThickness;
+#if REVIT2021_OR_GREATER
             double thickFt = UnitUtils.ConvertToInternalUnits(thickMm, UnitTypeId.Millimeters);
+#else
+            double thickFt = UnitUtils.ConvertToInternalUnits(thickMm, DisplayUnitType.DUT_MILLIMETERS);
+#endif
 
             using (Transaction trans = new Transaction(doc, "Apply Top Offset"))
             {

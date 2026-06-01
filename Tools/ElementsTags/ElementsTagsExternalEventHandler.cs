@@ -133,7 +133,7 @@ namespace RincoNhan.Tools.ElementsTags
         private bool IsVerticalCategory(Category category)
         {
             if (category == null) return false;
-            int bic = category.Id.IntegerValue;
+            int bic = (int)category.Id.GetIdValue();
             return bic == (int)BuiltInCategory.OST_Walls || 
                    bic == (int)BuiltInCategory.OST_Columns || 
                    bic == (int)BuiltInCategory.OST_StructuralColumns;
@@ -155,7 +155,7 @@ namespace RincoNhan.Tools.ElementsTags
             {
                 foreach (var cat in SelectedCategories)
                 {
-                    selectedCatIds.Add(cat.Category.Id.IntegerValue);
+                    selectedCatIds.Add((int)cat.Category.Id.GetIdValue());
                 }
             }
 
@@ -167,6 +167,7 @@ namespace RincoNhan.Tools.ElementsTags
                 Element currentHost = null;
                 Transform linkTransform = Transform.Identity;
                 
+#if REVIT2022_OR_GREATER
                 var refs = tag.GetTaggedReferences();
                 if (refs.Any())
                 {
@@ -186,6 +187,25 @@ namespace RincoNhan.Tools.ElementsTags
                         currentHost = localElem;
                     }
                 }
+#else
+                if (tag.TaggedLocalElementId != ElementId.InvalidElementId)
+                {
+                    Element localElem = doc.GetElement(tag.TaggedLocalElementId);
+                    if (localElem is RevitLinkInstance linkInst && tag.TaggedElementId.LinkedElementId != ElementId.InvalidElementId)
+                    {
+                        Document linkDoc = linkInst.GetLinkDocument();
+                        if (linkDoc != null) 
+                        {
+                            currentHost = linkDoc.GetElement(tag.TaggedElementId.LinkedElementId);
+                            linkTransform = linkInst.GetTotalTransform();
+                        }
+                    }
+                    else
+                    {
+                        currentHost = localElem;
+                    }
+                }
+#endif
                 else
                 {
                     // SMART RE-HOST: If orphaned, try to find the nearest host
@@ -217,12 +237,12 @@ namespace RincoNhan.Tools.ElementsTags
                 if (currentHost == null || currentHost.Category == null) continue;
 
                 // Only check tags of selected categories
-                if (!selectedCatIds.Contains(currentHost.Category.Id.IntegerValue)) continue;
+                if (!selectedCatIds.Contains((int)currentHost.Category.Id.GetIdValue())) continue;
 
                 bool isVerticalCat = false;
                 if (currentHost.Category != null)
                 {
-                    int bic = currentHost.Category.Id.IntegerValue;
+                    int bic = (int)currentHost.Category.Id.GetIdValue();
                     if (bic == (int)BuiltInCategory.OST_Walls ||
                         bic == (int)BuiltInCategory.OST_Columns ||
                         bic == (int)BuiltInCategory.OST_StructuralColumns ||
@@ -254,14 +274,15 @@ namespace RincoNhan.Tools.ElementsTags
                 {
                     try
                     {
+#if REVIT2022_OR_GREATER
                         var refsCol = tag.GetTaggedReferences();
                         if (refsCol.Any()) leaderEndPoint = tag.GetLeaderEnd(refsCol.First());
+#else
+                        leaderEndPoint = tag.LeaderEnd;
+#endif
                     }
                     catch
                     {
-#if !NETCOREAPP
-                        try { leaderEndPoint = tag.LeaderEnd; } catch { }
-#endif
                     }
                 }
 
@@ -336,7 +357,7 @@ namespace RincoNhan.Tools.ElementsTags
                 if (!isValid)
                 {
                     Color highlightColor = new Color(255, 0, 0);
-                    var matchingCat = SelectedCategories?.FirstOrDefault(c => c.Category.Id.IntegerValue == currentHost.Category.Id.IntegerValue);
+                    var matchingCat = SelectedCategories?.FirstOrDefault(c => c.Category.Id.GetIdValue() == currentHost.Category.Id.GetIdValue());
                     if (matchingCat != null) highlightColor = matchingCat.OverrideColor;
 
                     OverrideGraphicSettings settings = new OverrideGraphicSettings();
@@ -349,11 +370,7 @@ namespace RincoNhan.Tools.ElementsTags
                     errorList.Add(new ViewModels.ErrorItemViewModel 
                     {
                         ElementId = tag.Id,
-#if NETCOREAPP
-                        IdValue = currentHost.Id.Value.ToString(),
-#else
-                        IdValue = currentHost.Id.IntegerValue.ToString(),
-#endif
+                        IdValue = currentHost.Id.GetIdValue().ToString(),
                         Category = currentHost.Category?.Name ?? "Unknown",
                         ErrorType = "Misplaced Tag"
                     });
@@ -385,7 +402,11 @@ namespace RincoNhan.Tools.ElementsTags
                     {
                         // Resolve Host (support Links)
                         Element host = null;
+#if REVIT2022_OR_GREATER
                         var rCol = tag.GetTaggedReferences();
+#else
+                        var rCol = new List<Reference> { tag.TaggedLocalElementId != null ? new Reference(doc.GetElement(tag.TaggedLocalElementId)) : null }.Where(r => r != null);
+#endif
                         if (rCol.Any())
                         {
                             Reference r = rCol.First();
@@ -438,16 +459,20 @@ namespace RincoNhan.Tools.ElementsTags
 
         private void CheckClashTags(Document doc, View view)
         {
-            var selectedCatIds = SelectedCategories?.Select(c => c.Category.Id.IntegerValue).ToHashSet() ?? new HashSet<int>();
+            var selectedCatIds = SelectedCategories?.Select(c => (int)c.Category.Id.GetIdValue()).ToHashSet() ?? new HashSet<int>();
             
             var allTags = new FilteredElementCollector(doc, view.Id)
                 .OfClass(typeof(IndependentTag))
                 .Cast<IndependentTag>()
                 .Where(t => {
+#if REVIT2022_OR_GREATER
                     var hostId = t.GetTaggedLocalElementIds().FirstOrDefault();
+#else
+                    var hostId = t.TaggedLocalElementId;
+#endif
                     if (hostId == null) return false;
                     var host = doc.GetElement(hostId);
-                    return host != null && host.Category != null && selectedCatIds.Contains(host.Category.Id.IntegerValue);
+                    return host != null && host.Category != null && selectedCatIds.Contains((int)host.Category.Id.GetIdValue());
                 })
                 .ToList();
 
@@ -504,7 +529,7 @@ namespace RincoNhan.Tools.ElementsTags
                     errorList.Add(new ViewModels.ErrorItemViewModel 
                     {
                         ElementId = tag1.Id,
-                        IdValue = tag1.Id.IntegerValue.ToString(),
+                        IdValue = tag1.Id.GetIdValue().ToString(),
                         Category = "Tag",
                         ErrorType = "Clash"
                     });
@@ -541,7 +566,11 @@ namespace RincoNhan.Tools.ElementsTags
             var taggedElementIds = new HashSet<ElementId>();
             foreach (var tag in tags)
             {
+#if REVIT2022_OR_GREATER
                 var hostIds = tag.GetTaggedLocalElementIds();
+#else
+                var hostIds = new List<ElementId> { tag.TaggedLocalElementId };
+#endif
                 foreach (var hostId in hostIds)
                 {
                     taggedElementIds.Add(hostId);
@@ -586,11 +615,7 @@ namespace RincoNhan.Tools.ElementsTags
                         errorList.Add(new ViewModels.ErrorItemViewModel 
                         {
                             ElementId = elem.Id,
-#if NETCOREAPP
-                            IdValue = elem.Id.Value.ToString(),
-#else
-                            IdValue = elem.Id.IntegerValue.ToString(),
-#endif
+                            IdValue = elem.Id.GetIdValue().ToString(),
                             Category = item.Category.Name,
                             ErrorType = "Untagged"
                         });
@@ -677,7 +702,7 @@ namespace RincoNhan.Tools.ElementsTags
 
             foreach (Element elem in collector)
             {
-                if (elem.Category == null || !categoryIds.Contains(elem.Category.Id.IntegerValue)) continue;
+                if (elem.Category == null || !categoryIds.Contains((int)elem.Category.Id.GetIdValue())) continue;
 
                 BoundingBoxXYZ bbox = elem.get_BoundingBox(null);
                 if (bbox == null) continue;
@@ -702,7 +727,11 @@ namespace RincoNhan.Tools.ElementsTags
     {
         public static bool IsTaggingCategory(this IndependentTag tag, ElementId categoryId)
         {
+#if REVIT2022_OR_GREATER
             var hostIds = tag.GetTaggedLocalElementIds();
+#else
+            var hostIds = new List<ElementId> { tag.TaggedLocalElementId };
+#endif
             if (!hostIds.Any()) return false;
             var doc = tag.Document;
             var firstHost = doc.GetElement(hostIds.First());

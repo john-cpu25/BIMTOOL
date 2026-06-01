@@ -37,7 +37,7 @@ namespace RincoNhan.Tools.ImportEXtoLegend.Models
                 .OfClass(typeof(DataStorage))
                 .WhereElementIsNotElementType()
                 .Cast<DataStorage>()
-                .Where(ds => ds.Name == $"ImportEXtoLegend_{viewId.IntegerValue}");
+                .Where(ds => ds.Name == $"ImportEXtoLegend_{viewId.GetIdValue()}");
 
             return collector.FirstOrDefault();
         }
@@ -48,7 +48,7 @@ namespace RincoNhan.Tools.ImportEXtoLegend.Models
             if (existing != null) return existing;
 
             DataStorage storage = DataStorage.Create(doc);
-            storage.Name = $"ImportEXtoLegend_{viewId.IntegerValue}";
+            storage.Name = $"ImportEXtoLegend_{viewId.GetIdValue()}";
             return storage;
         }
 

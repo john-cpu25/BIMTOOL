@@ -27,7 +27,7 @@ namespace RincoNhan.Tools.ElementsTags
 
             var categories = elements
                 .Select(e => e.Category)
-                .GroupBy(c => c.Id.IntegerValue)
+                .GroupBy(c => c.Id.GetIdValue())
                 .Select(g => g.First())
                 .OrderBy(c => c.Name)
                 .ToList();
@@ -74,7 +74,11 @@ namespace RincoNhan.Tools.ElementsTags
             var taggedElementIds = new HashSet<ElementId>();
             foreach (var tag in tags)
             {
+#if REVIT2022_OR_GREATER
                 foreach (var id in tag.GetTaggedLocalElementIds())
+#else
+                foreach (var id in new List<ElementId> { tag.TaggedLocalElementId })
+#endif
                 {
                     taggedElementIds.Add(id);
                 }

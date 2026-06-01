@@ -118,7 +118,7 @@ namespace RincoNhan.Tools.MtoSmartTag
                     .Cast<FamilySymbol>()
                     .FirstOrDefault(fs =>
                         fs.Category != null &&
-                        fs.Category.Id.IntegerValue == (int)BuiltInCategory.OST_DetailComponentTags &&
+                        fs.Category.Id.GetIdValue() == (long)BuiltInCategory.OST_DetailComponentTags &&
                         (fs.FamilyName.Contains("RINCO_TAG_Reo") || fs.FamilyName.Contains("Reo Tag_Mark")));
             }
 
@@ -137,7 +137,11 @@ namespace RincoNhan.Tools.MtoSmartTag
             var taggedIds = new HashSet<ElementId>();
             foreach (var tag in existingTags)
             {
+#if REVIT2022_OR_GREATER
                 foreach (var id in tag.GetTaggedLocalElementIds())
+#else
+                foreach (var id in new List<ElementId> { tag.TaggedLocalElementId })
+#endif
                 {
                     taggedIds.Add(id);
                 }

@@ -42,7 +42,11 @@ namespace RincoNhan.Tools.MTOQuery.ViewModels
                 
                 // Find tag text for this element
                 string tagText = "";
+#if REVIT2022_OR_GREATER
                 var elementTags = tags.Where(t => t.GetTaggedLocalElementIds().Contains(fi.Id)).ToList();
+#else
+                var elementTags = tags.Where(t => t.TaggedLocalElementId == fi.Id).ToList();
+#endif
                 if (elementTags.Any())
                 {
                     tagText = string.Join(", ", elementTags.Select(t => t.TagText).Where(text => !string.IsNullOrEmpty(text)));

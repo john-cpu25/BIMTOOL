@@ -60,7 +60,7 @@ namespace RincoNhan.Tools.JoinElements.ViewModels
             };
 
             var categories = _collector.GetModelCategories(true)
-                .Where(c => allowedCategories.Contains((BuiltInCategory)c.Id.IntegerValue))
+                .Where(c => allowedCategories.Contains((BuiltInCategory)c.Id.GetIdValue()))
                 .ToList();
 
             AvailableCategories = new ObservableCollection<Category>(categories);

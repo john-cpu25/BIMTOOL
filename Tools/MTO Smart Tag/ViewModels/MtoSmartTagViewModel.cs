@@ -149,7 +149,7 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
                 .OfClass(typeof(FamilySymbol))
                 .Cast<FamilySymbol>()
                 .Where(fs => fs.Category != null &&
-                             fs.Category.Id.IntegerValue == (int)BuiltInCategory.OST_DetailComponentTags)
+                             fs.Category.Id.GetIdValue() == (long)BuiltInCategory.OST_DetailComponentTags)
                 .OrderByDescending(fs => fs.FamilyName.Contains("RINCO_TAG_Reo") || fs.FamilyName.Contains("Reo Tag_Mark")) // Prioritize known tag families
                 .ThenBy(fs => fs.FamilyName)
                 .ThenBy(fs => fs.Name)

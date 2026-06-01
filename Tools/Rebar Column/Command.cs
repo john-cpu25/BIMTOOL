@@ -112,8 +112,8 @@ namespace RincoNhan.Tools.RebarColumn
         public bool AllowElement(Element elem)
         {
             if (elem.Category == null) return false;
-            return elem.Category.Id.IntegerValue == (int)BuiltInCategory.OST_Columns || 
-                   elem.Category.Id.IntegerValue == (int)BuiltInCategory.OST_StructuralColumns;
+            return elem.Category.Id.GetIdValue() == (long)BuiltInCategory.OST_Columns || 
+                   elem.Category.Id.GetIdValue() == (long)BuiltInCategory.OST_StructuralColumns;
         }
 
         public bool AllowReference(Reference reference, XYZ position)
