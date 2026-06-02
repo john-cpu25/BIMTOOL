@@ -10,9 +10,18 @@ namespace RincoNhan.Tools.ExportFamilyData
         public double Z { get; set; }
     }
 
+    public class SubcategoryModel
+    {
+        public string Name { get; set; }
+        public int LineWeight { get; set; }
+        public string LineColor { get; set; } // Format: "R,G,B"
+        public string LinePatternName { get; set; }
+    }
+
     public class LineModel
     {
         public int Id { get; set; }
+        public string UniqueId { get; set; }
         public string LineStyle { get; set; }
         public string Type { get; set; } // ModelCurve, SymbolicCurve, etc.
         public string CurveShape { get; set; } // Line, Arc
@@ -33,6 +42,7 @@ namespace RincoNhan.Tools.ExportFamilyData
     public class ReferencePlaneModel
     {
         public int Id { get; set; }
+        public string UniqueId { get; set; }
         public string Name { get; set; }
         public XYZModel Direction { get; set; }
         public XYZModel Normal { get; set; }
@@ -46,6 +56,7 @@ namespace RincoNhan.Tools.ExportFamilyData
     public class DimensionModel
     {
         public int Id { get; set; }
+        public string UniqueId { get; set; }
         public string Name { get; set; }
         public double Value { get; set; }
         public string ValueString { get; set; }
@@ -57,6 +68,7 @@ namespace RincoNhan.Tools.ExportFamilyData
         // Chứa tên của các Reference Plane / Line mà Dimension này đang bắt điểm tới
         public List<string> ReferenceNames { get; set; } = new List<string>();
         public List<int> ReferenceIds { get; set; } = new List<int>();
+        public List<string> ReferenceUniqueIds { get; set; } = new List<string>(); // Use UniqueIds for precise matching
         public List<string> StableRepresentations { get; set; } = new List<string>(); // Backup for complex mapping
         
         // Vị trí của đường ghi kích thước
@@ -70,10 +82,35 @@ namespace RincoNhan.Tools.ExportFamilyData
         public string Type { get; set; } // Length, Text, Material, etc.
         public string Group { get; set; }
         public string ValueString { get; set; }
+        public double InternalValue { get; set; }
+        public int IntegerValue { get; set; }
+        public string StorageType { get; set; }
         public string Formula { get; set; }
         public bool IsInstance { get; set; }
         public bool IsReporting { get; set; }
         public bool IsShared { get; set; }
+        public string GUID { get; set; }
+    }
+
+    public class FamilyTypeModel
+    {
+        public string TypeName { get; set; }
+        public List<ParameterModel> Parameters { get; set; } = new List<ParameterModel>();
+    }
+
+    public class FamilyTypeExportModel
+    {
+        public string FamilyName { get; set; }
+        public List<FamilyTypeModel> Types { get; set; } = new List<FamilyTypeModel>();
+        public FamilyGeometryModel Geometry { get; set; }
+    }
+
+    public class FamilyGeometryModel
+    {
+        public List<SubcategoryModel> Subcategories { get; set; } = new List<SubcategoryModel>();
+        public List<ReferencePlaneModel> ReferencePlanes { get; set; } = new List<ReferencePlaneModel>();
+        public List<LineModel> Lines { get; set; } = new List<LineModel>();
+        public List<DimensionModel> Dimensions { get; set; } = new List<DimensionModel>();
     }
 
     public class FamilyDataModel

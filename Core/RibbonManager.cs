@@ -54,6 +54,8 @@ namespace RincoNhan.Core
             AddAddSharedParamButton(generalPanel);
             AddExportFamilyDataButton(generalPanel);
             AddImportFamilyDataButton(generalPanel);
+            AddExportFamilyTypeDataButton(generalPanel);
+            AddImportFamilyTypeDataButton(generalPanel);
             AddExportExcelButton(generalPanel);
         }
 
@@ -396,6 +398,32 @@ namespace RincoNhan.Core
                 "RincoNhan.Tools.ExportFamilyData.ImportFamilyDataCommand"
             );
             btnData.ToolTip = "Import Lines and Ref Planes from JSON into current Family.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddExportFamilyTypeDataButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdExportFamilyTypeData",
+                "Export\nType Data",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ExportFamilyTypeDataCommand"
+            );
+            btnData.ToolTip = "Export Family Types and Parameters to JSON (run in Project env).";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddImportFamilyTypeDataButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdImportFamilyTypeData",
+                "Import\nType Data",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ImportFamilyTypeDataCommand"
+            );
+            btnData.ToolTip = "Import Family Types and Parameters from JSON (run in Family env).";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
         }

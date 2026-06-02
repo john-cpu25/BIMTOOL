@@ -1,0 +1,72 @@
+<Window x:Class="RincoNhan.Tools.ExportFamilyData.UI.FamilyTypeDataPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="{Binding TitleText}" Height="600" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5"
+        FontFamily="Segoe UI">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="{Binding TitleText}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+        
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <Border Grid.Column="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Danh sách Types" FontWeight="Bold" Margin="10,10,10,5"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Types}" SelectedItem="{Binding SelectedType, Mode=TwoWay}" 
+                             BorderThickness="0" Margin="5">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding TypeName}" Padding="5"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+            
+            <Border Grid.Column="1" Background="White" BorderBrush="#DDDDDD" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Chi tiết Parameters" FontWeight="Bold" Margin="10,10,10,5"/>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding SelectedParameters}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" 
+                              AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAEAEA" Margin="5">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="120"/>
+                            <DataGridTextColumn Header="Value" Binding="{Binding ValueString}" Width="120"/>
+                            <DataGridTextColumn Header="Group" Binding="{Binding Group}" Width="120"/>
+                            <DataGridCheckBoxColumn Header="IsShared" Binding="{Binding IsShared}" Width="80"/>
+                            <DataGridTextColumn Header="GUID" Binding="{Binding GUID}" Width="150"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Hủy" Command="{Binding CancelCommand}" Width="100" Height="30" Margin="0,0,10,0" Background="White" BorderBrush="#CCCCCC"/>
+            <Button Content="{Binding ExecuteButtonText}" Command="{Binding ExecuteCommand}" Width="120" Height="30" Background="#007ACC" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+        </StackPanel>
+    </Grid>
+</Window>
