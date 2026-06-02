@@ -56,6 +56,7 @@ namespace RincoNhan.Core
             AddImportFamilyDataButton(generalPanel);
             AddExportFamilyTypeDataButton(generalPanel);
             AddImportFamilyTypeDataButton(generalPanel);
+            AddLoadingHatchButton(generalPanel);
             AddExportExcelButton(generalPanel);
         }
 
@@ -424,6 +425,19 @@ namespace RincoNhan.Core
                 "RincoNhan.Tools.ExportFamilyData.ImportFamilyTypeDataCommand"
             );
             btnData.ToolTip = "Import Family Types and Parameters from JSON (run in Family env).";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddLoadingHatchButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdLoadingHatch",
+                "Loading\nHatch",
+                _assemblyPath,
+                "RincoNhan.Tools.LoadingHatch.Command"
+            );
+            btnData.ToolTip = "Query and summarize Filled Regions in the current view.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
         }
