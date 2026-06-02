@@ -4,6 +4,8 @@ using System.Text.Json;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using RincoNhan.Tools.ExportFamilyData.UI;
+using RincoNhan.Tools.ExportFamilyData.ViewModels;
 
 namespace RincoNhan.Tools.ExportFamilyData
 {
@@ -24,28 +26,34 @@ namespace RincoNhan.Tools.ExportFamilyData
 
             try
             {
-                // Mở hộp thoại chọn vị trí lưu file JSON
-                using (var saveFileDialog = new System.Windows.Forms.SaveFileDialog())
+                // 1. Trích xuất dữ liệu
+                var data = ExportDataLogic.ExtractData(doc);
+
+                // 2. Khởi tạo ViewModel và UI
+                var viewModel = new FamilyDataDebugViewModel(data, "Export Family Data Debug", "Lưu ra JSON");
+                var window = new FamilyDataDebugWindow(viewModel);
+
+                // 3. Gán hành động khi ấn nút Lưu
+                viewModel.ExecuteAction = () =>
                 {
-                    saveFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
-                    saveFileDialog.Title = "Lưu file dữ liệu Family";
-                    saveFileDialog.FileName = $"{doc.Title}_Data.json";
-
-                    if (saveFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    using (var saveFileDialog = new System.Windows.Forms.SaveFileDialog())
                     {
-                        // 1. Trích xuất dữ liệu
-                        var data = ExportDataLogic.ExtractData(doc);
+                        saveFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+                        saveFileDialog.Title = "Lưu file dữ liệu Family";
+                        saveFileDialog.FileName = $"{doc.Title}_Data.json";
 
-                        // 2. Serialize JSON
-                        var options = new JsonSerializerOptions { WriteIndented = true };
-                        string jsonString = JsonSerializer.Serialize(data, options);
-
-                        // 3. Ghi ra file
-                        File.WriteAllText(saveFileDialog.FileName, jsonString);
-
-                        TaskDialog.Show("Thành công", $"Đã xuất dữ liệu ra file:\n{saveFileDialog.FileName}");
+                        if (saveFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                        {
+                            var options = new JsonSerializerOptions { WriteIndented = true };
+                            string jsonString = JsonSerializer.Serialize(data, options);
+                            File.WriteAllText(saveFileDialog.FileName, jsonString);
+                            TaskDialog.Show("Thành công", $"Đã xuất dữ liệu ra file:\n{saveFileDialog.FileName}");
+                        }
                     }
-                }
+                };
+
+                // 4. Hiển thị cửa sổ Debug
+                window.ShowDialog();
 
                 return Result.Succeeded;
             }

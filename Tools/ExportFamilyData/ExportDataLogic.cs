@@ -15,6 +15,60 @@ namespace RincoNhan.Tools.ExportFamilyData
                 FamilyName = doc.Title
             };
 
+            // Extract Parameters
+            var familyManager = doc.FamilyManager;
+            if (familyManager != null)
+            {
+                var currentType = familyManager.CurrentType;
+                foreach (FamilyParameter param in familyManager.Parameters)
+                {
+                    var paramModel = new ParameterModel
+                    {
+                        Name = param.Definition.Name,
+                        IsInstance = param.IsInstance,
+                        IsReporting = param.IsReporting,
+                        IsShared = param.IsShared,
+                        Formula = param.Formula
+                    };
+
+#if REVIT2022_OR_GREATER
+                    try { paramModel.Type = param.Definition.GetDataType().TypeId; } catch { }
+#else
+#pragma warning disable CS0618
+                    try { paramModel.Type = param.Definition.ParameterType.ToString(); } catch { }
+#pragma warning restore CS0618
+#endif
+
+#if REVIT2024_OR_GREATER
+                    try { paramModel.Group = param.Definition.GetGroupTypeId().TypeId; } catch { }
+#else
+#pragma warning disable CS0618
+                    try { paramModel.Group = param.Definition.ParameterGroup.ToString(); } catch { }
+#pragma warning restore CS0618
+#endif
+
+                    try
+                    {
+                        if (currentType != null)
+                        {
+                            if (param.StorageType == StorageType.Double)
+                                paramModel.ValueString = currentType.AsDouble(param)?.ToString();
+                            else if (param.StorageType == StorageType.Integer)
+                                paramModel.ValueString = currentType.AsInteger(param)?.ToString();
+                            else if (param.StorageType == StorageType.String)
+                                paramModel.ValueString = currentType.AsString(param);
+                            else if (param.StorageType == StorageType.ElementId)
+                                paramModel.ValueString = currentType.AsElementId(param)?.ToString();
+                            else
+                                paramModel.ValueString = currentType.AsValueString(param);
+                        }
+                    }
+                    catch { }
+
+                    data.Parameters.Add(paramModel);
+                }
+            }
+
             // Extract Lines (CurveElements)
             var curveElements = new FilteredElementCollector(doc)
                 .OfClass(typeof(CurveElement))
@@ -105,14 +159,63 @@ namespace RincoNhan.Tools.ExportFamilyData
             {
                 if (dim.Value == null) continue; // Skip text-only notes if they somehow cast
 
-                data.Dimensions.Add(new DimensionModel
+                string labelName = "";
+                try
+                {
+                    labelName = dim.FamilyLabel?.Definition?.Name ?? "";
+                }
+                catch { }
+
+                var dimModel = new DimensionModel
                 {
                     Id = (int)dim.Id.GetIdValue(),
                     Name = dim.Name,
                     Value = dim.Value.Value,
                     ValueString = dim.ValueString,
-                    IsLocked = dim.IsLocked
-                });
+                    IsLocked = dim.IsLocked,
+                    Label = labelName
+                };
+
+                try
+                {
+                    if (dim.Curve != null && dim.Curve.IsBound)
+                    {
+                        dimModel.DimLineStart = ToXYZModel(dim.Curve.GetEndPoint(0));
+                        dimModel.DimLineEnd = ToXYZModel(dim.Curve.GetEndPoint(1));
+                    }
+                    else if (dim.Curve is Line line)
+                    {
+                        // Unbound line, just get Origin and a point along direction
+                        dimModel.DimLineStart = ToXYZModel(line.Origin);
+                        dimModel.DimLineEnd = ToXYZModel(line.Origin + line.Direction * 10);
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    if (dim.References != null)
+                    {
+                        foreach (Reference r in dim.References)
+                        {
+                            dimModel.StableRepresentations.Add(r.ConvertToStableRepresentation(doc));
+                            Element referencedElement = doc.GetElement(r);
+                            if (referencedElement != null)
+                            {
+                                dimModel.ReferenceNames.Add(referencedElement.Name);
+                                dimModel.ReferenceIds.Add((int)referencedElement.Id.GetIdValue());
+                            }
+                            else
+                            {
+                                dimModel.ReferenceNames.Add("Unknown");
+                                dimModel.ReferenceIds.Add(-1);
+                            }
+                        }
+                    }
+                }
+                catch { }
+
+                data.Dimensions.Add(dimModel);
             }
 
             return data;

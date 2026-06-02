@@ -1,0 +1,107 @@
+<Window x:Class="RincoNhan.Tools.ExportFamilyData.UI.FamilyDataDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RincoNhan.Tools.ExportFamilyData.UI"
+        mc:Ignorable="d"
+        Title="{Binding TitleText}" Height="600" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5"
+        FontFamily="Segoe UI">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="{Binding TitleText}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+        
+        <TabControl Grid.Row="1" Background="White" BorderBrush="#DDDDDD" BorderThickness="1">
+            
+            <!-- Parameters Tab -->
+            <TabItem Header="Parameters">
+                <DataGrid ItemsSource="{Binding Parameters}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" 
+                          AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAEAEA">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150" />
+                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="100"/>
+                        <DataGridTextColumn Header="Value" Binding="{Binding ValueString}" Width="120"/>
+                        <DataGridTextColumn Header="Formula" Binding="{Binding Formula}" Width="150"/>
+                        <DataGridCheckBoxColumn Header="IsInstance" Binding="{Binding IsInstance}" Width="80"/>
+                        <DataGridCheckBoxColumn Header="IsShared" Binding="{Binding IsShared}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            
+            <!-- Reference Planes Tab -->
+            <TabItem Header="Reference Planes">
+                <DataGrid ItemsSource="{Binding ReferencePlanes}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAEAEA">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="80"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200"/>
+                        <DataGridTextColumn Header="IsReference" Binding="{Binding IsReference}" Width="100"/>
+                        <DataGridCheckBoxColumn Header="DefinesOrigin" Binding="{Binding DefinesOrigin}" Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Lines Tab -->
+            <TabItem Header="Lines">
+                <DataGrid ItemsSource="{Binding Lines}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAEAEA">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="80"/>
+                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="120"/>
+                        <DataGridTextColumn Header="CurveShape" Binding="{Binding CurveShape}" Width="100"/>
+                        <DataGridTextColumn Header="LineStyle" Binding="{Binding LineStyle}" Width="150"/>
+                        <DataGridCheckBoxColumn Header="IsRefLine" Binding="{Binding IsReferenceLine}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Dimensions Tab -->
+            <TabItem Header="Dimensions">
+                <DataGrid ItemsSource="{Binding Dimensions}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAEAEA">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="80"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
+                        <DataGridTextColumn Header="Value" Binding="{Binding ValueString}" Width="100"/>
+                        <DataGridCheckBoxColumn Header="IsLocked" Binding="{Binding IsLocked}" Width="80"/>
+                        <!-- We can use a DataGridTemplateColumn to show the comma-separated references -->
+                        <DataGridTemplateColumn Header="References" Width="300">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ItemsControl ItemsSource="{Binding ReferenceNames}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#E0E0E0" CornerRadius="3" Margin="2,0">
+                                                    <TextBlock Text="{Binding}" Padding="4,2" FontSize="11"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            
+        </TabControl>
+        
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Hủy" Command="{Binding CancelCommand}" Width="100" Height="30" Margin="0,0,10,0" Background="White" BorderBrush="#CCCCCC"/>
+            <Button Content="{Binding ExecuteButtonText}" Command="{Binding ExecuteCommand}" Width="120" Height="30" Background="#007ACC" Foreground="White" BorderThickness="0" FontWeight="SemiBold"/>
+        </StackPanel>
+    </Grid>
+</Window>
