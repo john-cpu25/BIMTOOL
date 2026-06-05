@@ -15,6 +15,12 @@ namespace RincoNhan.Tools.QueryElement
         private ExternalEvent _exEvent;
         private QueryElementEventHandler _handler;
         private List<ElementItem> _cadLinkItems;
+        private List<ElementItem> _allViewItems;
+        private List<ElementItem> _allLegendItems;
+        private List<ElementItem> _allGroupItems;
+        private List<GroupLocationItem> _currentGroupResults = new List<GroupLocationItem>();
+        private List<ElementItem> _allGroup3DItems;
+        private List<ModelGroup3DLocationItem> _currentGroup3DResults = new List<ModelGroup3DLocationItem>();
         private List<CadLinkLocationItem> _allCadResults = new List<CadLinkLocationItem>();
         private GridViewColumnHeader _lastSortHeader;
         private ListSortDirection _lastSortDirection = ListSortDirection.Ascending;
@@ -41,9 +47,21 @@ namespace RincoNhan.Tools.QueryElement
 
         private void LoadData()
         {
-            CmbViews.ItemsSource = QueryLogic.GetAllViews(_doc);
-            CmbLegends.ItemsSource = QueryLogic.GetAllLegends(_doc);
-            CmbGroups.ItemsSource = QueryLogic.GetAllGroups(_doc);
+            // View tab
+            _allViewItems = QueryLogic.GetAllViews(_doc);
+            ListViewNames.ItemsSource = _allViewItems.Select(v => v.Name).ToList();
+
+            // Legend tab
+            _allLegendItems = QueryLogic.GetAllLegends(_doc);
+            ListLegendNames.ItemsSource = _allLegendItems.Select(l => l.Name).ToList();
+
+            // Group 2D tab – deduplicated names
+            _allGroupItems = QueryLogic.GetAllGroups(_doc);
+            ListGroupNames.ItemsSource = _allGroupItems.Select(g => g.Name).ToList();
+
+            // Group 3D tab – deduplicated model group names
+            _allGroup3DItems = QueryLogic.GetAllModelGroups3D(_doc);
+            ListGroup3DNames.ItemsSource = _allGroup3DItems.Select(g => g.Name).ToList();
 
             // CAD tab
             var templates = QueryLogic.GetViewTemplates(_doc);
@@ -69,28 +87,209 @@ namespace RincoNhan.Tools.QueryElement
             ListCadFiles.Items.Refresh();
         }
 
-        private void CmbViews_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // ═══════════════════════════════════════════════════════════════════
+        //  VIEW TAB
+        // ═══════════════════════════════════════════════════════════════════
+
+        private void TxtViewSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (CmbViews.SelectedItem is ElementItem selectedItem)
+            if (_allViewItems == null) return;
+            string filter = TxtViewSearch.Text?.Trim().ToLower() ?? "";
+            if (string.IsNullOrEmpty(filter))
             {
-                ListViewLocations.ItemsSource = QueryLogic.GetViewLocation(_doc, selectedItem.Id);
+                ListViewNames.ItemsSource = _allViewItems.Select(v => v.Name).ToList();
+            }
+            else
+            {
+                ListViewNames.ItemsSource = _allViewItems
+                    .Where(v => v.Name.ToLower().Contains(filter))
+                    .Select(v => v.Name)
+                    .ToList();
             }
         }
 
-        private void CmbLegends_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ListViewNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CmbLegends.SelectedItem is ElementItem selectedItem)
+            if (ListViewNames.SelectedItem is string viewName)
             {
-                ListLegendLocations.ItemsSource = QueryLogic.GetLegendLocations(_doc, selectedItem.Id);
+                var item = _allViewItems.FirstOrDefault(v => v.Name == viewName);
+                if (item != null)
+                {
+                    var locations = QueryLogic.GetViewLocation(_doc, item.Id);
+                    ListViewLocations.ItemsSource = locations;
+                    var sheetInfo = locations.FirstOrDefault();
+                    TxtViewResultInfo.Text = sheetInfo != null && sheetInfo.IsClickable
+                        ? $"Placed on Sheet: {sheetInfo.Name}"
+                        : "Placed on Sheet: —";
+                }
             }
         }
 
-        private void CmbGroups_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // ═══════════════════════════════════════════════════════════════════
+        //  LEGEND TAB
+        // ═══════════════════════════════════════════════════════════════════
+
+        private void TxtLegendSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (CmbGroups.SelectedItem is ElementItem selectedItem)
+            if (_allLegendItems == null) return;
+            string filter = TxtLegendSearch.Text?.Trim().ToLower() ?? "";
+            if (string.IsNullOrEmpty(filter))
             {
-                ListGroupLocations.ItemsSource = QueryLogic.GetGroupLocation(_doc, selectedItem.Id);
+                ListLegendNames.ItemsSource = _allLegendItems.Select(l => l.Name).ToList();
             }
+            else
+            {
+                ListLegendNames.ItemsSource = _allLegendItems
+                    .Where(l => l.Name.ToLower().Contains(filter))
+                    .Select(l => l.Name)
+                    .ToList();
+            }
+        }
+
+        private void ListLegendNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ListLegendNames.SelectedItem is string legendName)
+            {
+                var item = _allLegendItems.FirstOrDefault(l => l.Name == legendName);
+                if (item != null)
+                {
+                    var locations = QueryLogic.GetLegendLocations(_doc, item.Id);
+                    ListLegendLocations.ItemsSource = locations;
+                    TxtLegendResultInfo.Text = $"Placed on Sheets: {locations.Count(l => l.IsClickable)} sheet(s)";
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  GROUP TAB
+        // ═══════════════════════════════════════════════════════════════════
+
+        private void TxtGroupSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_allGroupItems == null) return;
+            string filter = TxtGroupSearch.Text?.Trim().ToLower() ?? "";
+            if (string.IsNullOrEmpty(filter))
+            {
+                ListGroupNames.ItemsSource = _allGroupItems.Select(g => g.Name).ToList();
+            }
+            else
+            {
+                ListGroupNames.ItemsSource = _allGroupItems
+                    .Where(g => g.Name.ToLower().Contains(filter))
+                    .Select(g => g.Name)
+                    .ToList();
+            }
+        }
+
+        private void ListGroupNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ListGroupNames.SelectedItem is string displayName)
+            {
+                string groupName = QueryLogic.ParseGroupDisplayName(displayName);
+                _currentGroupResults = QueryLogic.GetGroupLocationsByName(_doc, groupName);
+                ListGroupLocations.ItemsSource = _currentGroupResults;
+                TxtGroupResultCount.Text = $"Instances: {_currentGroupResults.Count}";
+            }
+        }
+
+        private void BtnSelectGroupInModel_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.CommandParameter is ElementId groupElemId)
+            {
+                if (groupElemId == ElementId.InvalidElementId) return;
+
+                _handler.Action = app =>
+                {
+                    var uidoc = app.ActiveUIDocument;
+                    uidoc.Selection.SetElementIds(new List<ElementId> { groupElemId });
+                };
+                _exEvent.Raise();
+            }
+        }
+
+        private void BtnSelectAllGroupInModel_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentGroupResults == null || _currentGroupResults.Count == 0) return;
+
+            var allIds = _currentGroupResults
+                .Where(g => g.GroupElementId != null && g.GroupElementId != ElementId.InvalidElementId)
+                .Select(g => g.GroupElementId)
+                .ToList();
+
+            if (allIds.Count == 0) return;
+
+            _handler.Action = app =>
+            {
+                var uidoc = app.ActiveUIDocument;
+                uidoc.Selection.SetElementIds(allIds);
+            };
+            _exEvent.Raise();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  GROUP 3D TAB
+        // ═══════════════════════════════════════════════════════════════════
+
+        private void TxtGroup3DSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_allGroup3DItems == null) return;
+            string filter = TxtGroup3DSearch.Text?.Trim().ToLower() ?? "";
+            if (string.IsNullOrEmpty(filter))
+            {
+                ListGroup3DNames.ItemsSource = _allGroup3DItems.Select(g => g.Name).ToList();
+            }
+            else
+            {
+                ListGroup3DNames.ItemsSource = _allGroup3DItems
+                    .Where(g => g.Name.ToLower().Contains(filter))
+                    .Select(g => g.Name)
+                    .ToList();
+            }
+        }
+
+        private void ListGroup3DNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ListGroup3DNames.SelectedItem is string displayName)
+            {
+                string groupName = QueryLogic.ParseGroupDisplayName(displayName);
+                _currentGroup3DResults = QueryLogic.GetModelGroup3DLocationsByName(_doc, groupName);
+                ListGroup3DLocations.ItemsSource = _currentGroup3DResults;
+                TxtGroup3DResultCount.Text = $"Instances: {_currentGroup3DResults.Count}";
+            }
+        }
+
+        private void BtnSelectGroup3DInModel_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.CommandParameter is ElementId groupElemId)
+            {
+                if (groupElemId == ElementId.InvalidElementId) return;
+
+                _handler.Action = app =>
+                {
+                    var uidoc = app.ActiveUIDocument;
+                    uidoc.Selection.SetElementIds(new List<ElementId> { groupElemId });
+                };
+                _exEvent.Raise();
+            }
+        }
+
+        private void BtnSelectAllGroup3DInModel_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentGroup3DResults == null || _currentGroup3DResults.Count == 0) return;
+
+            var allIds = _currentGroup3DResults
+                .Where(g => g.GroupElementId != null && g.GroupElementId != ElementId.InvalidElementId)
+                .Select(g => g.GroupElementId)
+                .ToList();
+
+            if (allIds.Count == 0) return;
+
+            _handler.Action = app =>
+            {
+                var uidoc = app.ActiveUIDocument;
+                uidoc.Selection.SetElementIds(allIds);
+            };
+            _exEvent.Raise();
         }
 
         // ═══════════════════════════════════════════════════════════════════

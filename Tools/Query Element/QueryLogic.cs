@@ -53,9 +53,69 @@ namespace RincoNhan.Tools.QueryElement
                 .OfClass(typeof(Group))
                 .Cast<Group>()
                 .Where(g => g.OwnerViewId != ElementId.InvalidElementId) // Detail groups belong to a view
-                .Select(g => new ElementItem { Id = g.Id, Name = g.Name })
+                .GroupBy(g => g.Name)
+                .Select(grp => new ElementItem
+                {
+                    Id = grp.First().Id,
+                    Name = $"{grp.Key}  ({grp.Count()})"
+                })
                 .OrderBy(x => x.Name)
                 .ToList();
+        }
+
+        public static List<GroupLocationItem> GetGroupLocationsByName(Document doc, string groupName)
+        {
+            var groups = new FilteredElementCollector(doc)
+                .OfClass(typeof(Group))
+                .Cast<Group>()
+                .Where(g => g.OwnerViewId != ElementId.InvalidElementId && g.Name == groupName)
+                .ToList();
+
+            if (groups.Count == 0)
+                return new List<GroupLocationItem>
+                {
+                    new GroupLocationItem
+                    {
+                        ViewId = ElementId.InvalidElementId,
+                        GroupElementId = ElementId.InvalidElementId,
+                        ViewName = "Not found",
+                        GroupName = groupName
+                    }
+                };
+
+            var results = new List<GroupLocationItem>();
+            foreach (var g in groups)
+            {
+                var view = doc.GetElement(g.OwnerViewId) as View;
+                string viewName = view != null ? view.Name : "Unknown View";
+
+                // Try to find the sheet that contains this view
+                string sheetInfo = "";
+                if (view != null)
+                {
+                    var vp = new FilteredElementCollector(doc)
+                        .OfClass(typeof(Viewport))
+                        .Cast<Viewport>()
+                        .FirstOrDefault(v => v.ViewId == view.Id);
+                    if (vp != null)
+                    {
+                        var sheet = doc.GetElement(vp.SheetId) as ViewSheet;
+                        if (sheet != null)
+                            sheetInfo = $"{sheet.SheetNumber} - {sheet.Name}";
+                    }
+                }
+
+                results.Add(new GroupLocationItem
+                {
+                    ViewId = g.OwnerViewId,
+                    GroupElementId = g.Id,
+                    ViewName = viewName,
+                    SheetInfo = sheetInfo,
+                    GroupName = groupName
+                });
+            }
+
+            return results.OrderBy(r => r.ViewName).ToList();
         }
 
         public static List<LocationItem> GetViewLocation(Document doc, ElementId viewId)
@@ -104,6 +164,118 @@ namespace RincoNhan.Tools.QueryElement
             }
 
             return new List<LocationItem> { new LocationItem { Id = ElementId.InvalidElementId, Name = "Model Group" } };
+        }
+
+        /// <summary>
+        /// Extract the raw group name from the display string "GroupName  (count)".
+        /// </summary>
+        public static string ParseGroupDisplayName(string displayName)
+        {
+            if (string.IsNullOrEmpty(displayName)) return displayName;
+            int idx = displayName.LastIndexOf("  (");
+            return idx > 0 ? displayName.Substring(0, idx) : displayName;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  3D MODEL GROUPS
+        // ═══════════════════════════════════════════════════════════════════
+
+        public static List<ElementItem> GetAllModelGroups3D(Document doc)
+        {
+            return new FilteredElementCollector(doc)
+                .OfClass(typeof(Group))
+                .Cast<Group>()
+                .Where(g => g.OwnerViewId == ElementId.InvalidElementId) // Model groups are NOT view-specific
+                .GroupBy(g => g.Name)
+                .Select(grp => new ElementItem
+                {
+                    Id = grp.First().Id,
+                    Name = $"{grp.Key}  ({grp.Count()})"
+                })
+                .OrderBy(x => x.Name)
+                .ToList();
+        }
+
+        public static List<ModelGroup3DLocationItem> GetModelGroup3DLocationsByName(Document doc, string groupName)
+        {
+            var groups = new FilteredElementCollector(doc)
+                .OfClass(typeof(Group))
+                .Cast<Group>()
+                .Where(g => g.OwnerViewId == ElementId.InvalidElementId && g.Name == groupName)
+                .ToList();
+
+            if (groups.Count == 0)
+                return new List<ModelGroup3DLocationItem>
+                {
+                    new ModelGroup3DLocationItem
+                    {
+                        GroupElementId = ElementId.InvalidElementId,
+                        LevelName = "Not found",
+                        LocationInfo = "",
+                        GroupName = groupName
+                    }
+                };
+
+            var results = new List<ModelGroup3DLocationItem>();
+            foreach (var g in groups)
+            {
+                // Get level
+                string levelName = "";
+                try
+                {
+                    var levelParam = g.get_Parameter(BuiltInParameter.INSTANCE_SCHEDULE_ONLY_LEVEL_PARAM)
+                                  ?? g.get_Parameter(BuiltInParameter.INSTANCE_REFERENCE_LEVEL_PARAM);
+                    if (levelParam != null && levelParam.AsElementId() != ElementId.InvalidElementId)
+                    {
+                        var level = doc.GetElement(levelParam.AsElementId()) as Level;
+                        if (level != null) levelName = level.Name;
+                    }
+                }
+                catch { }
+
+                if (string.IsNullOrEmpty(levelName))
+                {
+                    try
+                    {
+                        var levelId = g.LevelId;
+                        if (levelId != null && levelId != ElementId.InvalidElementId)
+                        {
+                            var level = doc.GetElement(levelId) as Level;
+                            if (level != null) levelName = level.Name;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (string.IsNullOrEmpty(levelName)) levelName = "—";
+
+                // Get location
+                string locationInfo = "";
+                try
+                {
+                    var loc = g.Location as LocationPoint;
+                    if (loc != null)
+                    {
+                        var pt = loc.Point;
+                        // Convert feet to mm
+                        double x = System.Math.Round(pt.X * 304.8, 0);
+                        double y = System.Math.Round(pt.Y * 304.8, 0);
+                        double z = System.Math.Round(pt.Z * 304.8, 0);
+                        locationInfo = $"{x}, {y}, {z}";
+                    }
+                }
+                catch { }
+
+                results.Add(new ModelGroup3DLocationItem
+                {
+                    GroupElementId = g.Id,
+                    LevelName = levelName,
+                    LocationInfo = locationInfo,
+                    GroupName = groupName
+                });
+            }
+
+            return results.OrderBy(r => r.LevelName).ToList();
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -309,5 +481,23 @@ namespace RincoNhan.Tools.QueryElement
         public string LinkType { get; set; }
         public bool IsPinned { get; set; }
         public bool IsClickable => Id != null && Id != ElementId.InvalidElementId;
+    }
+
+    public class GroupLocationItem
+    {
+        public ElementId ViewId { get; set; }
+        public ElementId GroupElementId { get; set; }
+        public string ViewName { get; set; }
+        public string SheetInfo { get; set; }
+        public string GroupName { get; set; }
+        public bool IsClickable => ViewId != null && ViewId != ElementId.InvalidElementId;
+    }
+
+    public class ModelGroup3DLocationItem
+    {
+        public ElementId GroupElementId { get; set; }
+        public string LevelName { get; set; }
+        public string LocationInfo { get; set; }
+        public string GroupName { get; set; }
     }
 }

@@ -32,61 +32,398 @@
         <TabControl x:Name="MainTabControl" Grid.Row="0" Background="White" BorderBrush="#DDDDDD">
             <!-- View Tab -->
             <TabItem Header="Query View">
-                <Grid Margin="15">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                    </Grid.ColumnDefinitions>
                     
-                    <TextBlock Text="Select a View:" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#333333"/>
-                    <ComboBox x:Name="CmbViews" Grid.Row="1" IsEditable="True" Height="30" Padding="5" 
-                              SelectionChanged="CmbViews_SelectionChanged"/>
+                    <!-- ═══ LEFT PANEL: View list ═══ -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="Views:" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,0,3"/>
+                        
+                        <TextBox Grid.Row="1" x:Name="TxtViewSearch" Height="24" Padding="5,3" Margin="0,0,0,5"
+                                 TextChanged="TxtViewSearch_TextChanged">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Background">
+                                                <Setter.Value>
+                                                    <VisualBrush Stretch="None" AlignmentX="Left">
+                                                        <VisualBrush.Visual>
+                                                            <TextBlock Text="🔍 Search view name..." Foreground="#AAAAAA" Margin="5,0,0,0" FontSize="11"/>
+                                                        </VisualBrush.Visual>
+                                                    </VisualBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        
+                        <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
+                            <ListBox x:Name="ListViewNames" BorderThickness="0"
+                                     SelectionChanged="ListViewNames_SelectionChanged"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                        </Border>
+                    </Grid>
                     
-                    <TextBlock Grid.Row="2" Text="Placed on Sheet:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
-                    <ListBox x:Name="ListViewLocations" Grid.Row="3" BorderBrush="Transparent" Background="Transparent" 
-                             ItemTemplate="{StaticResource LocationItemTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                                  Background="#E0E0E0" Cursor="SizeWE"/>
+                    
+                    <!-- ═══ RIGHT PANEL: Sheet placement ═══ -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock x:Name="TxtViewResultInfo" Text="Placed on Sheet:" 
+                                   FontWeight="SemiBold" Foreground="#333333" Margin="5,0,0,5"/>
+                        
+                        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" Background="#FAFAFA" CornerRadius="3">
+                            <ListView x:Name="ListViewLocations" BorderThickness="0" Background="Transparent"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Sheet" Width="300">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding Name}" 
+                                                            CommandParameter="{Binding Id}"
+                                                            Click="BtnLocation_Click"
+                                                            IsEnabled="{Binding IsClickable}"
+                                                            Background="Transparent" 
+                                                            BorderThickness="0" 
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            HorizontalAlignment="Left"
+                                                            Margin="2"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                    </Grid>
                 </Grid>
             </TabItem>
             
             <!-- Legend Tab -->
             <TabItem Header="Query Legend">
-                <Grid Margin="15">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                    </Grid.ColumnDefinitions>
                     
-                    <TextBlock Text="Select a Legend:" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#333333"/>
-                    <ComboBox x:Name="CmbLegends" Grid.Row="1" IsEditable="True" Height="30" Padding="5" 
-                              SelectionChanged="CmbLegends_SelectionChanged"/>
+                    <!-- ═══ LEFT PANEL: Legend list ═══ -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="Legends:" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,0,3"/>
+                        
+                        <TextBox Grid.Row="1" x:Name="TxtLegendSearch" Height="24" Padding="5,3" Margin="0,0,0,5"
+                                 TextChanged="TxtLegendSearch_TextChanged">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Background">
+                                                <Setter.Value>
+                                                    <VisualBrush Stretch="None" AlignmentX="Left">
+                                                        <VisualBrush.Visual>
+                                                            <TextBlock Text="🔍 Search legend name..." Foreground="#AAAAAA" Margin="5,0,0,0" FontSize="11"/>
+                                                        </VisualBrush.Visual>
+                                                    </VisualBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        
+                        <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
+                            <ListBox x:Name="ListLegendNames" BorderThickness="0"
+                                     SelectionChanged="ListLegendNames_SelectionChanged"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                        </Border>
+                    </Grid>
                     
-                    <TextBlock Grid.Row="2" Text="Placed on Sheets:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
-                    <ListBox x:Name="ListLegendLocations" Grid.Row="3" BorderBrush="#DDDDDD" Background="#FAFAFA" Padding="5"
-                             ItemTemplate="{StaticResource LocationItemTemplate}"/>
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                                  Background="#E0E0E0" Cursor="SizeWE"/>
+                    
+                    <!-- ═══ RIGHT PANEL: Sheet placements ═══ -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock x:Name="TxtLegendResultInfo" Text="Placed on Sheets:" 
+                                   FontWeight="SemiBold" Foreground="#333333" Margin="5,0,0,5"/>
+                        
+                        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" Background="#FAFAFA" CornerRadius="3">
+                            <ListView x:Name="ListLegendLocations" BorderThickness="0" Background="Transparent"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Sheet" Width="300">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding Name}" 
+                                                            CommandParameter="{Binding Id}"
+                                                            Click="BtnLocation_Click"
+                                                            IsEnabled="{Binding IsClickable}"
+                                                            Background="Transparent" 
+                                                            BorderThickness="0" 
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            HorizontalAlignment="Left"
+                                                            Margin="2"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                    </Grid>
                 </Grid>
             </TabItem>
             
             <!-- Group Tab -->
             <TabItem Header="Query Group (2D)">
-                <Grid Margin="15">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                    </Grid.ColumnDefinitions>
                     
-                    <TextBlock Text="Select a 2D Detail Group:" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#333333"/>
-                    <ComboBox x:Name="CmbGroups" Grid.Row="1" IsEditable="True" Height="30" Padding="5" 
-                              SelectionChanged="CmbGroups_SelectionChanged"/>
+                    <!-- ═══ LEFT PANEL: Group name list ═══ -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="2D Detail Groups:" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,0,3"/>
+                        
+                        <!-- Search box -->
+                        <TextBox Grid.Row="1" x:Name="TxtGroupSearch" Height="24" Padding="5,3" Margin="0,0,0,5"
+                                 TextChanged="TxtGroupSearch_TextChanged">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Background">
+                                                <Setter.Value>
+                                                    <VisualBrush Stretch="None" AlignmentX="Left">
+                                                        <VisualBrush.Visual>
+                                                            <TextBlock Text="🔍 Search group name..." Foreground="#AAAAAA" Margin="5,0,0,0" FontSize="11"/>
+                                                        </VisualBrush.Visual>
+                                                    </VisualBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        
+                        <!-- Group list -->
+                        <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
+                            <ListBox x:Name="ListGroupNames" BorderThickness="0"
+                                     SelectionChanged="ListGroupNames_SelectionChanged"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                        </Border>
+                    </Grid>
                     
-                    <TextBlock Grid.Row="2" Text="Belongs to View:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
-                    <ListBox x:Name="ListGroupLocations" Grid.Row="3" BorderBrush="Transparent" Background="Transparent" 
-                             ItemTemplate="{StaticResource LocationItemTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                                  Background="#E0E0E0" Cursor="SizeWE"/>
+                    
+                    <!-- ═══ RIGHT PANEL: Instances in views ═══ -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock x:Name="TxtGroupResultCount" Text="Instances:" 
+                                   FontWeight="SemiBold" Foreground="#333333" Margin="5,0,0,5"/>
+                        
+                        <!-- Results table -->
+                        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" Background="#FAFAFA" CornerRadius="3">
+                            <ListView x:Name="ListGroupLocations" BorderThickness="0" Background="Transparent"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="View" Width="200">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding ViewName}" 
+                                                            CommandParameter="{Binding ViewId}"
+                                                            Click="BtnLocation_Click"
+                                                            IsEnabled="{Binding IsClickable}"
+                                                            Background="Transparent" 
+                                                            BorderThickness="0" 
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            HorizontalAlignment="Left"
+                                                            Margin="2"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="Sheet" Width="180" DisplayMemberBinding="{Binding SheetInfo}"/>
+                                        <GridViewColumn Header="" Width="55">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="Select" 
+                                                            CommandParameter="{Binding GroupElementId}"
+                                                            Click="BtnSelectGroupInModel_Click"
+                                                            Background="#E8F0FE" 
+                                                            BorderBrush="#B0C4DE"
+                                                            BorderThickness="1"
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            FontSize="10"
+                                                            Padding="4,1"
+                                                            Margin="1"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                        
+                        <Button Grid.Row="2" Content="Select All in Model" Height="26" Padding="10,2" Margin="0,5,0,0"
+                                HorizontalAlignment="Left"
+                                Click="BtnSelectAllGroupInModel_Click"
+                                Background="#0078D7" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            
+            <!-- Group 3D Tab -->
+            <TabItem Header="Query Group (3D)">
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- ═══ LEFT PANEL: Group name list ═══ -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="3D Model Groups:" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,0,3"/>
+                        
+                        <!-- Search box -->
+                        <TextBox Grid.Row="1" x:Name="TxtGroup3DSearch" Height="24" Padding="5,3" Margin="0,0,0,5"
+                                 TextChanged="TxtGroup3DSearch_TextChanged">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Background">
+                                                <Setter.Value>
+                                                    <VisualBrush Stretch="None" AlignmentX="Left">
+                                                        <VisualBrush.Visual>
+                                                            <TextBlock Text="🔍 Search group name..." Foreground="#AAAAAA" Margin="5,0,0,0" FontSize="11"/>
+                                                        </VisualBrush.Visual>
+                                                    </VisualBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        
+                        <!-- Group list -->
+                        <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
+                            <ListBox x:Name="ListGroup3DNames" BorderThickness="0"
+                                     SelectionChanged="ListGroup3DNames_SelectionChanged"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                        </Border>
+                    </Grid>
+                    
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                                  Background="#E0E0E0" Cursor="SizeWE"/>
+                    
+                    <!-- ═══ RIGHT PANEL: Instances ═══ -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock x:Name="TxtGroup3DResultCount" Text="Instances:" 
+                                   FontWeight="SemiBold" Foreground="#333333" Margin="5,0,0,5"/>
+                        
+                        <!-- Results table -->
+                        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" Background="#FAFAFA" CornerRadius="3">
+                            <ListView x:Name="ListGroup3DLocations" BorderThickness="0" Background="Transparent"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Level" Width="150" DisplayMemberBinding="{Binding LevelName}"/>
+                                        <GridViewColumn Header="Location (X, Y, Z)" Width="180" DisplayMemberBinding="{Binding LocationInfo}"/>
+                                        <GridViewColumn Header="" Width="55">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="Select" 
+                                                            CommandParameter="{Binding GroupElementId}"
+                                                            Click="BtnSelectGroup3DInModel_Click"
+                                                            Background="#E8F0FE" 
+                                                            BorderBrush="#B0C4DE"
+                                                            BorderThickness="1"
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            FontSize="10"
+                                                            Padding="4,1"
+                                                            Margin="1"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                        
+                        <Button Grid.Row="2" Content="Select All in Model" Height="26" Padding="10,2" Margin="0,5,0,0"
+                                HorizontalAlignment="Left"
+                                Click="BtnSelectAllGroup3DInModel_Click"
+                                Background="#0078D7" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                    </Grid>
                 </Grid>
             </TabItem>
             
