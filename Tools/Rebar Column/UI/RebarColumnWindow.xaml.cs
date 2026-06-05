@@ -24,6 +24,17 @@ namespace RincoNhan.Tools.RebarColumn.UI
 
         public RebarColumnWindow(RebarColumnViewModel viewModel)
         {
+            // Ensure WPF Application exists (required for XAML resource loading in Revit)
+
+            if (System.Windows.Application.Current == null)
+
+            {
+
+                new System.Windows.Application();
+
+            }
+
+
             InitializeComponent();
             _vm = viewModel;
             DataContext = _vm;

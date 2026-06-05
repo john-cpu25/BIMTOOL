@@ -17,6 +17,17 @@ namespace RincoNhan.Tools.MtoGroupBar.UI
 
         public MtoGroupBarWindow(ObservableCollection<MtoGroupItem> groups, ExternalEvent exEvent, MtoGroupBarEventHandler handler)
         {
+            // Ensure WPF Application exists (required for XAML resource loading in Revit)
+
+            if (System.Windows.Application.Current == null)
+
+            {
+
+                new System.Windows.Application();
+
+            }
+
+
             InitializeComponent();
             _groups = groups;
             _exEvent = exEvent;

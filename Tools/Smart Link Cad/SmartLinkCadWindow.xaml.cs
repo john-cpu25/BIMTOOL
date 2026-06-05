@@ -12,6 +12,7 @@ namespace RincoNhan.Tools.SmartLinkCad
     public partial class SmartLinkCadWindow : Window
     {
         private Document _doc;
+        private SmartLinkCadEventHandler _handler;
         private List<CADCategoryInfo> _cadList;
         private List<View> _viewTemplates;
         private Autodesk.Revit.DB.Color _currentColor = new Autodesk.Revit.DB.Color(80, 200, 150);
@@ -21,18 +22,47 @@ namespace RincoNhan.Tools.SmartLinkCad
         private ObservableCollection<CADLayerInfo> _filteredLayers;
         private Autodesk.Revit.DB.Color _layerColor = new Autodesk.Revit.DB.Color(80, 200, 150);
 
-        public SmartLinkCadWindow(Document doc)
+        // Presets
+        private LayerPresetManager _presetManager;
+
+        public SmartLinkCadWindow(Document doc, SmartLinkCadEventHandler handler)
         {
+            // Ensure WPF Application exists (required for XAML resource loading in Revit)
+            if (System.Windows.Application.Current == null)
+            {
+                new System.Windows.Application();
+            }
+
             InitializeComponent();
             _doc = doc;
+            _handler = handler;
+            _handler.Doc = doc;
+            _handler.StatusCallback = UpdateStatus;
+
             LoadData();
             LoadLayerData();
+
+            // Initialize presets
+            try
+            {
+                _presetManager = new LayerPresetManager(doc.PathName);
+                RefreshPresetList();
+            }
+            catch { }
 
             // Set initial color display
             brdColor.Background = new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(_currentColor.Red, _currentColor.Green, _currentColor.Blue));
             brdLayerColor.Background = new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(_layerColor.Red, _layerColor.Green, _layerColor.Blue));
+        }
+
+        private void UpdateStatus(string msg)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (txtStatusBar != null) txtStatusBar.Text = msg;
+            });
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -141,6 +171,22 @@ namespace RincoNhan.Tools.SmartLinkCad
 
             _allLayers = _allLayers.OrderBy(l => l.CadFileName).ThenBy(l => l.LayerName).ToList();
 
+            // Read current visibility state from selected View Template
+            var selectedView = cboViewTemplates.SelectedItem as View;
+            if (selectedView != null)
+            {
+                foreach (var layer in _allLayers)
+                {
+                    if (layer.SubCategory == null) continue;
+                    try
+                    {
+                        bool isHidden = selectedView.GetCategoryHidden(layer.SubCategory.Id);
+                        layer.IsVisible = !isHidden;
+                    }
+                    catch { }
+                }
+            }
+
             // Populate CAD filter list (multi-select) — select all by default
             foreach (var cad in _cadList)
             {
@@ -179,7 +225,6 @@ namespace RincoNhan.Tools.SmartLinkCad
         private void BtnClearFilter_Click(object sender, RoutedEventArgs e)
         {
             txtLayerFilter.Text = "";
-            // TextChanged event will auto-trigger ApplyLayerFilters()
         }
 
         /// <summary>
@@ -195,7 +240,6 @@ namespace RincoNhan.Tools.SmartLinkCad
 
             if (selectedCadNames.Count == 0 || selectedCadNames.Count == _cadList.Count)
             {
-                // None selected or all selected → show all
                 source = _allLayers;
             }
             else
@@ -274,53 +318,16 @@ namespace RincoNhan.Tools.SmartLinkCad
                 return;
             }
 
-            OverrideGraphicSettings ogs = new OverrideGraphicSettings();
-            ogs.SetProjectionLineColor(_currentColor);
-            ogs.SetHalftone(chkHalftone.IsChecked == true);
-
-            if (cboWeight.SelectedIndex > 0)
-            {
-                ogs.SetProjectionLineWeight(cboWeight.SelectedIndex);
-            }
-
-            if (cboPattern.SelectedIndex > 0 && cboPattern.SelectedValue is ElementId patternId)
-            {
-                ogs.SetProjectionLinePatternId(patternId);
-            }
-
-            try
-            {
-                using (Transaction t = new Transaction(_doc, "Smart Link Cad Override"))
-                {
-                    t.Start();
-
-                    foreach (var cadInfo in selectedCads)
-                    {
-                        Category rootCat = cadInfo.Category;
-
-                        if (selectedView.AreGraphicsOverridesAllowed())
-                        {
-                            selectedView.SetCategoryOverrides(rootCat.Id, ogs);
-                        }
-
-                        foreach (Category subCat in rootCat.SubCategories)
-                        {
-                            if (selectedView.AreGraphicsOverridesAllowed())
-                            {
-                                selectedView.SetCategoryOverrides(subCat.Id, ogs);
-                            }
-                        }
-                    }
-
-                    t.Commit();
-                }
-
-                MessageBox.Show("Graphics overridden successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            // Set handler data and raise event
+            _handler.RequestAction = "BATCH_OVERRIDE";
+            _handler.TargetView = selectedView;
+            _handler.SelectedCads = selectedCads;
+            _handler.OverrideColor = _currentColor;
+            _handler.Halftone = chkHalftone.IsChecked == true;
+            _handler.WeightIndex = cboWeight.SelectedIndex;
+            _handler.PatternId = cboPattern.SelectedIndex > 0 && cboPattern.SelectedValue is ElementId pid
+                ? pid : ElementId.InvalidElementId;
+            _handler.Raise();
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -351,9 +358,6 @@ namespace RincoNhan.Tools.SmartLinkCad
             }
         }
 
-        /// <summary>
-        /// Apply visibility: hide unchecked layers, show checked layers in the selected View Template.
-        /// </summary>
         private void BtnApplyVisibility_Click(object sender, RoutedEventArgs e)
         {
             var selectedView = cboViewTemplates.SelectedItem as View;
@@ -363,40 +367,12 @@ namespace RincoNhan.Tools.SmartLinkCad
                 return;
             }
 
-            try
-            {
-                using (Transaction t = new Transaction(_doc, "Smart Link Cad - Layer Visibility"))
-                {
-                    t.Start();
-
-                    foreach (var layer in _filteredLayers)
-                    {
-                        if (layer.SubCategory == null) continue;
-
-                        try
-                        {
-                            selectedView.SetCategoryHidden(layer.SubCategory.Id, !layer.IsVisible);
-                        }
-                        catch
-                        {
-                            // Some categories may not support hiding
-                        }
-                    }
-
-                    t.Commit();
-                }
-
-                MessageBox.Show("Layer visibility updated!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _handler.RequestAction = "APPLY_VISIBILITY";
+            _handler.TargetView = selectedView;
+            _handler.AllLayers = _allLayers;
+            _handler.Raise();
         }
 
-        /// <summary>
-        /// Apply color/weight/pattern/halftone override to visible (checked) layers only.
-        /// </summary>
         private void BtnApplyLayerOverride_Click(object sender, RoutedEventArgs e)
         {
             var selectedView = cboViewTemplates.SelectedItem as View;
@@ -406,7 +382,6 @@ namespace RincoNhan.Tools.SmartLinkCad
                 return;
             }
 
-            // Get only layers that are checked (visible)
             var targetLayers = _filteredLayers.Where(l => l.IsVisible).ToList();
             if (targetLayers.Count == 0)
             {
@@ -414,44 +389,99 @@ namespace RincoNhan.Tools.SmartLinkCad
                 return;
             }
 
-            OverrideGraphicSettings ogs = new OverrideGraphicSettings();
-            ogs.SetProjectionLineColor(_layerColor);
-            ogs.SetHalftone(chkLayerHalftone.IsChecked == true);
+            _handler.RequestAction = "LAYER_OVERRIDE";
+            _handler.TargetView = selectedView;
+            _handler.TargetLayers = targetLayers;
+            _handler.OverrideColor = _layerColor;
+            _handler.Halftone = chkLayerHalftone.IsChecked == true;
+            _handler.WeightIndex = cboLayerWeight.SelectedIndex;
+            _handler.PatternId = cboLayerPattern.SelectedIndex > 0 && cboLayerPattern.SelectedValue is ElementId pid
+                ? pid : ElementId.InvalidElementId;
+            _handler.Raise();
+        }
 
-            if (cboLayerWeight.SelectedIndex > 0)
+        // ═══════════════════════════════════════════════════════════════════════
+        //  PRESETS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void RefreshPresetList()
+        {
+            if (_presetManager == null) return;
+            var presets = _presetManager.GetPresets();
+            cboPresets.ItemsSource = presets;
+            if (presets.Count > 0)
+                cboPresets.SelectedIndex = 0;
+        }
+
+        private void CboPresets_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var preset = cboPresets.SelectedItem as LayerPreset;
+            if (preset != null)
             {
-                ogs.SetProjectionLineWeight(cboLayerWeight.SelectedIndex);
+                txtPresetName.Text = preset.Name;
+                txtPresetInfo.Text = $"Created: {preset.CreatedAt:dd/MM/yyyy HH:mm} | {preset.HiddenLayers.Count} hidden layers";
+            }
+            else
+            {
+                txtPresetInfo.Text = "";
+            }
+        }
+
+        private void BtnSavePreset_Click(object sender, RoutedEventArgs e)
+        {
+            string name = txtPresetName?.Text?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                MessageBox.Show("Please enter a preset name.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
 
-            if (cboLayerPattern.SelectedIndex > 0 && cboLayerPattern.SelectedValue is ElementId patternId)
+            if (_presetManager == null || _allLayers == null) return;
+
+            _presetManager.SavePreset(name, _allLayers);
+            RefreshPresetList();
+
+            int hiddenCount = _allLayers.Count(l => !l.IsVisible);
+            UpdateStatus($"💾 Preset '{name}' saved ({hiddenCount} hidden layers).");
+        }
+
+        private void BtnLoadPreset_Click(object sender, RoutedEventArgs e)
+        {
+            var preset = cboPresets.SelectedItem as LayerPreset;
+            if (preset == null)
             {
-                ogs.SetProjectionLinePatternId(patternId);
+                MessageBox.Show("Please select a preset to load.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
 
-            try
+            if (_presetManager == null || _allLayers == null) return;
+
+            _presetManager.ApplyPreset(preset, _allLayers);
+            ApplyLayerFilters(); // Refresh UI
+
+            int hiddenCount = _allLayers.Count(l => !l.IsVisible);
+            UpdateStatus($"📂 Preset '{preset.Name}' loaded ({hiddenCount} hidden layers).");
+        }
+
+        private void BtnDeletePreset_Click(object sender, RoutedEventArgs e)
+        {
+            var preset = cboPresets.SelectedItem as LayerPreset;
+            if (preset == null)
             {
-                using (Transaction t = new Transaction(_doc, "Smart Link Cad - Layer Override"))
-                {
-                    t.Start();
-
-                    foreach (var layer in targetLayers)
-                    {
-                        if (layer.SubCategory == null) continue;
-
-                        if (selectedView.AreGraphicsOverridesAllowed())
-                        {
-                            selectedView.SetCategoryOverrides(layer.SubCategory.Id, ogs);
-                        }
-                    }
-
-                    t.Commit();
-                }
-
-                MessageBox.Show("Layer overrides applied!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Please select a preset to delete.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
-            catch (Exception ex)
+
+            if (_presetManager == null) return;
+
+            var result = MessageBox.Show($"Delete preset '{preset.Name}'?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
             {
-                MessageBox.Show("An error occurred: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _presetManager.DeletePreset(preset.Name);
+                RefreshPresetList();
+                txtPresetName.Text = "";
+                txtPresetInfo.Text = "";
+                UpdateStatus($"🗑 Preset '{preset.Name}' deleted.");
             }
         }
 

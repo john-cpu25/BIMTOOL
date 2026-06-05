@@ -17,6 +17,17 @@ namespace RincoNhan.Tools.SmartLinkRevit
         
         public SmartLinkRevitWindow(Document doc)
         {
+            // Ensure WPF Application exists (required for XAML resource loading in Revit)
+
+            if (System.Windows.Application.Current == null)
+
+            {
+
+                new System.Windows.Application();
+
+            }
+
+
             InitializeComponent();
             _doc = doc;
             LoadData();

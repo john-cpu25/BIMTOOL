@@ -10,6 +10,17 @@ namespace RincoNhan.Tools.MTOQuery.UI
 
         public MtoQueryWindow(Document doc, View activeView)
         {
+            // Ensure WPF Application exists (required for XAML resource loading in Revit)
+
+            if (System.Windows.Application.Current == null)
+
+            {
+
+                new System.Windows.Application();
+
+            }
+
+
             InitializeComponent();
             _viewModel = new MtoQueryViewModel(doc, activeView);
             DataContext = _viewModel;

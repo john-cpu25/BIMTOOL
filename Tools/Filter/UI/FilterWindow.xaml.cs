@@ -18,6 +18,17 @@ namespace RincoNhan.Tools.Filter.UI
 
         public FilterWindow(UIDocument uidoc)
         {
+            // Ensure WPF Application exists (required for XAML resource loading in Revit)
+
+            if (System.Windows.Application.Current == null)
+
+            {
+
+                new System.Windows.Application();
+
+            }
+
+
             InitializeComponent();
             _uidoc = uidoc;
             _collector = new RevitDataCollector(uidoc.Document, uidoc.ActiveView);

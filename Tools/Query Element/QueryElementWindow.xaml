@@ -1,7 +1,7 @@
 <Window x:Class="RincoNhan.Tools.QueryElement.QueryElementWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Query Element Location" Height="350" Width="500"
+        Title="Query Element Location" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         Background="#F5F6F7"
@@ -87,6 +87,167 @@
                     <TextBlock Grid.Row="2" Text="Belongs to View:" Foreground="#666666" FontSize="12" Margin="0,20,0,5"/>
                     <ListBox x:Name="ListGroupLocations" Grid.Row="3" BorderBrush="Transparent" Background="Transparent" 
                              ItemTemplate="{StaticResource LocationItemTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                </Grid>
+            </TabItem>
+            
+            <!-- CAD Link Tab -->
+            <TabItem Header="Query CAD Link">
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- ═══ LEFT PANEL: Template + CAD file list ═══ -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- View Template selector -->
+                        <StackPanel Margin="0,0,0,5">
+                            <TextBlock Text="View Template:" FontWeight="SemiBold" Foreground="#333333" Margin="0,0,0,3"/>
+                            <ComboBox x:Name="CmbCadTemplate" IsEditable="True" Height="25" Padding="5,3"
+                                      SelectionChanged="CmbCadTemplate_SelectionChanged"/>
+                        </StackPanel>
+                        
+                        <!-- CAD file header + buttons -->
+                        <Grid Grid.Row="1" Margin="0,5,0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="CAD Files in Project:" FontWeight="SemiBold" Foreground="#333333" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="All" Width="40" Height="20" FontSize="10" Margin="0,0,3,0"
+                                    Click="BtnCadSelectAll_Click" ToolTip="Select all"/>
+                            <Button Grid.Column="2" Content="None" Width="40" Height="20" FontSize="10"
+                                    Click="BtnCadSelectNone_Click" ToolTip="Deselect all"/>
+                        </Grid>
+                        
+                        <!-- CAD file list with checkbox + VG -->
+                        <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="White">
+                            <ListView x:Name="ListCadFiles" BorderThickness="0"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Width="30">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Click="ChkCadFile_Click"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="CAD File" Width="280" DisplayMemberBinding="{Binding Name}"/>
+                                        <GridViewColumn Header="VG" Width="35">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding VisibilityStatus}" 
+                                                               HorizontalAlignment="Center" FontWeight="Bold"
+                                                               Foreground="{Binding VisibilityColor}"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                    </Grid>
+                    
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                                  Background="#E0E0E0" Cursor="SizeWE"/>
+                    
+                    <!-- ═══ RIGHT PANEL: Results ═══ -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock x:Name="TxtCadResultCount" Text="Placed in Views:" 
+                                   FontWeight="SemiBold" Foreground="#333333" Margin="5,0,0,3"/>
+                        
+                        <!-- Search box -->
+                        <TextBox Grid.Row="1" x:Name="TxtCadSearch" Height="24" Padding="5,3" Margin="0,0,0,5"
+                                 TextChanged="TxtCadSearch_TextChanged"
+                                 Tag="Search CAD file or View name...">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Background">
+                                                <Setter.Value>
+                                                    <VisualBrush Stretch="None" AlignmentX="Left">
+                                                        <VisualBrush.Visual>
+                                                            <TextBlock Text="🔍 Search..." Foreground="#AAAAAA" Margin="5,0,0,0" FontSize="11"/>
+                                                        </VisualBrush.Visual>
+                                                    </VisualBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                        
+                        <!-- Results table (click headers to sort) -->
+                        <Border Grid.Row="2" BorderBrush="#DDDDDD" BorderThickness="1" Background="#FAFAFA" CornerRadius="3">
+                            <ListView x:Name="ListCadLocations" BorderThickness="0" Background="Transparent"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                      GridViewColumnHeader.Click="ListCadLocations_HeaderClick">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="CAD File ↕" Width="150" DisplayMemberBinding="{Binding CadFileName}"/>
+                                        <GridViewColumn Header="View ↕" Width="150">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding Name}" 
+                                                            CommandParameter="{Binding Id}"
+                                                            Click="BtnLocation_Click"
+                                                            IsEnabled="{Binding IsClickable}"
+                                                            Background="Transparent" 
+                                                            BorderThickness="0" 
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            HorizontalAlignment="Left"
+                                                            Margin="2"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="Type ↕" Width="50" DisplayMemberBinding="{Binding LinkType}"/>
+                                        <GridViewColumn Header="" Width="55">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="Select" 
+                                                            CommandParameter="{Binding InstanceId}"
+                                                            Click="BtnSelectCadInModel_Click"
+                                                            Background="#E8F0FE" 
+                                                            BorderBrush="#B0C4DE"
+                                                            BorderThickness="1"
+                                                            Foreground="#005A9E" 
+                                                            Cursor="Hand"
+                                                            FontSize="10"
+                                                            Padding="4,1"
+                                                            Margin="1"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                        
+                        <Button Grid.Row="3" Content="Select All Checked in Model" Height="26" Padding="10,2" Margin="0,5,0,0"
+                                HorizontalAlignment="Left"
+                                Click="BtnSelectAllCadInModel_Click"
+                                Background="#0078D7" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                    </Grid>
                 </Grid>
             </TabItem>
         </TabControl>
