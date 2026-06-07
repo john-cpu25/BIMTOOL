@@ -58,6 +58,7 @@ namespace RincoNhan.Core
             AddImportFamilyTypeDataButton(generalPanel);
             AddLoadingHatchButton(generalPanel);
             AddExportExcelButton(generalPanel);
+            AddInterlockingWallButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -455,6 +456,18 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("ExportExcel.png");
             pb.Image = LoadIcon("ExportExcel.png", 16);
+        }
+        private static void AddInterlockingWallButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdInterlockingWall",
+                "Interlocking\nWall",
+                _assemblyPath,
+                "RincoNhan.Tools.InterlockingWall.Command"
+            );
+            btnData.ToolTip = "Join two walls or split a wall panel at a specific position.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
         }
     }
 }
