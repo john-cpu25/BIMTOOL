@@ -59,6 +59,7 @@ namespace RincoNhan.Core
             AddLoadingHatchButton(generalPanel);
             AddExportExcelButton(generalPanel);
             AddInterlockingWallButton(generalPanel);
+            AddLoadingScheduleButton(generalPanel);
         }
 
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
@@ -468,6 +469,21 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Join two walls or split a wall panel at a specific position.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+        }
+
+        private static void AddLoadingScheduleButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdLoadingSchedule",
+                "Loading\nSchedule",
+                _assemblyPath,
+                "RincoNhan.Tools.LoadingSchedule.Command"
+            );
+            btnData.ToolTip = "Generate Loading Schedule legend table in a Legend View.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("LoadingSchedule.png");
+            pb.Image = LoadIcon("LoadingSchedule.png", 16);
         }
     }
 }
