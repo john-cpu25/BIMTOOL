@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Autodesk.Revit.DB;
 using RincoNhan.Tools.LoadingSchedule.Models;
+using RincoNhan.Tools.LoadingSchedule.Services;
 
 namespace RincoNhan.Tools.LoadingSchedule.ViewModels
 {
@@ -19,24 +20,36 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
         private readonly View _activeView;
 
         public ObservableCollection<LoadingScheduleItem> Items { get; set; }
-        public ObservableCollection<ViewWrapper> LegendViews { get; set; }
-        public ObservableCollection<TextTypeWrapper> TextTypes { get; set; }
+        public ObservableCollection<ViewWrapper> TemplateLegendViews { get; set; }
+        public ObservableCollection<ViewWrapper> TargetLegendViews { get; set; }
 
-        private ViewWrapper _selectedLegendView;
-        public ViewWrapper SelectedLegendView
+        private ViewWrapper _selectedTemplateLegend;
+        public ViewWrapper SelectedTemplateLegend
         {
-            get => _selectedLegendView;
-            set { _selectedLegendView = value; OnPropertyChanged(); }
+            get => _selectedTemplateLegend;
+            set
+            {
+                _selectedTemplateLegend = value;
+                OnPropertyChanged();
+                // Parse template when selection changes
+                ParseSelectedTemplate();
+            }
         }
 
-        private TextTypeWrapper _selectedTextType;
-        public TextTypeWrapper SelectedTextType
+        private ViewWrapper _selectedTargetLegend;
+        public ViewWrapper SelectedTargetLegend
         {
-            get => _selectedTextType;
-            set { _selectedTextType = value; OnPropertyChanged(); }
+            get => _selectedTargetLegend;
+            set { _selectedTargetLegend = value; OnPropertyChanged(); }
         }
 
-        public string FamilyStatusMessage { get; private set; }
+        private string _templateStatusMessage = "";
+        public string TemplateStatusMessage
+        {
+            get => _templateStatusMessage;
+            set { _templateStatusMessage = value; OnPropertyChanged(); }
+        }
+
         public string SourceViewName => _activeView?.Name ?? "(unknown)";
 
         public LoadingScheduleViewModel(Document doc, View activeView)
@@ -44,17 +57,15 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
             _doc = doc;
             _activeView = activeView;
             Items = new ObservableCollection<LoadingScheduleItem>();
-            LegendViews = new ObservableCollection<ViewWrapper>();
-            TextTypes = new ObservableCollection<TextTypeWrapper>();
+            TemplateLegendViews = new ObservableCollection<ViewWrapper>();
+            TargetLegendViews = new ObservableCollection<ViewWrapper>();
 
             LoadFilledRegionsFromView();
             LoadLegendViews();
-            LoadTextNoteTypes();
-            CheckFamilyStatus();
         }
 
         /// <summary>
-        /// Loads FilledRegion types from the ACTIVE VIEW (not all types in the doc).
+        /// Loads FilledRegion types from the ACTIVE VIEW.
         /// Groups by FilledRegionType and creates one LoadingScheduleItem per unique type.
         /// </summary>
         private void LoadFilledRegionsFromView()
@@ -71,7 +82,15 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
                 .OrderBy(g =>
                 {
                     var t = _doc.GetElement(g.Key) as FilledRegionType;
-                    return t?.Name ?? "";
+                    if (t != null)
+                    {
+                        var typeMarkParam = t.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_MARK);
+                        string typeMarkStr = typeMarkParam?.AsString() ?? "";
+                        if (int.TryParse(typeMarkStr, out int num))
+                            return num.ToString("D5"); // Pad with zeros for correct numeric string sort (e.g. 00001, 00012)
+                        return typeMarkStr;
+                    }
+                    return "";
                 })
                 .ToList();
 
@@ -104,16 +123,17 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
                     Number = number++,
                     FilledRegionTypeId = typeId,
                     TypeName = typeName,
-                    LoadType = typeName, // Default to type name; tag will override
                     ColorDisplay = colorStr,
                     PatternName = patternName,
                     IsSelected = true
                 });
             }
+
+            TemplateStatusMessage = $"📋 Source view: {SourceViewName} ({Items.Count} hatch types found)";
         }
 
         /// <summary>
-        /// Loads all Legend views for the target dropdown.
+        /// Loads all Legend views for both template and target dropdowns.
         /// </summary>
         private void LoadLegendViews()
         {
@@ -125,77 +145,41 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
                 .ToList();
 
             foreach (var lv in legendViews)
-                LegendViews.Add(new ViewWrapper(lv));
-
-            if (LegendViews.Any())
-                SelectedLegendView = LegendViews.First();
-        }
-
-        /// <summary>
-        /// Loads available TextNoteTypes for the header text style dropdown.
-        /// </summary>
-        private void LoadTextNoteTypes()
-        {
-            var textTypes = new FilteredElementCollector(_doc)
-                .OfClass(typeof(TextNoteType))
-                .Cast<TextNoteType>()
-                .OrderBy(t => t.Name)
-                .ToList();
-
-            foreach (var tt in textTypes)
-                TextTypes.Add(new TextTypeWrapper(tt));
-
-            if (TextTypes.Any())
             {
-                // Prefer RINCO or Arial type
-                var preferred = TextTypes.FirstOrDefault(t =>
-                    t.Name.Contains("RINCO") || t.Name.Contains("Arial"));
-                SelectedTextType = preferred ?? TextTypes.First();
+                TemplateLegendViews.Add(new ViewWrapper(lv));
+                TargetLegendViews.Add(new ViewWrapper(lv));
             }
+
+            if (TemplateLegendViews.Any())
+                SelectedTemplateLegend = TemplateLegendViews.First();
+
+            if (TargetLegendViews.Any())
+                SelectedTargetLegend = TargetLegendViews.First();
         }
 
         /// <summary>
-        /// Checks if the required RINCO tag families are loaded.
+        /// Parses the selected template legend to show its structure in the status area.
         /// </summary>
-        private void CheckFamilyStatus()
+        private void ParseSelectedTemplate()
         {
-            var allSymbols = new FilteredElementCollector(_doc)
-                .OfClass(typeof(FamilySymbol))
-                .Cast<FamilySymbol>()
-                .ToList();
+            if (_selectedTemplateLegend == null)
+            {
+                TemplateStatusMessage = $"📋 Source view: {SourceViewName} ({Items.Count} hatch types found)";
+                return;
+            }
 
-            bool hasLoadingTag = allSymbols.Any(fs =>
-                fs.FamilyName?.Equals("RINCO_LH_Loading Tag", StringComparison.OrdinalIgnoreCase) == true);
+            var parser = new LegendTemplateParser();
+            bool ok = parser.Parse(_doc, _selectedTemplateLegend.View);
 
-            var infoTagTypes = allSymbols
-                .Where(fs => fs.FamilyName?.Equals("RINCO_LH_Info Loading Tag", StringComparison.OrdinalIgnoreCase) == true)
-                .Select(fs => fs.Name)
-                .ToList();
+            var lines = new List<string>();
+            lines.Add($"📋 Source view: {SourceViewName} ({Items.Count} hatch types found)");
 
-            var messages = new List<string>();
-            messages.Add(hasLoadingTag
-                ? "✓ RINCO_LH_Loading Tag"
-                : "✗ RINCO_LH_Loading Tag (not found)");
-
-            if (infoTagTypes.Any())
-                messages.Add($"✓ RINCO_LH_Info Loading Tag ({string.Join(", ", infoTagTypes)})");
+            if (ok)
+                lines.Add($"✓ Template: {parser.Summary}");
             else
-                messages.Add("✗ RINCO_LH_Info Loading Tag (not found)");
+                lines.Add($"✗ Template: {parser.Summary}");
 
-            // Check for title text type
-            bool hasTitleType = new FilteredElementCollector(_doc)
-                .OfClass(typeof(TextNoteType))
-                .Cast<TextNoteType>()
-                .Any(t => t.Name.Contains("RINCO_3.0_Arial N/T_ARW"));
-
-            messages.Add(hasTitleType
-                ? "✓ RINCO_3.0_Arial N/T_ARW (TextNoteType)"
-                : "✗ RINCO_3.0_Arial N/T_ARW (TextNoteType not found)");
-
-            messages.Add($"📋 Source view: {SourceViewName} ({Items.Count} hatch types found)");
-
-            FamilyStatusMessage = string.Join("\n", messages);
-            OnPropertyChanged(nameof(FamilyStatusMessage));
+            TemplateStatusMessage = string.Join("\n", lines);
         }
 
         /// <summary>
@@ -242,15 +226,6 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
         public string Name => View.Name;
         public ElementId Id => View.Id;
         public ViewWrapper(View view) { View = view; }
-        public override string ToString() => Name;
-    }
-
-    public class TextTypeWrapper
-    {
-        public TextNoteType Type { get; }
-        public string Name => Type.Name;
-        public ElementId Id => Type.Id;
-        public TextTypeWrapper(TextNoteType type) { Type = type; }
         public override string ToString() => Name;
     }
 }

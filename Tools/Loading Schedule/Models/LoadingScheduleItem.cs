@@ -1,11 +1,10 @@
-using System;
 using Autodesk.Revit.DB;
 
 namespace RincoNhan.Tools.LoadingSchedule.Models
 {
     /// <summary>
     /// Represents one row in the Loading Schedule legend table.
-    /// Each row corresponds to a FilledRegionType in the project.
+    /// Each row corresponds to a unique FilledRegionType found in the current view.
     /// </summary>
     public class LoadingScheduleItem
     {
@@ -17,21 +16,6 @@ namespace RincoNhan.Tools.LoadingSchedule.Models
 
         /// <summary>Display name of the FilledRegionType.</summary>
         public string TypeName { get; set; }
-
-        /// <summary>LOAD TYPE value (e.g., "LOADING BAY").</summary>
-        public string LoadType { get; set; }
-
-        /// <summary>CASE value (often empty).</summary>
-        public string Case { get; set; } = "";
-
-        /// <summary>SDL ALLOWANCE (kPa) value.</summary>
-        public string SdlAllowance { get; set; } = "";
-
-        /// <summary>LL ALLOWANCE (kPa) value.</summary>
-        public string LlAllowanceKpa { get; set; } = "";
-
-        /// <summary>LL ALLOWANCE (kN) value.</summary>
-        public string LlAllowanceKn { get; set; } = "";
 
         /// <summary>Whether this item is selected for inclusion in the legend.</summary>
         public bool IsSelected { get; set; } = true;

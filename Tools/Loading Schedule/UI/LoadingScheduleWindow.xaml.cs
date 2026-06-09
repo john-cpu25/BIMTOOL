@@ -69,14 +69,22 @@ namespace RincoNhan.Tools.LoadingSchedule.UI
 
         private void LegendMode_Changed(object sender, RoutedEventArgs e)
         {
-            if (txtLegendName == null || cmbLegendView == null) return;
+            if (txtLegendName == null || cmbTargetLegend == null) return;
             bool createNew = rbCreateNew.IsChecked == true;
             txtLegendName.IsEnabled = createNew;
-            cmbLegendView.IsEnabled = !createNew;
+            cmbTargetLegend.IsEnabled = !createNew;
         }
 
         private void CreateLegend_Click(object sender, RoutedEventArgs e)
         {
+            // Validate template selection
+            if (_viewModel.SelectedTemplateLegend == null)
+            {
+                MessageBox.Show("Please select a Template Legend view.", "Loading Schedule",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             bool createNew = rbCreateNew.IsChecked == true;
 
             if (createNew)
@@ -94,15 +102,25 @@ namespace RincoNhan.Tools.LoadingSchedule.UI
             }
             else
             {
-                if (_viewModel.SelectedLegendView == null)
+                if (_viewModel.SelectedTargetLegend == null)
                 {
                     MessageBox.Show("Please select a target Legend View.", "Loading Schedule",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+
+                // Don't allow using template as target
+                if (_viewModel.SelectedTargetLegend.Id == _viewModel.SelectedTemplateLegend.Id)
+                {
+                    MessageBox.Show("Target Legend cannot be the same as the Template Legend.\n" +
+                                    "Please select a different target or create a new one.",
+                        "Loading Schedule", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 _handler.CreateNewLegend = false;
                 _handler.NewLegendName = null;
-                _handler.TargetLegendId = _viewModel.SelectedLegendView.Id;
+                _handler.TargetLegendId = _viewModel.SelectedTargetLegend.Id;
             }
 
             var selectedItems = _viewModel.GetSelectedItems();
@@ -113,7 +131,7 @@ namespace RincoNhan.Tools.LoadingSchedule.UI
                 return;
             }
 
-            _handler.TargetTextTypeId = _viewModel.SelectedTextType?.Id ?? ElementId.InvalidElementId;
+            _handler.TemplateLegendId = _viewModel.SelectedTemplateLegend.Id;
             _handler.Items = selectedItems;
 
             // Clear log and start

@@ -101,6 +101,8 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="8"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="8"/>
@@ -111,32 +113,35 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Row 0: Create New Legend -->
-                <RadioButton Grid.Row="0" Grid.Column="0" x:Name="rbCreateNew" 
+                <!-- Row 0: Template Legend -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="📋 Template Legend:" 
+                           VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbTemplateLegend"
+                          ItemsSource="{Binding TemplateLegendViews}"
+                          SelectedItem="{Binding SelectedTemplateLegend}"
+                          DisplayMemberPath="Name" Height="28"/>
+
+                <!-- Separator -->
+                <Separator Grid.Row="1" Grid.ColumnSpan="2" Margin="0,2"/>
+
+                <!-- Row 2: Create New Legend -->
+                <RadioButton Grid.Row="2" Grid.Column="0" x:Name="rbCreateNew" 
                              Content="Create new legend:" IsChecked="True"
                              VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"
                              GroupName="LegendMode" Checked="LegendMode_Changed"/>
-                <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtLegendName"
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtLegendName"
                          Text="Loading Schedule" Height="28" VerticalContentAlignment="Center"
                          Padding="6,0" BorderBrush="#FFCCCCCC" BorderThickness="1"/>
 
-                <!-- Row 2: Use Existing Legend -->
-                <RadioButton Grid.Row="2" Grid.Column="0" x:Name="rbUseExisting"
+                <!-- Row 4: Use Existing Legend -->
+                <RadioButton Grid.Row="4" Grid.Column="0" x:Name="rbUseExisting"
                              Content="Use existing legend:" IsChecked="False"
                              VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"
                              GroupName="LegendMode" Checked="LegendMode_Changed"/>
-                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cmbLegendView"
-                          ItemsSource="{Binding LegendViews}"
-                          SelectedItem="{Binding SelectedLegendView}"
+                <ComboBox Grid.Row="4" Grid.Column="1" x:Name="cmbTargetLegend"
+                          ItemsSource="{Binding TargetLegendViews}"
+                          SelectedItem="{Binding SelectedTargetLegend}"
                           DisplayMemberPath="Name" Height="28" IsEnabled="False"/>
-
-                <!-- Row 4: Text Type -->
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Header Text Type:" 
-                           VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                <ComboBox Grid.Row="4" Grid.Column="1" x:Name="cmbTextType"
-                          ItemsSource="{Binding TextTypes}"
-                          SelectedItem="{Binding SelectedTextType}"
-                          DisplayMemberPath="Name" Height="28"/>
             </Grid>
         </Border>
 
@@ -171,12 +176,12 @@
             <Button Content="☐ Deselect All" Style="{StaticResource SmallButton}" Click="DeselectAll_Click"/>
         </StackPanel>
 
-        <!-- Family Status -->
+        <!-- Template Status -->
         <Border Grid.Row="4" Background="#FFF3E5F5" CornerRadius="4" Padding="10" Margin="0,8,0,0"
                 BorderBrush="#FFCE93D8" BorderThickness="1">
             <StackPanel>
                 <TextBlock Text="Status:" FontWeight="SemiBold" FontSize="11" Foreground="#FF6A1B9A" Margin="0,0,0,4"/>
-                <TextBlock x:Name="txtFamilyStatus" Text="{Binding FamilyStatusMessage}" 
+                <TextBlock x:Name="txtTemplateStatus" Text="{Binding TemplateStatusMessage}" 
                            FontSize="11" Foreground="#FF4A148C" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
