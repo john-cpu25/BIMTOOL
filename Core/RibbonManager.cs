@@ -284,6 +284,8 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Batch override graphics of CAD files and layers.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("Smart Link Cad.png");
+            pb.Image = LoadIcon("Smart Link Cad.png", 16);
         }
 
         private static void AddSmartLinkRevitButton(RibbonPanel panel)
@@ -297,6 +299,8 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Batch apply RVT Link Display Settings across multiple host views.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("Smart Link Revit.png");
+            pb.Image = LoadIcon("Smart Link Revit.png", 16);
         }
 
         private static void AddQueryElementButton(RibbonPanel panel)
@@ -310,6 +314,8 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Query the location of Views, Legends, and Groups.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("Query Element.png");
+            pb.Image = LoadIcon("Query Element.png", 16);
         }
 
         private static void AddMtoSmartTagButton(RibbonPanel panel)
@@ -455,8 +461,8 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Export all schedules to an Excel file.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ExportExcel.png");
-            pb.Image = LoadIcon("ExportExcel.png", 16);
+            pb.LargeImage = LoadIcon("Export Excel.png");
+            pb.Image = LoadIcon("Export Excel.png", 16);
         }
         private static void AddInterlockingWallButton(RibbonPanel panel)
         {
@@ -482,8 +488,8 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Generate Loading Schedule legend table in a Legend View.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("LoadingSchedule.png");
-            pb.Image = LoadIcon("LoadingSchedule.png", 16);
+            pb.LargeImage = LoadIcon("Loading Schedule.png");
+            pb.Image = LoadIcon("Loading Schedule.png", 16);
         }
     }
 }
