@@ -156,7 +156,7 @@ namespace RincoNhan.Tools.LoadingSchedule.Services
 
             if (yLevels.Count < 3)
             {
-                Summary = $"Error: Need at least 3 horizontal line levels (header top, header bottom, data row bottom). Found {yLevels.Count}.";
+                Summary = $"Error: The selected Template Legend does not contain the required table structure. Please select a valid Loading Schedule template that has at least 3 horizontal lines (Header Top, Header Bottom, Data Row Bottom). Found {yLevels.Count} lines.";
                 log?.Invoke(Summary);
                 return false;
             }

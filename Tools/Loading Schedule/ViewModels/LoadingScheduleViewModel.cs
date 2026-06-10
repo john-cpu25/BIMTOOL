@@ -23,6 +23,9 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
         public ObservableCollection<ViewWrapper> TemplateLegendViews { get; set; }
         public ObservableCollection<ViewWrapper> TargetLegendViews { get; set; }
 
+        public DuplicateLegendViewModel DuplicateLegendViewModel { get; set; }
+        public UpdateLegendViewModel UpdateLegendViewModel { get; set; }
+
         private ViewWrapper _selectedTemplateLegend;
         public ViewWrapper SelectedTemplateLegend
         {
@@ -59,9 +62,18 @@ namespace RincoNhan.Tools.LoadingSchedule.ViewModels
             Items = new ObservableCollection<LoadingScheduleItem>();
             TemplateLegendViews = new ObservableCollection<ViewWrapper>();
             TargetLegendViews = new ObservableCollection<ViewWrapper>();
+            
+            DuplicateLegendViewModel = new DuplicateLegendViewModel(doc);
+            UpdateLegendViewModel = new UpdateLegendViewModel(doc);
+        }
 
-            LoadFilledRegionsFromView();
+        public void InitializeData()
+        {
+            // LoadFilledRegionsFromView(); // Disabled because the first tab is hidden and it causes severe lag on load.
             LoadLegendViews();
+            
+            DuplicateLegendViewModel.LoadData();
+            UpdateLegendViewModel.LoadData();
         }
 
         /// <summary>

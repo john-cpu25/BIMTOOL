@@ -80,145 +80,368 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Grid Margin="10">
+        <TabControl Background="Transparent" BorderThickness="0" Margin="0" Padding="0">
+            <!-- First Tab: Loading Schedule -->
+            <TabItem Header="Loading Schedule" Visibility="Collapsed">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0" Text="Loading Schedule Legend" 
-                   FontWeight="Bold" FontSize="18" Foreground="#FF1565C0" Margin="0,0,0,10"/>
+                    <!-- Header -->
+                    <TextBlock Grid.Row="0" Text="Loading Schedule Legend" 
+                               FontWeight="Bold" FontSize="18" Foreground="#FF1565C0" Margin="0,0,0,10"/>
 
-        <!-- Settings Panel -->
-        <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10"
-                BorderBrush="#FFE0E0E0" BorderThickness="1">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="8"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="8"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                    <!-- Settings Panel -->
+                    <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                            BorderBrush="#FFE0E0E0" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                <!-- Row 0: Template Legend -->
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="📋 Template Legend:" 
-                           VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbTemplateLegend"
-                          ItemsSource="{Binding TemplateLegendViews}"
-                          SelectedItem="{Binding SelectedTemplateLegend}"
-                          DisplayMemberPath="Name" Height="28"/>
+                            <!-- Row 0: Template Legend -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="📋 Template Legend:" 
+                                       VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cmbTemplateLegend"
+                                      ItemsSource="{Binding TemplateLegendViews}"
+                                      SelectedItem="{Binding SelectedTemplateLegend}"
+                                      DisplayMemberPath="Name" Height="28"/>
 
-                <!-- Separator -->
-                <Separator Grid.Row="1" Grid.ColumnSpan="2" Margin="0,2"/>
+                            <!-- Separator -->
+                            <Separator Grid.Row="1" Grid.ColumnSpan="2" Margin="0,2"/>
 
-                <!-- Row 2: Create New Legend -->
-                <RadioButton Grid.Row="2" Grid.Column="0" x:Name="rbCreateNew" 
-                             Content="Create new legend:" IsChecked="True"
-                             VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"
-                             GroupName="LegendMode" Checked="LegendMode_Changed"/>
-                <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtLegendName"
-                         Text="Loading Schedule" Height="28" VerticalContentAlignment="Center"
-                         Padding="6,0" BorderBrush="#FFCCCCCC" BorderThickness="1"/>
+                            <!-- Row 2: Create New Legend -->
+                            <RadioButton Grid.Row="2" Grid.Column="0" x:Name="rbCreateNew" 
+                                         Content="Create new legend:" IsChecked="True"
+                                         VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"
+                                         GroupName="LegendMode" Checked="LegendMode_Changed"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtLegendName"
+                                     Text="Loading Schedule" Height="28" VerticalContentAlignment="Center"
+                                     Padding="6,0" BorderBrush="#FFCCCCCC" BorderThickness="1"/>
 
-                <!-- Row 4: Use Existing Legend -->
-                <RadioButton Grid.Row="4" Grid.Column="0" x:Name="rbUseExisting"
-                             Content="Use existing legend:" IsChecked="False"
-                             VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"
-                             GroupName="LegendMode" Checked="LegendMode_Changed"/>
-                <ComboBox Grid.Row="4" Grid.Column="1" x:Name="cmbTargetLegend"
-                          ItemsSource="{Binding TargetLegendViews}"
-                          SelectedItem="{Binding SelectedTargetLegend}"
-                          DisplayMemberPath="Name" Height="28" IsEnabled="False"/>
-            </Grid>
-        </Border>
+                            <!-- Row 4: Use Existing Legend -->
+                            <RadioButton Grid.Row="4" Grid.Column="0" x:Name="rbUseExisting"
+                                         Content="Use existing legend:" IsChecked="False"
+                                         VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"
+                                         GroupName="LegendMode" Checked="LegendMode_Changed"/>
+                            <ComboBox Grid.Row="4" Grid.Column="1" x:Name="cmbTargetLegend"
+                                      ItemsSource="{Binding TargetLegendViews}"
+                                      SelectedItem="{Binding SelectedTargetLegend}"
+                                      DisplayMemberPath="Name" Height="28" IsEnabled="False"/>
+                        </Grid>
+                    </Border>
 
-        <!-- Data Grid: Filled Region Types from current view -->
-        <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="2"
-                BorderBrush="#FFE0E0E0" BorderThickness="1">
-            <DataGrid x:Name="dgItems" ItemsSource="{Binding Items}" 
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False" CanUserDeleteRows="False"
-                      HeadersVisibility="Column" 
-                      AlternatingRowBackground="#FFF8F9FA"
-                      GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="#FFE8E8E8"
-                      BorderThickness="0"
-                      SelectionMode="Single"
-                      RowHeight="28">
-                <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="35"/>
-                    <DataGridTextColumn Header="N.o" Binding="{Binding Number}" Width="40" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Type Name" Binding="{Binding TypeName}" Width="*" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Pattern" Binding="{Binding PatternName}" Width="120" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Color (R,G,B)" Binding="{Binding ColorDisplay}" Width="100" IsReadOnly="True"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Border>
+                    <!-- Data Grid: Filled Region Types from current view -->
+                    <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="2"
+                            BorderBrush="#FFE0E0E0" BorderThickness="1">
+                        <DataGrid x:Name="dgItems" ItemsSource="{Binding Items}" 
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" 
+                                  AlternatingRowBackground="#FFF8F9FA"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#FFE8E8E8"
+                                  BorderThickness="0"
+                                  SelectionMode="Single"
+                                  RowHeight="28">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="35"/>
+                                <DataGridTextColumn Header="N.o" Binding="{Binding Number}" Width="40" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Type Name" Binding="{Binding TypeName}" Width="*" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Pattern" Binding="{Binding PatternName}" Width="120" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Color (R,G,B)" Binding="{Binding ColorDisplay}" Width="100" IsReadOnly="True"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
 
-        <!-- Reorder Buttons -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
-            <Button Content="▲ Move Up" Style="{StaticResource SmallButton}" Click="MoveUp_Click" Margin="0,0,5,0"/>
-            <Button Content="▼ Move Down" Style="{StaticResource SmallButton}" Click="MoveDown_Click" Margin="0,0,5,0"/>
-            <Button Content="☑ Select All" Style="{StaticResource SmallButton}" Click="SelectAll_Click" Margin="0,0,5,0"/>
-            <Button Content="☐ Deselect All" Style="{StaticResource SmallButton}" Click="DeselectAll_Click"/>
-        </StackPanel>
+                    <!-- Reorder Buttons -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="▲ Move Up" Style="{StaticResource SmallButton}" Click="MoveUp_Click" Margin="0,0,5,0"/>
+                        <Button Content="▼ Move Down" Style="{StaticResource SmallButton}" Click="MoveDown_Click" Margin="0,0,5,0"/>
+                        <Button Content="☑ Select All" Style="{StaticResource SmallButton}" Click="SelectAll_Click" Margin="0,0,5,0"/>
+                        <Button Content="☐ Deselect All" Style="{StaticResource SmallButton}" Click="DeselectAll_Click"/>
+                    </StackPanel>
 
-        <!-- Template Status -->
-        <Border Grid.Row="4" Background="#FFF3E5F5" CornerRadius="4" Padding="10" Margin="0,8,0,0"
-                BorderBrush="#FFCE93D8" BorderThickness="1">
-            <StackPanel>
-                <TextBlock Text="Status:" FontWeight="SemiBold" FontSize="11" Foreground="#FF6A1B9A" Margin="0,0,0,4"/>
-                <TextBlock x:Name="txtTemplateStatus" Text="{Binding TemplateStatusMessage}" 
-                           FontSize="11" Foreground="#FF4A148C" TextWrapping="Wrap"/>
-            </StackPanel>
-        </Border>
+                    <!-- Template Status -->
+                    <Border Grid.Row="4" Background="#FFF3E5F5" CornerRadius="4" Padding="10" Margin="0,8,0,0"
+                            BorderBrush="#FFCE93D8" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Status:" FontWeight="SemiBold" FontSize="11" Foreground="#FF6A1B9A" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="txtTemplateStatus" Text="{Binding TemplateStatusMessage}" 
+                                       FontSize="11" Foreground="#FF4A148C" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
 
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button x:Name="btnToggleLog" Content="▶ Show Log" Style="{StaticResource SmallButton}" 
-                    Click="ToggleLog_Click" Margin="0,0,10,0"/>
-            <ProgressBar x:Name="progressBar" IsIndeterminate="True" Width="120" Height="6" 
-                         VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"
-                         Foreground="#FF2196F3" Background="#FFE0E0E0"/>
-            <TextBlock x:Name="txtStatus" Text="" VerticalAlignment="Center" 
-                       Foreground="#FF757575" FontSize="12" Margin="0,0,15,0"/>
-            <Button x:Name="btnCreate" Content="Create Legend" Style="{StaticResource ActionButton}" Click="CreateLegend_Click" Margin="0,0,8,0"/>
-            <Button Content="Close" Style="{StaticResource SecondaryButton}" Click="Close_Click"/>
-        </StackPanel>
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <Button x:Name="btnToggleLog" Content="▶ Show Log" Style="{StaticResource SmallButton}" 
+                                Click="ToggleLog_Click" Margin="0,0,10,0"/>
+                        <ProgressBar x:Name="progressBar" IsIndeterminate="True" Width="120" Height="6" 
+                                     VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"
+                                     Foreground="#FF2196F3" Background="#FFE0E0E0"/>
+                        <TextBlock x:Name="txtStatus" Text="" VerticalAlignment="Center" 
+                                   Foreground="#FF757575" FontSize="12" Margin="0,0,15,0"/>
+                        <Button x:Name="btnCreate" Content="Create Legend" Style="{StaticResource ActionButton}" Click="CreateLegend_Click" Margin="0,0,8,0"/>
+                        <Button Content="Close" Style="{StaticResource SecondaryButton}" Click="Close_Click"/>
+                    </StackPanel>
 
-        <!-- Debug Log Panel -->
-        <Border Grid.Row="6" x:Name="logPanel" Background="#FF1E1E1E" CornerRadius="4" 
-                Padding="8" Margin="0,8,0,0" Visibility="Collapsed" MaxHeight="150">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Text="🔍 Debug Log" FontWeight="SemiBold" FontSize="11" 
-                               Foreground="#FF4FC3F7" VerticalAlignment="Center"/>
-                    <Button Content="Clear" Style="{StaticResource SmallButton}" Click="ClearLog_Click"
-                            Margin="10,0,0,0" FontSize="10" Padding="6,2"/>
-                </StackPanel>
-                <TextBox Grid.Row="1" x:Name="txtLog" IsReadOnly="True" 
-                         Background="#FF1E1E1E" Foreground="#FFB0BEC5" 
-                         BorderThickness="0" FontFamily="Consolas" FontSize="11"
-                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                         AcceptsReturn="True"/>
-            </Grid>
-        </Border>
+                    <!-- Debug Log Panel -->
+                    <Border Grid.Row="6" x:Name="logPanel" Background="#FF1E1E1E" CornerRadius="4" 
+                            Padding="8" Margin="0,8,0,0" Visibility="Collapsed" MaxHeight="150">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="🔍 Debug Log" FontWeight="SemiBold" FontSize="11" 
+                                           Foreground="#FF4FC3F7" VerticalAlignment="Center"/>
+                                <Button Content="Clear" Style="{StaticResource SmallButton}" Click="ClearLog_Click"
+                                        Margin="10,0,0,0" FontSize="10" Padding="6,2"/>
+                            </StackPanel>
+                            <TextBox Grid.Row="1" x:Name="txtLog" IsReadOnly="True" 
+                                     Background="#FF1E1E1E" Foreground="#FFB0BEC5" 
+                                     BorderThickness="0" FontFamily="Consolas" FontSize="11"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     AcceptsReturn="True"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Second Tab: Duplicate Legend -->
+            <TabItem Header="Duplicate Legend" x:Name="tabDuplicateLegend">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <TextBlock Grid.Row="0" Text="Duplicate Legend to Sheets" 
+                               FontWeight="Bold" FontSize="18" Foreground="#FF1565C0" Margin="0,0,0,10"/>
+
+                    <!-- Source Legend Selection -->
+                    <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                            BorderBrush="#FFE0E0E0" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="📋 Source Legend:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Column="1" x:Name="cmbSourceLegend"
+                                      ItemsSource="{Binding DuplicateLegendViewModel.AvailableLegends}"
+                                      SelectedItem="{Binding DuplicateLegendViewModel.SelectedLegend}"
+                                      DisplayMemberPath="Name" Height="28"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Sheets Grid -->
+                    <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="2"
+                            BorderBrush="#FFE0E0E0" BorderThickness="1">
+                        <DataGrid x:Name="dgSheets" ItemsSource="{Binding DuplicateLegendViewModel.Sheets}" 
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" 
+                                  AlternatingRowBackground="#FFF8F9FA"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#FFE8E8E8"
+                                  BorderThickness="0"
+                                  SelectionMode="Extended"
+                                  RowHeight="28">
+                            <DataGrid.ItemContainerStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Style>
+                            </DataGrid.ItemContainerStyle>
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="35"/>
+                                <DataGridTextColumn Header="Sheet No." Binding="{Binding SheetNumber}" Width="100" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Sheet Name" Binding="{Binding SheetName}" Width="*" IsReadOnly="True"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+
+                    <!-- Select all buttons -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="☑ Select All" Style="{StaticResource SmallButton}" Click="SelectAllSheets_Click" Margin="0,0,5,0"/>
+                        <Button Content="☐ Deselect All" Style="{StaticResource SmallButton}" Click="DeselectAllSheets_Click"/>
+                    </StackPanel>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <Button x:Name="dupBtnToggleLog" Content="▶ Show Log" Style="{StaticResource SmallButton}" 
+                                Click="DupToggleLog_Click" Margin="0,0,10,0"/>
+                        <ProgressBar x:Name="dupProgressBar" IsIndeterminate="False" Minimum="0" Maximum="100" Value="0" Width="120" Height="6" 
+                                     VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"
+                                     Foreground="#FF2196F3" Background="#FFE0E0E0"/>
+                        <TextBlock x:Name="dupTxtPercentage" Text="0%" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed" />
+                        <TextBlock x:Name="dupTxtStatus" Text="" VerticalAlignment="Center" 
+                                   Foreground="#FF757575" FontSize="12" Margin="0,0,15,0"/>
+                        <Button x:Name="dupBtnRun" Content="Run Duplicate" Style="{StaticResource ActionButton}" Click="RunDuplicate_Click" Margin="0,0,8,0"/>
+                        <Button Content="Close" Style="{StaticResource SecondaryButton}" Click="Close_Click"/>
+                    </StackPanel>
+
+                    <!-- Debug Log Panel -->
+                    <Border Grid.Row="5" x:Name="dupLogPanel" Background="#FF1E1E1E" CornerRadius="4" 
+                            Padding="8" Margin="0,8,0,0" Visibility="Collapsed" MaxHeight="150">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="🔍 Debug Log" FontWeight="SemiBold" FontSize="11" 
+                                           Foreground="#FF4FC3F7" VerticalAlignment="Center"/>
+                                <Button Content="Clear" Style="{StaticResource SmallButton}" Click="DupClearLog_Click"
+                                        Margin="10,0,0,0" FontSize="10" Padding="6,2"/>
+                            </StackPanel>
+                            <TextBox Grid.Row="1" x:Name="dupTxtLog" IsReadOnly="True" 
+                                     Background="#FF1E1E1E" Foreground="#FFB0BEC5" 
+                                     BorderThickness="0" FontFamily="Consolas" FontSize="11"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     AcceptsReturn="True"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Third Tab: Update Legend -->
+            <TabItem Header="Update Legend" x:Name="tabUpdateLegend">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <TextBlock Grid.Row="0" Text="Update Legends on Sheets" 
+                               FontWeight="Bold" FontSize="18" Foreground="#FF1565C0" Margin="0,0,0,10"/>
+
+                    <!-- Template Legend Selection -->
+                    <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                            BorderBrush="#FFE0E0E0" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="📋 Template Legend:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                            <ComboBox Grid.Column="1" x:Name="cmbUpdateTemplateLegend"
+                                      ItemsSource="{Binding UpdateLegendViewModel.TemplateLegends}"
+                                      SelectedItem="{Binding UpdateLegendViewModel.SelectedTemplateLegend}"
+                                      DisplayMemberPath="Name" Height="28"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Sheets Grid -->
+                    <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="2"
+                            BorderBrush="#FFE0E0E0" BorderThickness="1">
+                        <DataGrid x:Name="dgUpdateSheets" ItemsSource="{Binding UpdateLegendViewModel.Sheets}" 
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" 
+                                  AlternatingRowBackground="#FFF8F9FA"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#FFE8E8E8"
+                                  BorderThickness="0"
+                                  SelectionMode="Extended"
+                                  RowHeight="32">
+                            <DataGrid.ItemContainerStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Style>
+                            </DataGrid.ItemContainerStyle>
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="35"/>
+                                <DataGridTextColumn Header="Sheet No." Binding="{Binding SheetNumber}" Width="70" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Sheet Name" Binding="{Binding SheetName}" Width="150" IsReadOnly="True"/>
+                                
+                                <DataGridTemplateColumn Header="Scan View" Width="180">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding AvailableViews}"
+                                                      SelectedItem="{Binding SelectedView, UpdateSourceTrigger=PropertyChanged}"
+                                                      DisplayMemberPath="Name" Margin="2" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTextColumn Header="Target Legend" Binding="{Binding TargetLegendName}" Width="*" IsReadOnly="True"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+
+                    <!-- Select all buttons -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="☑ Select All" Style="{StaticResource SmallButton}" Click="SelectAllUpdateSheets_Click" Margin="0,0,5,0"/>
+                        <Button Content="☐ Deselect All" Style="{StaticResource SmallButton}" Click="DeselectAllUpdateSheets_Click"/>
+                    </StackPanel>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <Button x:Name="updBtnToggleLog" Content="▶ Show Log" Style="{StaticResource SmallButton}" 
+                                Click="UpdToggleLog_Click" Margin="0,0,10,0"/>
+                        <ProgressBar x:Name="updProgressBar" IsIndeterminate="False" Minimum="0" Maximum="100" Value="0" Width="120" Height="6" 
+                                     VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"
+                                     Foreground="#FF2196F3" Background="#FFE0E0E0"/>
+                        <TextBlock x:Name="updTxtPercentage" Text="0%" VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed" />
+                        <TextBlock x:Name="updTxtStatus" Text="" VerticalAlignment="Center" 
+                                   Foreground="#FF757575" FontSize="12" Margin="0,0,15,0"/>
+                        <Button x:Name="updBtnRun" Content="Run Update" Style="{StaticResource ActionButton}" Click="RunUpdate_Click" Margin="0,0,8,0"/>
+                        <Button Content="Close" Style="{StaticResource SecondaryButton}" Click="Close_Click"/>
+                    </StackPanel>
+
+                    <!-- Debug Log Panel -->
+                    <Border Grid.Row="5" x:Name="updLogPanel" Background="#FF1E1E1E" CornerRadius="4" 
+                            Padding="8" Margin="0,8,0,0" Visibility="Collapsed" MaxHeight="150">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="🔍 Debug Log" FontWeight="SemiBold" FontSize="11" 
+                                           Foreground="#FF4FC3F7" VerticalAlignment="Center"/>
+                                <Button Content="Clear" Style="{StaticResource SmallButton}" Click="UpdClearLog_Click"
+                                        Margin="10,0,0,0" FontSize="10" Padding="6,2"/>
+                            </StackPanel>
+                            <TextBox Grid.Row="1" x:Name="updTxtLog" IsReadOnly="True" 
+                                     Background="#FF1E1E1E" Foreground="#FFB0BEC5" 
+                                     BorderThickness="0" FontFamily="Consolas" FontSize="11"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     AcceptsReturn="True"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
