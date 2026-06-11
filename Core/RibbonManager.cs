@@ -11,7 +11,7 @@ namespace RincoNhan.Core
     {
         private static string _assemblyPath = Assembly.GetExecutingAssembly().Location;
         private static string _assemblyDir = Path.GetDirectoryName(_assemblyPath);
-        private static string _resourcesPath = Path.Combine(Directory.GetParent(_assemblyDir).FullName, "Resources");
+        internal static string ResourcesPath = Path.Combine(Directory.GetParent(_assemblyDir).FullName, "Resources");
 
         public static void SetupRibbon(UIControlledApplication application)
         {
@@ -60,8 +60,8 @@ namespace RincoNhan.Core
             AddExportExcelButton(generalPanel);
             AddInterlockingWallButton(generalPanel);
             AddLoadingScheduleButton(generalPanel);
+            AddConnectionButton(generalPanel);
         }
-
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
         {
             foreach (RibbonPanel panel in application.GetRibbonPanels(tabName))
@@ -148,7 +148,7 @@ namespace RincoNhan.Core
 
         private static BitmapImage LoadIcon(string iconName, int size = 32)
         {
-            string iconPath = Path.Combine(_resourcesPath, iconName);
+            string iconPath = Path.Combine(ResourcesPath, iconName);
             if (!File.Exists(iconPath)) return null;
 
             try
@@ -490,6 +490,18 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("Loading Schedule.png");
             pb.Image = LoadIcon("Loading Schedule.png", 16);
+        }
+        private static void AddConnectionButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdSteelConnection",
+                "Steel\nConnection",
+                _assemblyPath,
+                "RincoNhan.Tools.Connection.Command"
+            );
+            btnData.ToolTip = "Create Steel Connections (Beam to Beam).";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
         }
     }
 }
