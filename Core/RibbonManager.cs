@@ -67,6 +67,7 @@ namespace RincoNhan.Core
             AddQueryElementButton(checkPanel);
             AddAlignTagsButton(checkPanel);
             AddElementsTagsButton(checkPanel);
+            AddCheckFoldButton(checkPanel);
 
             // === REBAR Panel ===
             AddRebarColumnButton(rebarPanel);
@@ -580,6 +581,20 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("OverrideCad.png");
             pb.Image = LoadIcon("OverrideCad.png", 16);
+        }
+        private static void AddCheckFoldButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdCheckFold",
+                "Check\nFold",
+                _assemblyPath,
+                "RincoNhan.Tools.CheckFold.Command"
+            );
+            btnData.ToolTip = "Check fold slab thickness and 2D step annotations.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("CheckFold.png");
+            pb.Image = LoadIcon("CheckFold.png", 16);
         }
     }
 }
