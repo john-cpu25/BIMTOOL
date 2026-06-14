@@ -25,6 +25,12 @@ namespace RincoNhan.Tools.CheckFold.Models
         /// <summary>Calculated step height = High slab top - Low slab top (mm)</summary>
         public double CalculatedValue { get; set; }
 
+        /// <summary>Whether one of the slabs is sloped (Varies)</summary>
+        public bool IsVaries { get; set; }
+
+        /// <summary>String representation for UI</summary>
+        public string CalculatedValueStr => IsVaries ? "Varies" : CalculatedValue.ToString("F0");
+
         /// <summary>High slab info: "TypeName (offset mm)"</summary>
         public string HighSlabInfo { get; set; }
 

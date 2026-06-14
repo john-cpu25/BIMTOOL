@@ -23,6 +23,9 @@ namespace RincoNhan.Tools.CheckFold
         public Action<int> OnCheckCompleted { get; set; }
         public Action<int, int> OnUpdateCompleted { get; set; }
         public Action OnResetCompleted { get; set; }
+        
+        public Action<List<MissingStepItem>> OnMissingStepsChecked { get; set; }
+        public Action OnHighlightsCleared { get; set; }
 
         // Step items for update operations (set by ViewModel before raising)
         public List<StepCheckItem> ItemsToUpdate { get; set; }
@@ -32,6 +35,7 @@ namespace RincoNhan.Tools.CheckFold
 
         // Track overridden element IDs for Reset
         private readonly HashSet<ElementId> _overriddenIds = new HashSet<ElementId>();
+        private readonly HashSet<ElementId> _highlightLineIds = new HashSet<ElementId>();
 
         public void Execute(UIApplication app)
         {
@@ -56,6 +60,12 @@ namespace RincoNhan.Tools.CheckFold
                         break;
                     case "SelectElement":
                         SelectElement(app);
+                        break;
+                    case "CheckMissingSteps":
+                        CheckMissingSteps(doc, view);
+                        break;
+                    case "ClearHighlights":
+                        ClearHighlights(doc, view);
                         break;
                 }
             }
@@ -118,6 +128,7 @@ namespace RincoNhan.Tools.CheckFold
 
             // Apply overrides
             Color orange = new Color(255, 165, 0);
+            Color red = new Color(255, 0, 0);
             int wrongCount = 0;
 
             using (Transaction tx = new Transaction(doc, "Check Fold - Highlight Wrong RL"))
@@ -135,7 +146,8 @@ namespace RincoNhan.Tools.CheckFold
                 {
                     if (item.Status == "Sai")
                     {
-                        CheckFoldLogic.SetElementColorOverride(doc, view, item.StepFamilyId, orange);
+                        Color overrideColor = Math.Abs(item.CalculatedValue) < 1.0 ? red : orange;
+                        CheckFoldLogic.SetElementColorOverride(doc, view, item.StepFamilyId, overrideColor);
                         _overriddenIds.Add(item.StepFamilyId);
                         wrongCount++;
                     }
@@ -172,7 +184,7 @@ namespace RincoNhan.Tools.CheckFold
                     var stepFamily = doc.GetElement(item.StepFamilyId) as FamilyInstance;
                     if (stepFamily == null) { failed++; continue; }
 
-                    bool success = CheckFoldLogic.SetStepValues(stepFamily, item.CalculatedValue);
+                    bool success = CheckFoldLogic.SetStepValues(stepFamily, item.CalculatedValue, item.IsVaries);
 
                     if (success)
                     {
@@ -232,6 +244,115 @@ namespace RincoNhan.Tools.CheckFold
                 uidoc.ShowElements(ElementIdToSelect);
             }
             catch { /* ShowElements may fail for 2D annotations in 3D views */ }
+        }
+
+        private void CheckMissingSteps(Document doc, View view)
+        {
+            var missingSteps = CheckFoldLogic.FindMissing3DSteps(doc, view);
+
+            if (missingSteps.Count > 0)
+            {
+                using (Transaction tx = new Transaction(doc, "Check Fold - Highlight Missing Steps"))
+                {
+                    tx.Start();
+
+                    // Clear previous lines
+                    foreach (var id in _highlightLineIds)
+                    {
+                        try { doc.Delete(id); } catch { }
+                    }
+                    _highlightLineIds.Clear();
+
+                    var leftoverLines = new FilteredElementCollector(doc, view.Id)
+                        .OfClass(typeof(CurveElement))
+                        .WhereElementIsNotElementType()
+                        .ToElements()
+                        .Where(e => 
+                        {
+                            var p = e.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
+                            return p != null && p.AsString() == "CheckFold_MissingStep";
+                        })
+                        .Select(e => e.Id)
+                        .ToList();
+
+                    foreach (var id in leftoverLines)
+                    {
+                        try { doc.Delete(id); } catch { }
+                    }
+
+                    // Create Graphic Overrides for red lines
+                    OverrideGraphicSettings ogs = new OverrideGraphicSettings();
+                    ogs.SetProjectionLineColor(new Color(255, 0, 0));
+                    ogs.SetProjectionLineWeight(6); // Thick line
+
+                    foreach (var item in missingSteps)
+                    {
+                        if (item.StepEdge != null)
+                        {
+                            try
+                            {
+                                var detailCurve = doc.Create.NewDetailCurve(view, item.StepEdge);
+                                if (detailCurve != null)
+                                {
+                                    view.SetElementOverrides(detailCurve.Id, ogs);
+                                    _highlightLineIds.Add(detailCurve.Id);
+
+                                    var commentsParam = detailCurve.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
+                                    if (commentsParam != null && !commentsParam.IsReadOnly)
+                                    {
+                                        commentsParam.Set("CheckFold_MissingStep");
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
+                    tx.Commit();
+                }
+            }
+
+            OnMissingStepsChecked?.Invoke(missingSteps);
+            NotifyStatus?.Invoke(missingSteps.Count > 0
+                ? $"⚠ Tìm thấy {missingSteps.Count} vị trí thiếu Step (đã vẽ line đỏ)."
+                : "✓ Tuyệt vời! Không phát hiện vị trí nào thiếu Step.");
+        }
+
+        private void ClearHighlights(Document doc, View view)
+        {
+            using (Transaction tx = new Transaction(doc, "Check Fold - Clear Highlights"))
+            {
+                tx.Start();
+
+                // Delete from memory (current session)
+                foreach (var id in _highlightLineIds)
+                {
+                    try { doc.Delete(id); } catch { }
+                }
+                _highlightLineIds.Clear();
+
+                // Delete from model (previous sessions)
+                var leftoverLines = new FilteredElementCollector(doc, view.Id)
+                    .OfClass(typeof(CurveElement))
+                    .WhereElementIsNotElementType()
+                    .ToElements()
+                    .Where(e => 
+                    {
+                        var p = e.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
+                        return p != null && p.AsString() == "CheckFold_MissingStep";
+                    })
+                    .Select(e => e.Id)
+                    .ToList();
+
+                foreach (var id in leftoverLines)
+                {
+                    try { doc.Delete(id); } catch { }
+                }
+
+                tx.Commit();
+            }
+            
+            OnHighlightsCleared?.Invoke();
         }
 
         public string GetName() => "CheckFoldHandler";

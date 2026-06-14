@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Check Fold - Kiểm tra chiều dày sàn Fold" 
-        Height="650" Width="1100"
-        MinHeight="500" MinWidth="850"
+        Height="700" Width="1250"
+        MinHeight="600" MinWidth="1050"
         WindowStartupLocation="CenterScreen"
         Background="#FFF5F5F7">
 
@@ -171,33 +171,42 @@
 
         <!-- Tab Style -->
         <Style TargetType="TabItem">
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Background" Value="White"/>
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Padding" Value="16,8"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="tabBorder" 
-                                Background="Transparent" 
+                                Background="{TemplateBinding Background}" 
                                 Padding="{TemplateBinding Padding}"
-                                BorderThickness="0,0,0,2"
-                                BorderBrush="Transparent"
-                                Margin="0,0,4,0">
+                                BorderThickness="1"
+                                BorderBrush="{StaticResource BorderColor}"
+                                CornerRadius="6"
+                                Margin="0,0,8,8">
                             <ContentPresenter x:Name="contentPresenter" 
                                               ContentSource="Header" 
-                                              HorizontalAlignment="Center"/>
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="tabBorder" Property="Background" Value="#EFF6FF"/>
                                 <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentBlue}"/>
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                                <Setter Property="Foreground" Value="{StaticResource AccentBlue}"/>
                             </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsSelected" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="tabBorder" Property="Background" Value="#F9FAFB"/>
+                                <Setter TargetName="tabBorder" Property="BorderBrush" Value="#D1D5DB"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-                            </Trigger>
+                            </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -246,258 +255,183 @@
     </Window.Resources>
 
     <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="420"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="CHECK FOLD" 
-                       FontSize="20" FontWeight="Bold" 
-                       Foreground="{StaticResource AccentBlue}" 
-                       Margin="0,0,0,4"/>
-            <TextBlock Text="Kiểm tra chiều dày sàn Fold và 2D Step (RL STEP)" 
-                       FontSize="12" 
-                       Foreground="{StaticResource TextSecondary}"/>
-        </StackPanel>
+        <!-- LEFT COLUMN -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- Summary Cards -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
-            <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,0" MinWidth="110"
-                    BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Text="Fold Floors" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
-                    <TextBlock Text="{Binding FoldCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
-                </StackPanel>
-            </Border>
-            <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,0" MinWidth="110"
-                    BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Text="Mismatch" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
-                    <TextBlock Text="{Binding MismatchCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentRed}"/>
-                </StackPanel>
-            </Border>
-            <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,0" MinWidth="110"
-                    BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Text="2D Steps" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
-                    <TextBlock Text="{Binding StepCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
-                </StackPanel>
-            </Border>
-            <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,0" MinWidth="110"
-                    BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Text="RL Sai" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
-                    <TextBlock Text="{Binding WrongRLCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentOrange}"/>
-                </StackPanel>
-            </Border>
-            <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,0" MinWidth="110"
-                    BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Text="Đã Update" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
-                    <TextBlock Text="{Binding UpdatedRLCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentGreen}"/>
-                </StackPanel>
-            </Border>
-        </StackPanel>
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="CHECK FOLD" 
+                           FontSize="20" FontWeight="Bold" 
+                           Foreground="{StaticResource AccentBlue}" 
+                           Margin="0,0,0,4"/>
+                <TextBlock Text="Kiểm tra chiều dày sàn Fold và 2D Step (RL STEP)" 
+                           FontSize="12" 
+                           Foreground="{StaticResource TextSecondary}"/>
+            </StackPanel>
 
-        <!-- Tab Control -->
-        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="0">
+            <!-- Summary Cards -->
+            <WrapPanel Grid.Row="1" Margin="0,0,0,12">
+                <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,8" MinWidth="110"
+                        BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Fold Floors" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                        <TextBlock Text="{Binding FoldCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,8" MinWidth="110"
+                        BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Mismatch" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                        <TextBlock Text="{Binding MismatchCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentRed}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,8" MinWidth="110"
+                        BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="2D Steps" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                        <TextBlock Text="{Binding StepCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,8" MinWidth="110"
+                        BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="RL Sai" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                        <TextBlock Text="{Binding WrongRLCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentOrange}"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="White" CornerRadius="8" Padding="16,10" Margin="0,0,8,8" MinWidth="110"
+                        BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="Đã Update" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                        <TextBlock Text="{Binding UpdatedRLCount}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentGreen}"/>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
 
-            <!-- ======== Tab 1: Check 3D ======== -->
-            <TabItem Header="📐 Check 3D - Chiều dày Fold">
-                <Grid Margin="0,8,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+            <!-- Tab Control -->
+            <TabControl x:Name="MainTabControl" Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="0">
 
-                    <Border Grid.Row="0" Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
-                            BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                        <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap">
-                            <Run Text="Công thức: "/>
-                            <Run Text="Chiều dày Fold = Sàn cao + Sàn thấp + Đoạn hở (Gap)" FontWeight="SemiBold" Foreground="{StaticResource AccentBlue}"/>
-                        </TextBlock>
-                    </Border>
-
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding FoldItems}" SelectionChanged="DataGrid_SelectionChanged">
-                        <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
-                                                     Width="35" Header="✓" ElementStyle="{x:Null}"/>
-                            <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Fold Type" Width="*"/>
-                            <DataGridTextColumn Binding="{Binding LevelName}" Header="Level" Width="80"/>
-                            <DataGridTextColumn Binding="{Binding Slab1TypeName}" Header="Sàn Cao" Width="100"/>
-                            <DataGridTextColumn Binding="{Binding Slab1Thickness, StringFormat=F0}" Header="T1 (mm)" Width="65"/>
-                            <DataGridTextColumn Binding="{Binding Slab2TypeName}" Header="Sàn Thấp" Width="100"/>
-                            <DataGridTextColumn Binding="{Binding Slab2Thickness, StringFormat=F0}" Header="T2 (mm)" Width="65"/>
-                            <DataGridTextColumn Binding="{Binding Gap, StringFormat=F0}" Header="Gap (mm)" Width="65"/>
-                            <DataGridTextColumn Binding="{Binding CalculatedThickness, StringFormat=F0}" Header="Tính (mm)" Width="75"/>
-                            <DataGridTextColumn Binding="{Binding FoldThickness, StringFormat=F0}" Header="Fold (mm)" Width="75"/>
-                            <DataGridTemplateColumn Header="Status" Width="90" CellTemplate="{StaticResource StatusCellTemplate}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </TabItem>
-
-            <!-- ======== Tab 2: Check 2D Step ======== -->
-            <TabItem Header="📏 Check 2D Step">
-                <Grid Margin="0,8,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Info + Buttons Bar -->
-                    <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Border Grid.Column="0" Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,8,0"
+                <!-- ======== Tab 1: Check 3D ======== -->
+                <TabItem Header="📐 Check 3D - Chiều dày Fold">
+                    <StackPanel Margin="0,8,0,0">
+                        <Border Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
                                 BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center">
+                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap">
+                                <Run Text="Công thức: "/>
+                                <Run Text="Chiều dày Fold = Sàn cao + Sàn thấp + Đoạn hở (Gap)" FontWeight="SemiBold" Foreground="{StaticResource AccentBlue}"/>
+                            </TextBlock>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- ======== Tab 2: Check 2D Step ======== -->
+                <TabItem Header="📏 Check 2D Step">
+                    <StackPanel Margin="0,8,0,0">
+                        <!-- Info Bar -->
+                        <Border Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
+                                BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap">
                                 <Run Text="Parameter: "/>
                                 <Run Text="RL STEP" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
                                 <Run Text=" + Height Offset From Level" Foreground="{StaticResource TextSecondary}"/>
-                                <Run Text="  |  Công thức: "/>
+                                <LineBreak/>
+                                <Run Text="Công thức: "/>
                                 <Run Text="Cao độ sàn cao − Cao độ sàn thấp" FontWeight="SemiBold" Foreground="{StaticResource AccentBlue}"/>
                             </TextBlock>
                         </Border>
 
                         <!-- Action Buttons -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <WrapPanel Margin="0,0,0,12">
                             <Button Content="🔍 Check" Style="{StaticResource CheckButton}" 
-                                    Command="{Binding CheckStepsCommand}" Margin="0,0,6,0"/>
+                                    Command="{Binding CheckStepsCommand}" Margin="0,0,6,6"/>
                             <Button Content="📝 Update" Style="{StaticResource UpdateButton}" 
-                                    Command="{Binding UpdateStepsCommand}" Margin="0,0,6,0"/>
+                                    Command="{Binding UpdateStepsCommand}" Margin="0,0,6,6"/>
                             <Button Content="🔄 Reset" Style="{StaticResource ResetButton}" 
-                                    Command="{Binding ResetOverridesCommand}"/>
-                        </StackPanel>
-                    </Grid>
+                                    Command="{Binding ResetOverridesCommand}" Margin="0,0,6,6"/>
+                        </WrapPanel>
 
-                    <!-- Notification banners -->
-                    <StackPanel Grid.Row="1" Margin="0,0,0,6">
-                        <!-- Wrong RL (orange) -->
-                        <Border Background="#FFFFEDD5" CornerRadius="6" Padding="12,8" Margin="0,0,0,4"
-                                BorderBrush="#FFFED7AA" BorderThickness="1"
-                                Visibility="{Binding HasChecked, Converter={StaticResource BoolToVis}}">
+                        <!-- Notification banners -->
+                        <StackPanel Margin="0,0,0,6">
+                            <!-- Wrong RL (orange) -->
+                            <Border Background="#FFFFEDD5" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
+                                    BorderBrush="#FFFED7AA" BorderThickness="1"
+                                    Visibility="{Binding HasChecked, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚠" FontSize="14" Foreground="{StaticResource AccentOrange}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap">
+                                        <Run Text="Tìm thấy "/>
+                                        <Run Text="{Binding WrongRLCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AccentOrange}"/>
+                                        <Run Text=" Step sai → đã tô cam trong view"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <!-- Updated (green) -->
+                            <Border Background="#FFDCFCE7" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
+                                    BorderBrush="#FFBBF7D0" BorderThickness="1"
+                                    Visibility="{Binding HasUpdated, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="✓" FontSize="14" Foreground="{StaticResource AccentGreen}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap">
+                                        <Run Text="Đã cập nhật "/>
+                                        <Run Text="{Binding UpdatedRLCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AccentGreen}"/>
+                                        <Run Text=" Step thành công → đã tô xanh lá"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- ======== Tab 3: Check 3D Step (Missing) ======== -->
+                <TabItem Header="🔍 Check 3D Step (Missing)">
+                    <StackPanel Margin="0,8,0,0">
+                        <Border Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
+                                BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap">
+                                <Run Text="Tìm kiếm các vị trí có chênh lệch cao độ sàn nhưng "/>
+                                <Run Text="chưa được đặt family 2D Step" FontWeight="SemiBold" Foreground="{StaticResource AccentRed}"/>
+                            </TextBlock>
+                        </Border>
+                        
+                        <!-- Action Buttons -->
+                        <WrapPanel Margin="0,0,0,12">
+                            <Button Content="🔍 Check Missing" Style="{StaticResource CheckButton}" 
+                                    Command="{Binding CheckMissingStepsCommand}" Margin="0,0,6,6"/>
+                            <Button Content="🧹 Clear Highlights" Style="{StaticResource ResetButton}" 
+                                    Command="{Binding ClearHighlightsCommand}" Margin="0,0,6,6"/>
+                        </WrapPanel>
+                        
+                        <!-- Notification banner -->
+                        <Border Background="#FFFEF3C7" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
+                                BorderBrush="#FFFDE68A" BorderThickness="1"
+                                Visibility="{Binding HasMissingSteps, Converter={StaticResource BoolToVis}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⚠" FontSize="14" Foreground="{StaticResource AccentOrange}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextPrimary}">
+                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap">
                                     <Run Text="Tìm thấy "/>
-                                    <Run Text="{Binding WrongRLCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AccentOrange}"/>
-                                    <Run Text=" Step sai → đã tô cam trong view"/>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
-                        <!-- Updated (green) -->
-                        <Border Background="#FFDCFCE7" CornerRadius="6" Padding="12,8" Margin="0,0,0,4"
-                                BorderBrush="#FFBBF7D0" BorderThickness="1"
-                                Visibility="{Binding HasUpdated, Converter={StaticResource BoolToVis}}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="✓" FontSize="14" Foreground="{StaticResource AccentGreen}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextPrimary}">
-                                    <Run Text="Đã cập nhật "/>
-                                    <Run Text="{Binding UpdatedRLCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AccentGreen}"/>
-                                    <Run Text=" Step thành công → đã tô xanh lá"/>
+                                    <Run Text="{Binding MissingStepCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AccentOrange}"/>
+                                    <Run Text=" vị trí thiếu Step → đã tô đường line đỏ"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                </TabItem>
+            </TabControl>
 
-                    <!-- Main Content: Two lists -->
-                    <Grid Grid.Row="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- Wrong RL List (orange section) -->
-                        <Grid Grid.Row="0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
-                                <Border Background="#FFFFEDD5" CornerRadius="3" Padding="8,3" Margin="0,0,8,0"
-                                        BorderBrush="#FFFED7AA" BorderThickness="1">
-                                    <TextBlock Text="🟠 Danh sách Sai" FontSize="12" FontWeight="SemiBold" 
-                                               Foreground="{StaticResource AccentOrange}"/>
-                                </Border>
-                                <TextBlock Text="{Binding WrongRLCount, StringFormat='({0} items)'}" 
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <DataGrid Grid.Row="1" ItemsSource="{Binding WrongRLItems}" Margin="0,0,0,6" SelectionChanged="DataGrid_SelectionChanged">
-                                <DataGrid.Columns>
-                                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
-                                                             Width="35" Header="✓" ElementStyle="{x:Null}"/>
-                                    <DataGridTextColumn Binding="{Binding StepFamilyId}" Header="ID" Width="60"/>
-                                    <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Info" Width="100"/>
-                                    <DataGridTextColumn Binding="{Binding HighSlabInfo}" Header="Sàn Cao" Width="130"/>
-                                    <DataGridTextColumn Binding="{Binding LowSlabInfo}" Header="Sàn Thấp" Width="130"/>
-                                    <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL STEP" Width="65"/>
-                                    <DataGridTextColumn Binding="{Binding CalculatedValue, StringFormat=F0}" Header="Tính toán" Width="65"/>
-                                    <DataGridTemplateColumn Header="Status" Width="75" CellTemplate="{StaticResource StatusCellTemplate}"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </Grid>
-
-                        <!-- Updated RL List (green section) -->
-                        <Grid Grid.Row="1" Visibility="{Binding HasUpdated, Converter={StaticResource BoolToVis}}" MaxHeight="180">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,4,0,4">
-                                <Border Background="#FFDCFCE7" CornerRadius="3" Padding="8,3" Margin="0,0,8,0"
-                                        BorderBrush="#FFBBF7D0" BorderThickness="1">
-                                    <TextBlock Text="🟢 Đã Update thành công" FontSize="12" FontWeight="SemiBold" 
-                                               Foreground="{StaticResource AccentGreen}"/>
-                                </Border>
-                                <TextBlock Text="{Binding UpdatedRLCount, StringFormat='({0} items)'}" 
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <DataGrid Grid.Row="1" ItemsSource="{Binding UpdatedRLItems}" SelectionChanged="DataGrid_SelectionChanged">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding TypeName}" Header="Type Name" Width="*"/>
-                                    <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Fold Type" Width="140"/>
-                                    <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL Mới" Width="75"/>
-                                    <DataGridTextColumn Binding="{Binding CurrentOffsetValue, StringFormat=F1}" Header="Offset Mới" Width="80"/>
-                                    <DataGridTemplateColumn Header="Status" Width="85">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Center" Background="#FFDCFCE7">
-                                                    <TextBlock Text="✓ OK" FontSize="11" FontWeight="SemiBold" 
-                                                               Foreground="{StaticResource AccentGreen}" HorizontalAlignment="Center"/>
-                                                </Border>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </TabItem>
-        </TabControl>
-
-        <!-- Bottom Bar -->
-        <Grid Grid.Row="3" Margin="0,12,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0" Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,8,0"
+            <!-- Bottom Status (Left only) -->
+            <Border Grid.Row="3" Background="White" CornerRadius="6" Padding="12,8" Margin="0,12,0,0"
                     BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
                 <TextBlock Text="{Binding StatusMessage}" 
                           Foreground="{StaticResource TextSecondary}" 
@@ -505,16 +439,193 @@
                           VerticalAlignment="Center"
                           TextTrimming="CharacterEllipsis"/>
             </Border>
+        </Grid>
 
-            <Button Grid.Column="1" Content="🔄 Refresh" 
-                   Style="{StaticResource ActionButton}" 
-                   Command="{Binding RefreshCommand}"
-                   Margin="0,0,8,0"/>
+        <!-- RIGHT COLUMN: DATA -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <Button Grid.Column="2" Content="Close" 
-                   Style="{StaticResource ResetButton}" 
-                   Click="Close_Click"
-                   Width="80"/>
+            <!-- 3D DATA -->
+            <Grid Grid.Row="0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=MainTabControl, Path=SelectedIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                
+                <DataGrid ItemsSource="{Binding FoldItems}" SelectionChanged="DataGrid_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Width="35" Header="✓" ElementStyle="{x:Null}"/>
+                        <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Fold Type" Width="1.2*"/>
+                        <DataGridTextColumn Binding="{Binding LevelName}" Header="Level" Width="80"/>
+                        <DataGridTextColumn Binding="{Binding Slab1TypeName}" Header="Sàn Cao" Width="1.5*"/>
+                        <DataGridTextColumn Binding="{Binding Slab1Thickness, StringFormat=F0}" Header="T1 (mm)" Width="65"/>
+                        <DataGridTextColumn Binding="{Binding Slab2TypeName}" Header="Sàn Thấp" Width="1.5*"/>
+                        <DataGridTextColumn Binding="{Binding Slab2Thickness, StringFormat=F0}" Header="T2 (mm)" Width="65"/>
+                        <DataGridTextColumn Binding="{Binding Gap, StringFormat=F0}" Header="Gap (mm)" Width="65"/>
+                        <DataGridTextColumn Binding="{Binding CalculatedThickness, StringFormat=F0}" Header="Tính (mm)" Width="75"/>
+                        <DataGridTextColumn Binding="{Binding FoldThickness, StringFormat=F0}" Header="Fold (mm)" Width="75"/>
+                        <DataGridTemplateColumn Header="Status" Width="90" CellTemplate="{StaticResource StatusCellTemplate}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <!-- 2D DATA -->
+            <Grid Grid.Row="0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=MainTabControl, Path=SelectedIndex}" Value="1">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Wrong RL List -->
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                            <Border Background="#FFFFEDD5" CornerRadius="3" Padding="8,3" Margin="0,0,8,0"
+                                    BorderBrush="#FFFED7AA" BorderThickness="1">
+                                <TextBlock Text="🟠 Danh sách Sai" FontSize="12" FontWeight="SemiBold" 
+                                           Foreground="{StaticResource AccentOrange}"/>
+                            </Border>
+                            <TextBlock Text="{Binding WrongRLCount, StringFormat='({0} items)'}" 
+                                       FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding WrongRLItems}" Margin="0,0,0,6" SelectionChanged="DataGrid_SelectionChanged">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                         Width="35" Header="✓" ElementStyle="{x:Null}"/>
+                                <DataGridTextColumn Binding="{Binding StepFamilyId}" Header="ID" Width="65"/>
+                                <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Info" Width="1.2*"/>
+                                <DataGridTextColumn Binding="{Binding HighSlabInfo}" Header="Sàn Cao" Width="1.5*"/>
+                                <DataGridTextColumn Binding="{Binding LowSlabInfo}" Header="Sàn Thấp" Width="1.5*"/>
+                                <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL STEP" Width="70"/>
+                                <DataGridTextColumn Binding="{Binding CalculatedValueStr}" Header="Tính toán" Width="70"/>
+                                <DataGridTemplateColumn Header="Status" Width="75" CellTemplate="{StaticResource StatusCellTemplate}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+
+                    <!-- Updated RL List -->
+                    <Grid Grid.Row="1" Visibility="{Binding HasUpdated, Converter={StaticResource BoolToVis}}" MaxHeight="180">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,4,0,4">
+                            <Border Background="#FFDCFCE7" CornerRadius="3" Padding="8,3" Margin="0,0,8,0"
+                                    BorderBrush="#FFBBF7D0" BorderThickness="1">
+                                <TextBlock Text="🟢 Đã Update thành công" FontSize="12" FontWeight="SemiBold" 
+                                           Foreground="{StaticResource AccentGreen}"/>
+                            </Border>
+                            <TextBlock Text="{Binding UpdatedRLCount, StringFormat='({0} items)'}" 
+                                       FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding UpdatedRLItems}" SelectionChanged="DataGrid_SelectionChanged">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding TypeName}" Header="Type Name" Width="1.5*"/>
+                                <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Fold Type" Width="1.2*"/>
+                                <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL Mới" Width="75"/>
+                                <DataGridTextColumn Binding="{Binding CurrentOffsetValue, StringFormat=F1}" Header="Offset Mới" Width="80"/>
+                                <DataGridTemplateColumn Header="Status" Width="85">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Center" Background="#FFDCFCE7">
+                                                <TextBlock Text="✓ OK" FontSize="11" FontWeight="SemiBold" 
+                                                           Foreground="{StaticResource AccentGreen}" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <!-- 3D STEP MISSING DATA -->
+            <Grid Grid.Row="0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=MainTabControl, Path=SelectedIndex}" Value="2">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                        <Border Background="#FFFFEDD5" CornerRadius="3" Padding="8,3" Margin="0,0,8,0"
+                                BorderBrush="#FFFED7AA" BorderThickness="1">
+                            <TextBlock Text="🟠 Vị trí thiếu Step" FontSize="12" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource AccentOrange}"/>
+                        </Border>
+                        <TextBlock Text="{Binding MissingStepCount, StringFormat='({0} items)'}" 
+                                   FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding MissingStepItems}" Margin="0,0,0,6" SelectionChanged="DataGrid_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                     Width="35" Header="✓" ElementStyle="{x:Null}"/>
+                            <DataGridTextColumn Binding="{Binding Id}" Header="No." Width="45"/>
+                            <DataGridTextColumn Binding="{Binding HighSlabInfo}" Header="Sàn Cao" Width="1.5*"/>
+                            <DataGridTextColumn Binding="{Binding LowSlabInfo}" Header="Sàn Thấp" Width="1.5*"/>
+                            <DataGridTextColumn Binding="{Binding StepHeight, StringFormat=F0}" Header="Step H (mm)" Width="90"/>
+                            <DataGridTemplateColumn Header="Status" Width="85">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Center" Background="#FFFEE2E2">
+                                            <TextBlock Text="Missing" FontSize="11" FontWeight="SemiBold" 
+                                                       Foreground="{StaticResource AccentRed}" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Grid>
+
+        <!-- Bottom Actions -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Content="🔄 Refresh" Style="{StaticResource ActionButton}" Command="{Binding RefreshCommand}" Margin="0,0,8,0"/>
+                <Button Content="Close" Style="{StaticResource ResetButton}" Click="Close_Click" Width="80"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>

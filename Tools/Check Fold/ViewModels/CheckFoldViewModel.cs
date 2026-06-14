@@ -39,6 +39,12 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
         [ObservableProperty]
         private bool _hasUpdated;
 
+        [ObservableProperty]
+        private int _missingStepCount;
+
+        [ObservableProperty]
+        private bool _hasMissingSteps;
+
         /// <summary>Tab 1 data</summary>
         public ObservableCollection<FoldCheckItem> FoldItems { get; } = new ObservableCollection<FoldCheckItem>();
 
@@ -47,6 +53,9 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
 
         /// <summary>Tab 2 - Updated RL list (shown after Update)</summary>
         public ObservableCollection<StepCheckItem> UpdatedRLItems { get; } = new ObservableCollection<StepCheckItem>();
+
+        /// <summary>Tab 3 - Missing 3D Steps list</summary>
+        public ObservableCollection<MissingStepItem> MissingStepItems { get; } = new ObservableCollection<MissingStepItem>();
 
         // All step items (internal tracking)
         private List<StepCheckItem> _allStepItems = new List<StepCheckItem>();
@@ -63,6 +72,9 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
             _handler.OnCheckCompleted = wrongCount => Dispatch(() => HandleCheckCompleted(wrongCount));
             _handler.OnUpdateCompleted = (updated, failed) => Dispatch(() => HandleUpdateCompleted(updated, failed));
             _handler.OnResetCompleted = () => Dispatch(() => HandleResetCompleted());
+            
+            _handler.OnMissingStepsChecked = items => Dispatch(() => HandleMissingStepsChecked(items));
+            _handler.OnHighlightsCleared = () => Dispatch(() => HandleHighlightsCleared());
 
             // Initial load
             _handler.Action = "LoadData";
@@ -119,8 +131,8 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
             var updatedItems = WrongRLItems.Where(i => i.IsSelected).ToList();
             foreach (var item in updatedItems)
             {
-                item.CurrentRLValue = item.CalculatedValue.ToString("F0");
-                item.CurrentOffsetValue = -Math.Abs(item.CalculatedValue);
+                item.CurrentRLValue = item.CalculatedValueStr;
+                item.CurrentOffsetValue = item.IsVaries ? 0 : -Math.Abs(item.CalculatedValue);
                 item.Status = "OK";
                 item.IsUpdated = true;
                 UpdatedRLItems.Add(item);
@@ -150,12 +162,13 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            WrongRLItems.Clear();
-            UpdatedRLItems.Clear();
+            StatusMessage = "Refreshing data...";
             HasChecked = false;
             HasUpdated = false;
-            WrongRLCount = 0;
-            UpdatedRLCount = 0;
+            HasMissingSteps = false;
+            WrongRLItems.Clear();
+            UpdatedRLItems.Clear();
+            MissingStepItems.Clear();
 
             _handler.Action = "LoadData";
             _externalEvent.Raise();
@@ -188,6 +201,41 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
         {
             _handler.Action = "ResetOverrides";
             _externalEvent.Raise();
+        }
+
+        [RelayCommand]
+        private void CheckMissingSteps()
+        {
+            StatusMessage = "Đang kiểm tra 3D Step Missing...";
+            _handler.Action = "CheckMissingSteps";
+            _externalEvent.Raise();
+        }
+
+        [RelayCommand]
+        private void ClearHighlights()
+        {
+            StatusMessage = "Đang xóa các đường highlight đỏ...";
+            _handler.Action = "ClearHighlights";
+            _externalEvent.Raise();
+        }
+
+        private void HandleMissingStepsChecked(List<MissingStepItem> items)
+        {
+            MissingStepItems.Clear();
+            foreach(var item in items)
+            {
+                MissingStepItems.Add(item);
+            }
+            MissingStepCount = items.Count;
+            HasMissingSteps = items.Count > 0;
+        }
+
+        private void HandleHighlightsCleared()
+        {
+            HasMissingSteps = false;
+            MissingStepItems.Clear();
+            MissingStepCount = 0;
+            StatusMessage = "Đã dọn dẹp view thành công.";
         }
 
         [RelayCommand]

@@ -108,6 +108,59 @@ namespace RincoNhan.Tools.CheckFold
         }
 
         /// <summary>
+        /// Check if a floor is sloped (has modified shape or slope arrow).
+        /// </summary>
+        public static bool IsFloorSloped(Document doc, Floor floor)
+        {
+            // 1. Check BoundingBox height vs Thickness
+            try
+            {
+                var bb = floor.get_BoundingBox(null);
+                if (bb != null)
+                {
+                    double bbHeightMm = (bb.Max.Z - bb.Min.Z) * FeetToMm;
+                    double thicknessMm = GetFloorThickness(doc, floor);
+
+                    // If bounding box is taller than thickness by more than 5mm, it's sloped
+                    if (bbHeightMm - thicknessMm > 5.0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Fallback to SlabShapeEditor check
+            try 
+            {
+#if REVIT2024_OR_GREATER
+                var shapeEditor = floor.GetSlabShapeEditor();
+#else
+                var shapeEditor = floor.SlabShapeEditor;
+#endif
+                if (shapeEditor != null && shapeEditor.SlabShapeVertices != null)
+                {
+                    var vertices = shapeEditor.SlabShapeVertices;
+                    if (vertices.Size > 0)
+                    {
+                        double firstZ = double.MaxValue;
+                        foreach (Autodesk.Revit.DB.SlabShapeVertex v in vertices)
+                        {
+                            if (firstZ == double.MaxValue) firstZ = v.Position.Z;
+                            else if (Math.Abs(v.Position.Z - firstZ) > 0.001) return true;
+                        }
+                    }
+                }
+            } 
+            catch { }
+
+            var slopeParam = floor.get_Parameter(BuiltInParameter.ROOF_SLOPE);
+            if (slopeParam != null && Math.Abs(slopeParam.AsDouble()) > 0.0001) return true;
+
+            return false;
+        }
+
+        /// <summary>
         /// Find the two adjacent slabs for a fold floor.
         /// Uses fold's own top/bottom elevation as reference to find the closest matching slabs.
         /// highSlab.top ≈ fold.top, lowSlab.top ≈ fold.bottom
@@ -274,7 +327,8 @@ namespace RincoNhan.Tools.CheckFold
                 {
                     var symbol = fi.Symbol;
                     return symbol != null &&
-                           symbol.Name.IndexOf("RINCO_AN_Step", StringComparison.OrdinalIgnoreCase) >= 0;
+                           (symbol.Name.IndexOf("RINCO_AN_Step", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            symbol.FamilyName.IndexOf("RINCO_AN_Step", StringComparison.OrdinalIgnoreCase) >= 0);
                 })
                 .ToList();
         }
@@ -366,7 +420,7 @@ namespace RincoNhan.Tools.CheckFold
         /// 1. "RL STEP" (text) = step value as string (e.g. "20")
         /// 2. "Height Offset From Level" = negative step value (e.g. -20mm)
         /// </summary>
-        public static bool SetStepValues(FamilyInstance stepFamily, double valueMm)
+        public static bool SetStepValues(FamilyInstance stepFamily, double valueMm, bool isVaries = false)
         {
             bool anySuccess = false;
 
@@ -376,10 +430,10 @@ namespace RincoNhan.Tools.CheckFold
             {
                 if (rlParam.StorageType == StorageType.String)
                 {
-                    rlParam.Set(valueMm.ToString("F0"));
+                    rlParam.Set(isVaries ? "Varies" : valueMm.ToString("F0"));
                     anySuccess = true;
                 }
-                else if (rlParam.StorageType == StorageType.Double)
+                else if (rlParam.StorageType == StorageType.Double && !isVaries)
                 {
                     rlParam.Set(valueMm / FeetToMm);
                     anySuccess = true;
@@ -394,7 +448,7 @@ namespace RincoNhan.Tools.CheckFold
             }
             if (offsetParam != null && !offsetParam.IsReadOnly && offsetParam.StorageType == StorageType.Double)
             {
-                offsetParam.Set(-Math.Abs(valueMm) / FeetToMm);
+                offsetParam.Set(isVaries ? 0 : -Math.Abs(valueMm) / FeetToMm);
                 anySuccess = true;
             }
 
@@ -473,7 +527,7 @@ namespace RincoNhan.Tools.CheckFold
                 for (int j = i + 1; j < floorsAtLocation.Count; j++)
                 {
                     double diff = Math.Abs(floorsAtLocation[i].topElevation - floorsAtLocation[j].topElevation);
-                    if (diff > 1.0 && diff < minDiff) // At least 1mm difference, find smallest step
+                    if (diff < minDiff) // Allow 0 difference to detect flush slabs
                     {
                         minDiff = diff;
                         highSlab = floorsAtLocation[i].floor;
@@ -484,36 +538,43 @@ namespace RincoNhan.Tools.CheckFold
 
             if (highSlab != null && lowSlab != null)
             {
-                double highTop = GetFloorTopElevation(doc, highSlab);
-                double lowTop = GetFloorTopElevation(doc, lowSlab);
-                item.CalculatedValue = highTop - lowTop;
+                bool highSloped = IsFloorSloped(doc, highSlab);
+                bool lowSloped = IsFloorSloped(doc, lowSlab);
 
-                // Slab info for display
-                var highType = doc.GetElement(highSlab.GetTypeId()) as FloorType;
-                var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
-                var highOffParam = highSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
-                var lowOffParam = lowSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
-                double highOffMm = highOffParam != null ? highOffParam.AsDouble() * FeetToMm : 0;
-                double lowOffMm = lowOffParam != null ? lowOffParam.AsDouble() * FeetToMm : 0;
+                if (highSloped || lowSloped)
+                {
+                    item.IsVaries = true;
+                    item.CalculatedValue = 0;
+                    
+                    var highType = doc.GetElement(highSlab.GetTypeId()) as FloorType;
+                    var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
+                    item.HighSlabInfo = $"{highType?.Name} (Sloped)";
+                    item.LowSlabInfo = $"{lowType?.Name} (Sloped)";
+                    item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
 
-                item.HighSlabInfo = $"{highType?.Name} ({highOffMm:F0})";
-                item.LowSlabInfo = $"{lowType?.Name} ({lowOffMm:F0})";
-                item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
-            }
-            else
-            {
-                item.FoldTypeName = "Same Elevation";
-            }
+                    item.Status = currentRL.Equals("Varies", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
+                }
+                else
+                {
+                    double highTop = GetFloorTopElevation(doc, highSlab);
+                    double lowTop = GetFloorTopElevation(doc, lowSlab);
+                    item.CalculatedValue = highTop - lowTop;
 
-            // Compare: parse RL STEP text value and compare with calculated
-            double currentNumeric = 0;
-            double.TryParse(currentRL, out currentNumeric);
+                    var highType = doc.GetElement(highSlab.GetTypeId()) as FloorType;
+                    var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
+                    var highOffParam = highSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
+                    var lowOffParam = lowSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
+                    double highOffMm = highOffParam != null ? highOffParam.AsDouble() * FeetToMm : 0;
+                    double lowOffMm = lowOffParam != null ? lowOffParam.AsDouble() * FeetToMm : 0;
 
-            bool isCalculatedValid = highSlab != null && lowSlab != null;
+                    item.HighSlabInfo = $"{highType?.Name} ({highOffMm:F0})";
+                    item.LowSlabInfo = $"{lowType?.Name} ({lowOffMm:F0})";
+                    item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
 
-            if (isCalculatedValid)
-            {
-                item.Status = Math.Abs(currentNumeric - item.CalculatedValue) < 1.0 ? "OK" : "Sai";
+                    double currentNumeric = 0;
+                    double.TryParse(currentRL, out currentNumeric);
+                    item.Status = Math.Abs(currentNumeric - item.CalculatedValue) < 1.0 && !currentRL.Equals("Varies", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
+                }
             }
             else
             {
@@ -552,6 +613,250 @@ namespace RincoNhan.Tools.CheckFold
         public static void ResetElementOverride(View view, ElementId elementId)
         {
             view.SetElementOverrides(elementId, new OverrideGraphicSettings());
+        }
+
+        /// <summary>
+        /// Analyze all floors in the view and find edges that represent steps but have no step family nearby.
+        /// </summary>
+        public static List<Models.MissingStepItem> FindMissing3DSteps(Document doc, View view)
+        {
+            var missingSteps = new List<Models.MissingStepItem>();
+            var allFloors = GetNonFoldFloors(doc, view).ToList();
+            var allStepFamilies = GetStepFamilies(doc, view).ToList();
+
+            var floorGeometries = new Dictionary<ElementId, (Solid ActualSolid, List<Curve> TopEdges, double TopElev, List<Curve> FootprintEdges)>();
+
+            foreach (var floor in allFloors)
+            {
+                var topFaces = HostObjectUtils.GetTopFaces(floor);
+                if (topFaces.Count == 0) continue;
+
+                var geomObj = floor.GetGeometryObjectFromReference(topFaces[0]) as Face;
+                if (geomObj == null) continue;
+
+                var edges = new List<Curve>();
+                var footprintEdges = new List<Curve>();
+                var loops = geomObj.GetEdgesAsCurveLoops();
+                
+                foreach (var loop in loops)
+                {
+                    foreach (var curve in loop)
+                    {
+                        edges.Add(curve);
+                        // Flatten for touching check
+                        var p1 = new XYZ(curve.GetEndPoint(0).X, curve.GetEndPoint(0).Y, 0);
+                        var p2 = new XYZ(curve.GetEndPoint(1).X, curve.GetEndPoint(1).Y, 0);
+                        try { footprintEdges.Add(Line.CreateBound(p1, p2)); } catch { }
+                    }
+                }
+
+                Solid actualSolid = GetElementSolid(floor);
+                double topElev = GetFloorTopElevation(doc, floor);
+                floorGeometries[floor.Id] = (actualSolid, edges, topElev, footprintEdges);
+            }
+
+            int idCounter = 1;
+
+            for (int i = 0; i < allFloors.Count; i++)
+            {
+                var highFloor = allFloors[i];
+                var highBB = highFloor.get_BoundingBox(view);
+                if (highBB == null || !floorGeometries.ContainsKey(highFloor.Id)) continue;
+
+                var highData = floorGeometries[highFloor.Id];
+
+                for (int j = 0; j < allFloors.Count; j++)
+                {
+                    if (i == j) continue;
+
+                    var lowFloor = allFloors[j];
+                    var lowBB = lowFloor.get_BoundingBox(view);
+                    if (lowBB == null || !floorGeometries.ContainsKey(lowFloor.Id)) continue;
+
+                    var lowData = floorGeometries[lowFloor.Id];
+
+                    double diff = highData.TopElev - lowData.TopElev;
+                    if (diff < 10.0 / FeetToMm) continue; // Minimum step height 10mm
+
+                    // XY overlap check
+                    bool xOverlap = highBB.Min.X <= lowBB.Max.X + 0.1 && highBB.Max.X >= lowBB.Min.X - 0.1;
+                    bool yOverlap = highBB.Min.Y <= lowBB.Max.Y + 0.1 && highBB.Max.Y >= lowBB.Min.Y - 0.1;
+
+                    if (xOverlap && yOverlap)
+                    {
+                        foreach (var edge in highData.TopEdges)
+                        {
+                            List<Curve> stepSegments = new List<Curve>();
+
+                            // 1. Check overlap with low floor's solid
+                            if (lowData.ActualSolid != null)
+                            {
+                                // Lower the edge to intersect with the low floor's solid
+                                double targetZ = (lowBB.Min.Z + lowBB.Max.Z) / 2.0;
+                                Curve loweredEdge = edge.CreateTransformed(Transform.CreateTranslation(new XYZ(0, 0, targetZ - edge.GetEndPoint(0).Z)));
+                                
+                                try
+                                {
+                                    var sci = lowData.ActualSolid.IntersectWithCurve(loweredEdge, new SolidCurveIntersectionOptions());
+                                    foreach (Curve seg in sci)
+                                    {
+                                        if (seg.Length > 0.5) // Minimum edge length 150mm
+                                        {
+                                            // Raise it back to original elevation for highlighting
+                                            stepSegments.Add(seg.CreateTransformed(Transform.CreateTranslation(new XYZ(0, 0, edge.GetEndPoint(0).Z - targetZ))));
+                                        }
+                                    }
+                                }
+                                catch { }
+                            }
+
+                            // 2. Check touching boundaries (edge to edge)
+                            if (stepSegments.Count == 0 && edge is Line lineA)
+                            {
+                                foreach (var lowEdge in lowData.FootprintEdges)
+                                {
+                                    var touchingSeg = GetTouchingSegment(lineA, lowEdge, 0.05); // 0.05 ft ~ 15mm tolerance
+                                    if (touchingSeg != null && touchingSeg.Length > 0.5)
+                                    {
+                                        stepSegments.Add(touchingSeg);
+                                    }
+                                }
+                            }
+
+                            // Check if step segments are missing families
+                            foreach (var seg in stepSegments)
+                            {
+                                bool hasStep = false;
+                                
+                                // Flatten the segment for 2D distance checking
+                                var p1Seg = new XYZ(seg.GetEndPoint(0).X, seg.GetEndPoint(0).Y, 0);
+                                var p2Seg = new XYZ(seg.GetEndPoint(1).X, seg.GetEndPoint(1).Y, 0);
+                                Curve flatSeg = null;
+                                try { flatSeg = Line.CreateBound(p1Seg, p2Seg); } catch { }
+
+                                foreach (var stepFam in allStepFamilies)
+                                {
+                                    if (flatSeg == null) break;
+
+                                    bool isClose = false;
+                                    var stepLoc = stepFam.Location;
+
+                                    if (stepLoc is LocationPoint lp)
+                                    {
+                                        var pt = new XYZ(lp.Point.X, lp.Point.Y, 0);
+                                        isClose = flatSeg.Distance(pt) < 1.5; // ~450mm tolerance
+                                    }
+                                    else if (stepLoc is LocationCurve lc)
+                                    {
+                                        var pt1 = new XYZ(lc.Curve.GetEndPoint(0).X, lc.Curve.GetEndPoint(0).Y, 0);
+                                        var pt2 = new XYZ(lc.Curve.GetEndPoint(1).X, lc.Curve.GetEndPoint(1).Y, 0);
+                                        var ptMid = new XYZ(lc.Curve.Evaluate(0.5, true).X, lc.Curve.Evaluate(0.5, true).Y, 0);
+                                        
+                                        isClose = flatSeg.Distance(pt1) < 1.5 || 
+                                                  flatSeg.Distance(pt2) < 1.5 || 
+                                                  flatSeg.Distance(ptMid) < 1.5;
+                                    }
+                                    else
+                                    {
+                                        var loc = GetFamilyLocation(stepFam);
+                                        if (loc != null && !loc.IsAlmostEqualTo(XYZ.Zero))
+                                        {
+                                            var pt = new XYZ(loc.X, loc.Y, 0);
+                                            isClose = flatSeg.Distance(pt) < 1.5;
+                                        }
+                                    }
+
+                                    if (isClose)
+                                    {
+                                        hasStep = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!hasStep)
+                                {
+                                    var highType = doc.GetElement(highFloor.GetTypeId()) as FloorType;
+                                    var lowType = doc.GetElement(lowFloor.GetTypeId()) as FloorType;
+                                    missingSteps.Add(new Models.MissingStepItem
+                                    {
+                                        Id = idCounter++,
+                                        HighSlabId = highFloor.Id,
+                                        HighSlabInfo = highType?.Name,
+                                        LowSlabId = lowFloor.Id,
+                                        LowSlabInfo = lowType?.Name,
+                                        StepHeight = diff * FeetToMm,
+                                        StepEdge = seg
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return missingSteps;
+        }
+
+        private static Curve GetTouchingSegment(Curve a, Curve b, double tolerance)
+        {
+            if (a is Line lineA && b is Line lineB)
+            {
+                XYZ pA1 = new XYZ(lineA.GetEndPoint(0).X, lineA.GetEndPoint(0).Y, 0);
+                XYZ pA2 = new XYZ(lineA.GetEndPoint(1).X, lineA.GetEndPoint(1).Y, 0);
+                
+                Line flatA = null;
+                try { flatA = Line.CreateBound(pA1, pA2); } catch { return null; }
+
+                if (flatA.Direction.CrossProduct(lineB.Direction).GetLength() > 0.01) return null; // Not parallel
+                
+                if (flatA.Distance(lineB.GetEndPoint(0)) > tolerance) return null; // Not collinear
+
+                double p1 = flatA.Project(lineB.GetEndPoint(0)).Parameter;
+                double p2 = flatA.Project(lineB.GetEndPoint(1)).Parameter;
+                
+                double minB = Math.Min(p1, p2);
+                double maxB = Math.Max(p1, p2);
+                
+                double minA = flatA.GetEndParameter(0);
+                double maxA = flatA.GetEndParameter(1);
+                
+                double overlapMin = Math.Max(minA, minB);
+                double overlapMax = Math.Min(maxA, maxB);
+                
+                if (overlapMax - overlapMin > 0.5) // at least 0.5 ft
+                {
+                    try { return Line.CreateBound(lineA.Evaluate(overlapMin, false), lineA.Evaluate(overlapMax, false)); } catch { }
+                }
+            }
+            return null;
+        }
+
+        public static Solid GetElementSolid(Element element)
+        {
+            var options = new Options { DetailLevel = ViewDetailLevel.Fine };
+            var geomElem = element.get_Geometry(options);
+            if (geomElem != null)
+            {
+                foreach (var geomObj in geomElem)
+                {
+                    if (geomObj is Solid solid && solid.Faces.Size > 0 && solid.Volume > 0)
+                    {
+                        return solid;
+                    }
+                    if (geomObj is GeometryInstance inst)
+                    {
+                        var instGeom = inst.GetInstanceGeometry();
+                        foreach (var instObj in instGeom)
+                        {
+                            if (instObj is Solid instSolid && instSolid.Faces.Size > 0 && instSolid.Volume > 0)
+                            {
+                                return instSolid;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
         }
     }
 }
