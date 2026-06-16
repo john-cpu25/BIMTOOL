@@ -48,6 +48,14 @@ namespace RincoNhan.Tools.CreateViewSheet
                 {
                     ViewModel.RefreshAllData(doc);
                 }
+                else if (RequestAction == "ADD_MULTI_VIEWS")
+                {
+                    AddMultiViewsAction(doc);
+                }
+                else if (RequestAction == "APPLY_VIEWPORT_TITLE")
+                {
+                    ApplyViewportTitleAction(doc);
+                }
             }
             catch (Exception ex)
             {
@@ -196,7 +204,10 @@ namespace RincoNhan.Tools.CreateViewSheet
         // ================= Tab 3: Add Views to Sheets =================
         private void AddViewsToSheetsAction(Document doc)
         {
-            var selectedViews = ViewModel.ProjectViews.Where(v => v.IsSelected).ToList();
+            var selectedViews = ViewModel.ProjectViews.Where(v => v.IsSelected)
+                .OrderBy(v => GetViewPriority(v.Name))
+                .ThenBy(v => v.Name)
+                .ToList();
             var selectedSheets = ViewModel.ProjectSheets.Where(s => s.IsSelected).ToList();
 
             if (!selectedViews.Any() || !selectedSheets.Any())
@@ -206,6 +217,8 @@ namespace RincoNhan.Tools.CreateViewSheet
             }
 
             int addedCount = 0;
+            int skippedCount = 0;
+            var skippedNames = new List<string>();
 
             using (Transaction trans = new Transaction(doc, "Rinco - Add Views to Sheets"))
             {
@@ -234,19 +247,34 @@ namespace RincoNhan.Tools.CreateViewSheet
                                 addedCount++;
                                 offset += 0.5;
                             }
+                            else
+                            {
+                                skippedCount++;
+                                skippedNames.Add($"{viewItem.Name} → {sheetItem.SheetNumber}");
+                            }
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            skippedCount++;
+                            skippedNames.Add($"{viewItem.Name}: {ex.Message}");
+                        }
                     }
                 }
 
                 trans.Commit();
             }
 
-            ViewModel.SetStatus($"✓ Added {addedCount} views to sheets.");
+            string msg = $"✓ Added {addedCount} views to sheets.";
+            if (skippedCount > 0)
+            {
+                msg += $" Skipped {skippedCount}: {string.Join("; ", skippedNames.Take(5))}";
+                if (skippedNames.Count > 5) msg += "...";
+            }
+            ViewModel.SetStatus(msg);
             ViewModel.RefreshAllData(doc);
         }
 
-        // ================= Tab 3: Align Views =================
+        // ================= Tab 5: Align Views =================
         private void AlignViewsAction(Document doc)
         {
             if (ViewModel.TemplateViewForAlign == null)
@@ -275,7 +303,12 @@ namespace RincoNhan.Tools.CreateViewSheet
             }
 
             XYZ targetCenter = templateViewport.GetBoxCenter();
+            XYZ targetLabelOffset = templateViewport.LabelOffset;
             int alignedCount = 0;
+
+            string mode = ViewModel.AlignMode ?? "View + Title";
+            bool alignView = mode.Contains("View");
+            bool alignTitle = mode.Contains("Title");
 
             using (Transaction trans = new Transaction(doc, "Rinco - Align Views"))
             {
@@ -296,7 +329,14 @@ namespace RincoNhan.Tools.CreateViewSheet
                         var view = doc.GetElement(vp.ViewId) as View;
                         if (view != null && view.ViewType != ViewType.Legend)
                         {
-                            vp.SetBoxCenter(targetCenter);
+                            if (alignView)
+                            {
+                                vp.SetBoxCenter(targetCenter);
+                            }
+                            if (alignTitle)
+                            {
+                                try { vp.LabelOffset = targetLabelOffset; } catch { }
+                            }
                             alignedCount++;
                         }
                     }
@@ -305,7 +345,7 @@ namespace RincoNhan.Tools.CreateViewSheet
                 trans.Commit();
             }
 
-            ViewModel.SetStatus($"✓ Aligned {alignedCount} views on selected sheets.");
+            ViewModel.SetStatus($"✓ Aligned {alignedCount} views ({mode}) on selected sheets.");
         }
 
         // ================= Helpers =================
@@ -325,6 +365,129 @@ namespace RincoNhan.Tools.CreateViewSheet
                 count++;
             }
             return $"{baseName} ({count})";
+        }
+
+        /// <summary>
+        /// Priority order: ARCH=1, UNDER=2, OVER=3, others=99
+        /// </summary>
+        private int GetViewPriority(string viewName)
+        {
+            if (string.IsNullOrEmpty(viewName)) return 99;
+            string upper = viewName.ToUpper();
+
+            if (upper.Contains("ARCH")) return 1;
+            if (upper.Contains("UNDER")) return 2;
+            if (upper.Contains("OVER")) return 3;
+
+            return 99;
+        }
+
+        // ================= Tab Multi: Add Multi Views =================
+        private void AddMultiViewsAction(Document doc)
+        {
+            var rowsToProcess = ViewModel.MultiAddRows
+                .Where(r => r.IsSelected && (r.ArchView != null || r.UnderView != null || r.OverView != null))
+                .ToList();
+
+            if (!rowsToProcess.Any())
+            {
+                ViewModel.SetStatus("No matched rows selected.");
+                return;
+            }
+
+            int addedCount = 0;
+            int skippedCount = 0;
+
+            using (Transaction trans = new Transaction(doc, "Rinco - Add Multi Views to Sheets"))
+            {
+                trans.Start();
+
+                foreach (var row in rowsToProcess)
+                {
+                    var sheet = doc.GetElement(row.Sheet.Id) as ViewSheet;
+                    if (sheet == null) continue;
+
+                    XYZ placementPt = new XYZ(1.38, 0.975, 0);
+
+                    // Add views in priority order: ARCH → UNDER → OVER
+                    var viewsToAdd = new[] { row.ArchView, row.UnderView, row.OverView };
+                    foreach (var viewItem in viewsToAdd)
+                    {
+                        if (viewItem == null) continue;
+                        try
+                        {
+                            if (Viewport.CanAddViewToSheet(doc, sheet.Id, viewItem.Id))
+                            {
+                                Viewport.Create(doc, sheet.Id, viewItem.Id, placementPt);
+                                addedCount++;
+                            }
+                            else
+                            {
+                                skippedCount++;
+                            }
+                        }
+                        catch
+                        {
+                            skippedCount++;
+                        }
+                    }
+                }
+
+                trans.Commit();
+            }
+
+            string msg = $"✓ Added {addedCount} views to {rowsToProcess.Count} sheets.";
+            if (skippedCount > 0) msg += $" ({skippedCount} skipped)";
+            ViewModel.SetStatus(msg);
+            ViewModel.RefreshAllData(doc);
+            ViewModel.LoadMultiRows();
+        }
+
+        // ================= Tab 6: Apply Viewport Title =================
+        private void ApplyViewportTitleAction(Document doc)
+        {
+            var targetTitleId = ViewModel.SelectedViewportTitle?.Id;
+            if (targetTitleId == null)
+            {
+                ViewModel.SetStatus("Please select a Title Type.");
+                return;
+            }
+
+            var selected = ViewModel.ViewportTitleRows
+                .Where(r => r.IsSelected && r.IsOnSheet && r.ViewportId != ElementId.InvalidElementId)
+                .ToList();
+
+            if (!selected.Any())
+            {
+                ViewModel.SetStatus("No views on sheet selected.");
+                return;
+            }
+
+            int changedCount = 0;
+
+            using (Transaction trans = new Transaction(doc, "Rinco - Change Viewport Title"))
+            {
+                trans.Start();
+
+                foreach (var row in selected)
+                {
+                    try
+                    {
+                        var vp = doc.GetElement(row.ViewportId) as Viewport;
+                        if (vp != null)
+                        {
+                            vp.ChangeTypeId(targetTitleId);
+                            changedCount++;
+                        }
+                    }
+                    catch { }
+                }
+
+                trans.Commit();
+            }
+
+            ViewModel.SetStatus($"✓ Changed title for {changedCount} viewports to '{ViewModel.SelectedViewportTitle.Name}'.");
+            ViewModel.LoadViewportTitleData(doc);
         }
 
         public string GetName() => "CreateViewSheetHandler";

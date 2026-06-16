@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:models="clr-namespace:RincoNhan.Tools.CreateViewSheet.Models"
+        xmlns:ui="clr-namespace:RincoNhan.Tools.CreateViewSheet.UI"
         mc:Ignorable="d"
         Title="Create View &amp; Sheet Tool" Height="680" Width="950"
         WindowStartupLocation="CenterScreen"
@@ -12,6 +13,7 @@
         Background="White">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <ui:StringMatchConverter x:Key="StringMatchConverter"/>
         
         <ObjectDataProvider x:Key="DuplicateModeEnum" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -148,7 +150,13 @@
                             </GroupStyle>
                         </DataGrid.GroupStyle>
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTemplateColumn Header="✓" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             
                             <DataGridTemplateColumn Header="Level" Width="200">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -237,7 +245,13 @@
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding CreateSheetRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTemplateColumn Header="✓" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             
                             <DataGridTextColumn Header="Sheet Number" Binding="{Binding SheetNumber, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
 
@@ -284,17 +298,55 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Select Views" Style="{StaticResource SectionLabel}" Margin="10,10,0,5"/>
-                    <TextBlock Grid.Column="1" Grid.Row="0" Text="Select Target Sheets" Style="{StaticResource SectionLabel}" Margin="10,10,0,5"/>
+                    <StackPanel Grid.Column="0" Grid.Row="0" Margin="10,10,10,0">
+                        <TextBlock Text="Select Views" Style="{StaticResource SectionLabel}" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding ViewSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="28" Padding="6,4" VerticalContentAlignment="Center"
+                                     BorderBrush="#DCDDE1" BorderThickness="1"/>
+                            <Button Grid.Column="1" Content="All" Command="{Binding SelectAllViewsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0"/>
+                            <Button Grid.Column="2" Content="None" Command="{Binding DeselectAllViewsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0" Background="#95A5A6"/>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Grid.Row="0" Margin="10,10,10,0">
+                        <TextBlock Text="Select Target Sheets" Style="{StaticResource SectionLabel}" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding SheetSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="28" Padding="6,4" VerticalContentAlignment="Center"
+                                     BorderBrush="#DCDDE1" BorderThickness="1"/>
+                            <Button Grid.Column="1" Content="All" Command="{Binding SelectAllSheetsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0"/>
+                            <Button Grid.Column="2" Content="None" Command="{Binding DeselectAllSheetsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0" Background="#95A5A6"/>
+                        </Grid>
+                    </StackPanel>
 
-                    <DataGrid Grid.Column="0" Grid.Row="1" ItemsSource="{Binding ProjectViews}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                    <DataGrid Grid.Column="0" Grid.Row="1" ItemsSource="{Binding FilteredViews}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTemplateColumn Header="✓" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="View Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <DataGrid Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Source={StaticResource GroupedSheets}}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                    <DataGrid Grid.Column="1" Grid.Row="1" ItemsSource="{Binding FilteredSheets}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
                         <DataGrid.GroupStyle>
                             <GroupStyle>
                                 <GroupStyle.ContainerStyle>
@@ -323,7 +375,13 @@
                             </GroupStyle>
                         </DataGrid.GroupStyle>
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTemplateColumn Header="✓" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Number" Binding="{Binding SheetNumber}" Width="100" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Name" Binding="{Binding SheetName}" Width="*" IsReadOnly="True"/>
                         </DataGrid.Columns>
@@ -336,9 +394,13 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <CheckBox Content="Stack Views" IsChecked="{Binding StackViews}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                <TextBlock Text="(Places all selected views on the first selected sheet)" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="#7F8C8D" FontStyle="Italic"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox Content="Stack Views" IsChecked="{Binding StackViews}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock Text="(Places all selected views on the first selected sheet)" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="#7F8C8D" FontStyle="Italic"/>
+                                </StackPanel>
+                                <TextBlock Text="Thứ tự đặt view:  ① ARCH  →  ② UNDER  →  ③ OVER  →  ④ Others" 
+                                           Margin="0,4,0,0" Foreground="#2E5C9A" FontSize="11" FontWeight="SemiBold"/>
                             </StackPanel>
                             
                             <Button Grid.Column="1" Content="Add Views to Sheet" Command="{Binding AddViewsToSheetsCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="160"/>
@@ -347,7 +409,232 @@
                 </Grid>
             </TabItem>
 
-            <!-- TAB 4: ALIGN VIEWS -->
+            <!-- TAB 4: ADD VIEWS MULTI -->
+            <TabItem Header="Add Views Multi">
+                <Grid Background="White" Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <StackPanel Grid.Row="0" Margin="10,10,10,0">
+                        <TextBlock Text="Auto-match views to sheets by level" Style="{StaticResource SectionLabel}" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding MultiSheetSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="28" Padding="6,4" VerticalContentAlignment="Center"
+                                     BorderBrush="#DCDDE1" BorderThickness="1"/>
+                            <Button Grid.Column="1" Content="Auto Match" Command="{Binding AutoMatchViewsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Margin="5,0,0,0" FontSize="11" Padding="12,0" Background="#27AE60"/>
+                            <Button Grid.Column="2" Content="All" Command="{Binding SelectAllMultiRowsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0"/>
+                            <Button Grid.Column="3" Content="None" Command="{Binding DeselectAllMultiRowsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0" Background="#95A5A6"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DataGrid -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding FilteredMultiRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                        <DataGrid.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <Expander IsExpanded="True">
+                                                        <Expander.Header>
+                                                            <Border Background="#2E5C9A" Padding="8,4" CornerRadius="3" MinWidth="800">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                                                    <TextBlock Text=" (" Foreground="#B0C4DE" FontSize="11"/>
+                                                                    <TextBlock Text="{Binding ItemCount}" Foreground="#B0C4DE" FontSize="11"/>
+                                                                    <TextBlock Text=" sheets)" Foreground="#B0C4DE" FontSize="11"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Expander.Header>
+                                                        <ItemsPresenter/>
+                                                    </Expander>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="✓" Width="35">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Sheet #" Binding="{Binding Sheet.SheetNumber}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Sheet Name" Binding="{Binding Sheet.SheetName}" Width="180" IsReadOnly="True"/>
+
+                            <DataGridTemplateColumn Header="① ARCH View" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewOptionsForMulti, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding ArchView, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2" Height="24"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="② UNDER View" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewOptionsForMulti, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding UnderView, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2" Height="24"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="③ OVER View" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewOptionsForMulti, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding OverView, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2" Height="24"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Bottom bar -->
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Thứ tự đặt view:  ① ARCH  →  ② UNDER  →  ③ OVER" 
+                                       VerticalAlignment="Center" Foreground="#2E5C9A" FontSize="11" FontWeight="SemiBold"/>
+
+                            <Button Grid.Column="1" Content="Add All to Sheets" Command="{Binding AddMultiViewsToSheetsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Width="160"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 5: VIEW TITLE -->
+            <TabItem Header="View Title">
+                <Grid Background="White" Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <StackPanel Grid.Row="0" Margin="10,10,10,0">
+                        <TextBlock Text="Change Viewport Title Type for views on sheets" Style="{StaticResource SectionLabel}" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding TitleSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="28" Padding="6,4" VerticalContentAlignment="Center"
+                                     BorderBrush="#DCDDE1" BorderThickness="1"/>
+                            <Button Grid.Column="1" Content="All" Command="{Binding SelectAllTitleRowsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0"/>
+                            <Button Grid.Column="2" Content="None" Command="{Binding DeselectAllTitleRowsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0" Background="#95A5A6"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DataGrid -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding FilteredTitleRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                        <DataGrid.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <Expander IsExpanded="True">
+                                                        <Expander.Header>
+                                                            <Border Background="#8E44AD" Padding="8,4" CornerRadius="3" MinWidth="800">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                                                    <TextBlock Text=" (" Foreground="#D2B4DE" FontSize="11"/>
+                                                                    <TextBlock Text="{Binding ItemCount}" Foreground="#D2B4DE" FontSize="11"/>
+                                                                    <TextBlock Text=" views)" Foreground="#D2B4DE" FontSize="11"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Expander.Header>
+                                                        <ItemsPresenter/>
+                                                    </Expander>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsOnSheet}" Value="False">
+                                        <Setter Property="Opacity" Value="0.4"/>
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="✓" Width="35">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="View Name" Binding="{Binding ViewName}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Sheet #" Binding="{Binding SheetNumber}" Width="70" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Current Title" Binding="{Binding CurrentTitle}" Width="160" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Bottom bar -->
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Apply Title:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding ViewportTitleTypes}" SelectedItem="{Binding SelectedViewportTitle}" 
+                                      DisplayMemberPath="Name" Height="28" Margin="0,0,15,0"/>
+                            <Button Grid.Column="2" Content="Apply to Selected" Command="{Binding ApplyViewportTitleCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Background="#8E44AD" Width="160"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 6: ALIGN VIEWS -->
             <TabItem Header="Align Views">
                 <Grid Background="White" Margin="0,10,0,0">
                     <Grid.RowDefinitions>
@@ -387,7 +674,13 @@
                             </GroupStyle>
                         </DataGrid.GroupStyle>
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTemplateColumn Header="✓" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Number" Binding="{Binding SheetNumber}" Width="100" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Name" Binding="{Binding SheetName}" Width="*" IsReadOnly="True"/>
                         </DataGrid.Columns>
@@ -400,15 +693,32 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <TextBlock Text="Template View:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding TemplateViewForAlign}" DisplayMemberPath="Name" Height="28" Margin="0,0,20,0"/>
-                                
-                                <Button Grid.Column="2" Content="Align Views on Selected Sheets" Command="{Binding AlignViewsCommand}" Style="{StaticResource PrimaryButtonStyle}" Background="#27AE60" Width="220"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ProjectViews}" SelectedItem="{Binding TemplateViewForAlign}" DisplayMemberPath="Name" Height="28"/>
                             </Grid>
-                            <TextBlock Text="Views on selected sheets will be aligned to the center of the selected template view. (Legends are ignored)." 
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Align:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
+                                <RadioButton Grid.Column="1" Content="View" GroupName="AlignMode" VerticalAlignment="Center" Margin="0,0,15,0"
+                                             IsChecked="{Binding AlignMode, Converter={StaticResource StringMatchConverter}, ConverterParameter=View}"/>
+                                <RadioButton Grid.Column="2" Content="Title" GroupName="AlignMode" VerticalAlignment="Center" Margin="0,0,15,0"
+                                             IsChecked="{Binding AlignMode, Converter={StaticResource StringMatchConverter}, ConverterParameter=Title}"/>
+                                <RadioButton Grid.Column="3" Content="View + Title" GroupName="AlignMode" VerticalAlignment="Center" Margin="0,0,15,0"
+                                             IsChecked="{Binding AlignMode, Converter={StaticResource StringMatchConverter}, ConverterParameter=View + Title}"/>
+
+                                <Button Grid.Column="5" Content="Align Views on Selected Sheets" Command="{Binding AlignViewsCommand}" Style="{StaticResource PrimaryButtonStyle}" Background="#27AE60" Width="220"/>
+                            </Grid>
+                            <TextBlock Text="Views on selected sheets will be aligned to match the template view position. (Legends are ignored)." 
                                        Margin="0,5,0,0" FontSize="11" Foreground="#7F8C8D"/>
                         </StackPanel>
                     </Border>

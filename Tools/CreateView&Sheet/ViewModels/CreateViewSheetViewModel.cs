@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Data;
 using Autodesk.Revit.DB;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -35,6 +37,82 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
         // Tab 3: Add & Align View
         [ObservableProperty] private bool _stackViews;
         [ObservableProperty] private ViewItem _templateViewForAlign;
+        [ObservableProperty] private string _alignMode = "View + Title"; // "View", "Title", "View + Title"
+
+        // View Search/Filter
+        private ICollectionView _filteredViews;
+        public ICollectionView FilteredViews => _filteredViews;
+
+        private string _viewSearchText = "";
+        public string ViewSearchText
+        {
+            get => _viewSearchText;
+            set
+            {
+                if (SetProperty(ref _viewSearchText, value))
+                {
+                    _filteredViews?.Refresh();
+                }
+            }
+        }
+
+        // Sheet Search/Filter
+        private ICollectionView _filteredSheets;
+        public ICollectionView FilteredSheets => _filteredSheets;
+
+        private string _sheetSearchText = "";
+        public string SheetSearchText
+        {
+            get => _sheetSearchText;
+            set
+            {
+                if (SetProperty(ref _sheetSearchText, value))
+                {
+                    _filteredSheets?.Refresh();
+                }
+            }
+        }
+        // Tab Multi: Add Views Multi
+        public ObservableCollection<MultiAddRow> MultiAddRows { get; set; } = new ObservableCollection<MultiAddRow>();
+        private ICollectionView _filteredMultiRows;
+        public ICollectionView FilteredMultiRows => _filteredMultiRows;
+
+        private string _multiSheetSearchText = "";
+        public string MultiSheetSearchText
+        {
+            get => _multiSheetSearchText;
+            set
+            {
+                if (SetProperty(ref _multiSheetSearchText, value))
+                {
+                    _filteredMultiRows?.Refresh();
+                }
+            }
+        }
+
+        // ViewItem list with <None> option for ComboBox
+        public ObservableCollection<ViewItem> ViewOptionsForMulti { get; set; } = new ObservableCollection<ViewItem>();
+
+        // Tab 6: Open View Title
+        public ObservableCollection<ViewportTitleRow> ViewportTitleRows { get; set; } = new ObservableCollection<ViewportTitleRow>();
+        public ObservableCollection<ViewportTitleItem> ViewportTitleTypes { get; set; } = new ObservableCollection<ViewportTitleItem>();
+        [ObservableProperty] private ViewportTitleItem _selectedViewportTitle;
+
+        private ICollectionView _filteredTitleRows;
+        public ICollectionView FilteredTitleRows => _filteredTitleRows;
+
+        private string _titleSearchText = "";
+        public string TitleSearchText
+        {
+            get => _titleSearchText;
+            set
+            {
+                if (SetProperty(ref _titleSearchText, value))
+                {
+                    _filteredTitleRows?.Refresh();
+                }
+            }
+        }
 
         [ObservableProperty] private string _statusMessage = "Ready.";
 
@@ -113,6 +191,23 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
 
             // Load Views (Plan Views)
             LoadViewsAndSheets(doc);
+
+            // Setup filtered view for search
+            _filteredViews = CollectionViewSource.GetDefaultView(ProjectViews);
+            _filteredViews.Filter = ViewFilter;
+            OnPropertyChanged(nameof(FilteredViews));
+
+            // Setup filtered sheets for search (with grouping)
+            _filteredSheets = CollectionViewSource.GetDefaultView(ProjectSheets);
+            _filteredSheets.Filter = SheetFilter;
+            _filteredSheets.GroupDescriptions.Add(new PropertyGroupDescription("SheetSeries"));
+            OnPropertyChanged(nameof(FilteredSheets));
+
+            // Setup Multi tab data
+            LoadMultiRows();
+
+            // Setup Title tab data
+            LoadViewportTitleData(doc);
         }
 
         private void LoadSheetSeries(Document doc)
@@ -197,6 +292,8 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
         public void RefreshAllData(Document doc)
         {
             LoadViewsAndSheets(doc);
+            LoadMultiRows();
+            LoadViewportTitleData(doc);
         }
 
         // ================= Tab 1: Create View =================
@@ -399,6 +496,64 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
 
         // ================= Tab 3: Add & Align View =================
 
+        private bool ViewFilter(object obj)
+        {
+            if (string.IsNullOrWhiteSpace(ViewSearchText)) return true;
+            if (obj is ViewItem view)
+            {
+                return view.Name.IndexOf(ViewSearchText, StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            return false;
+        }
+
+        [RelayCommand]
+        private void SelectAllViews()
+        {
+            foreach (var v in ProjectViews)
+            {
+                if (ViewFilter(v)) v.IsSelected = true;
+            }
+        }
+
+        [RelayCommand]
+        private void DeselectAllViews()
+        {
+            foreach (var v in ProjectViews)
+            {
+                v.IsSelected = false;
+            }
+        }
+
+        private bool SheetFilter(object obj)
+        {
+            if (string.IsNullOrWhiteSpace(SheetSearchText)) return true;
+            if (obj is SheetItem sheet)
+            {
+                return sheet.SheetNumber.IndexOf(SheetSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                    || sheet.SheetName.IndexOf(SheetSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                    || (sheet.SheetSeries != null && sheet.SheetSeries.IndexOf(SheetSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+            return false;
+        }
+
+        [RelayCommand]
+        private void SelectAllSheets()
+        {
+            foreach (var s in ProjectSheets)
+            {
+                if (SheetFilter(s)) s.IsSelected = true;
+            }
+        }
+
+        [RelayCommand]
+        private void DeselectAllSheets()
+        {
+            foreach (var s in ProjectSheets)
+            {
+                s.IsSelected = false;
+            }
+        }
+
         [RelayCommand]
         private void AddViewsToSheets()
         {
@@ -432,6 +587,284 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
             }
 
             _handler.RequestAction = "ALIGN_VIEWS";
+            _handler.Raise();
+        }
+
+        // ================= Tab Multi: Add Views Multi =================
+
+        private bool MultiRowFilter(object obj)
+        {
+            if (string.IsNullOrWhiteSpace(MultiSheetSearchText)) return true;
+            if (obj is MultiAddRow row)
+            {
+                return row.Sheet.SheetNumber.IndexOf(MultiSheetSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                    || row.Sheet.SheetName.IndexOf(MultiSheetSearchText, StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            return false;
+        }
+
+        public void LoadMultiRows()
+        {
+            MultiAddRows.Clear();
+            foreach (var sheet in ProjectSheets)
+            {
+                MultiAddRows.Add(new MultiAddRow { Sheet = sheet });
+            }
+
+            // Setup filter + grouping
+            _filteredMultiRows = CollectionViewSource.GetDefaultView(MultiAddRows);
+            _filteredMultiRows.Filter = MultiRowFilter;
+            _filteredMultiRows.GroupDescriptions.Clear();
+            _filteredMultiRows.GroupDescriptions.Add(new PropertyGroupDescription("Sheet.SheetSeries"));
+            OnPropertyChanged(nameof(FilteredMultiRows));
+
+            // Build view options with None
+            ViewOptionsForMulti.Clear();
+            ViewOptionsForMulti.Add(null); // <None> option
+            foreach (var v in ProjectViews)
+            {
+                ViewOptionsForMulti.Add(v);
+            }
+        }
+
+        [RelayCommand]
+        private void AutoMatchViews()
+        {
+            int matchedCount = 0;
+
+            foreach (var row in MultiAddRows)
+            {
+                string level = ExtractLevelFromSheetName(row.Sheet.SheetName);
+                if (string.IsNullOrEmpty(level))
+                {
+                    row.ArchView = null;
+                    row.UnderView = null;
+                    row.OverView = null;
+                    continue;
+                }
+
+                row.ArchView = FindMatchingView(level, "ARCH");
+                row.UnderView = FindMatchingView(level, "UNDER");
+                row.OverView = FindMatchingView(level, "OVER");
+
+                if (row.ArchView != null || row.UnderView != null || row.OverView != null)
+                    matchedCount++;
+            }
+
+            int totalViews = MultiAddRows.Sum(r => (r.ArchView != null ? 1 : 0) + (r.UnderView != null ? 1 : 0) + (r.OverView != null ? 1 : 0));
+            StatusMessage = $"Auto-matched: {matchedCount}/{MultiAddRows.Count} sheets, {totalViews} views found.";
+        }
+
+        private string ExtractLevelFromSheetName(string sheetName)
+        {
+            if (string.IsNullOrEmpty(sheetName)) return null;
+
+            string name = sheetName.Trim();
+
+            // Remove common suffixes to extract level
+            string[] suffixes = { "GENERAL ARRANGEMENT PLAN", "GENERAL ARRANGEMENT", "GA PLAN", "GA", "PLAN" };
+            foreach (var suffix in suffixes)
+            {
+                int idx = name.IndexOf(suffix, StringComparison.OrdinalIgnoreCase);
+                if (idx > 0)
+                {
+                    return name.Substring(0, idx).Trim();
+                }
+            }
+
+            return name;
+        }
+
+        private ViewItem FindMatchingView(string level, string keyword)
+        {
+            string levelUpper = level.ToUpper().Trim();
+
+            // Find views that contain the level AND keyword, excluding "Copy" and "LOADING"
+            var candidates = ProjectViews.Where(v =>
+            {
+                string nameUpper = v.Name.ToUpper();
+                return nameUpper.Contains(levelUpper)
+                    && nameUpper.Contains(keyword.ToUpper())
+                    && !nameUpper.Contains("COPY")
+                    && !nameUpper.Contains("LOADING");
+            }).ToList();
+
+            // Prefer exact match pattern: "{Level} - GA - {Keyword}"
+            var exact = candidates.FirstOrDefault(v =>
+                v.Name.ToUpper().Contains($"{levelUpper} - GA - {keyword.ToUpper()}"));
+            if (exact != null) return exact;
+
+            // Fallback: "{Level} - {Keyword}"
+            var fallback = candidates.FirstOrDefault(v =>
+                v.Name.ToUpper().Contains($"{levelUpper} - {keyword.ToUpper()}"));
+            if (fallback != null) return fallback;
+
+            return candidates.FirstOrDefault();
+        }
+
+        [RelayCommand]
+        private void SelectAllMultiRows()
+        {
+            foreach (var r in MultiAddRows)
+            {
+                if (MultiRowFilter(r)) r.IsSelected = true;
+            }
+        }
+
+        [RelayCommand]
+        private void DeselectAllMultiRows()
+        {
+            foreach (var r in MultiAddRows)
+            {
+                r.IsSelected = false;
+            }
+        }
+
+        [RelayCommand]
+        private void AddMultiViewsToSheets()
+        {
+            var rowsToProcess = MultiAddRows.Where(r => r.IsSelected
+                && (r.ArchView != null || r.UnderView != null || r.OverView != null)).ToList();
+
+            if (!rowsToProcess.Any())
+            {
+                StatusMessage = "No matched rows selected.";
+                return;
+            }
+
+            _handler.RequestAction = "ADD_MULTI_VIEWS";
+            _handler.Raise();
+        }
+
+        // ================= Tab 6: Open View Title =================
+
+        private bool TitleRowFilter(object obj)
+        {
+            if (string.IsNullOrWhiteSpace(TitleSearchText)) return true;
+            if (obj is ViewportTitleRow row)
+            {
+                return row.ViewName.IndexOf(TitleSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                    || (row.SheetNumber != null && row.SheetNumber.IndexOf(TitleSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    || (row.CurrentTitle != null && row.CurrentTitle.IndexOf(TitleSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+            return false;
+        }
+
+        public void LoadViewportTitleData(Document doc)
+        {
+            ViewportTitleRows.Clear();
+            ViewportTitleTypes.Clear();
+
+            // Build a map: ViewId -> Viewport
+            var allViewports = new FilteredElementCollector(doc)
+                .OfClass(typeof(Viewport))
+                .Cast<Viewport>()
+                .ToList();
+
+            // Load viewport types from an existing viewport's valid types
+            if (allViewports.Any())
+            {
+                var validTypeIds = allViewports.First().GetValidTypes();
+                foreach (var typeId in validTypeIds)
+                {
+                    var vpType = doc.GetElement(typeId) as ElementType;
+                    if (vpType != null)
+                    {
+                        ViewportTitleTypes.Add(new ViewportTitleItem { Name = vpType.Name, Id = vpType.Id });
+                    }
+                }
+            }
+
+            var viewIdToViewport = new Dictionary<ElementId, Viewport>();
+            foreach (var vp in allViewports)
+            {
+                viewIdToViewport[vp.ViewId] = vp;
+            }
+
+            // Load all non-template views
+            var views = new FilteredElementCollector(doc)
+                .OfClass(typeof(View))
+                .Cast<View>()
+                .Where(v => !v.IsTemplate && v.ViewType != ViewType.Schedule && v.ViewType != ViewType.DrawingSheet)
+                .OrderBy(v => v.ViewType.ToString())
+                .ThenBy(v => v.Name)
+                .ToList();
+
+            foreach (var view in views)
+            {
+                bool isOnSheet = viewIdToViewport.ContainsKey(view.Id);
+                string currentTitle = "—";
+                string sheetNumber = "";
+                ElementId viewportId = ElementId.InvalidElementId;
+
+                if (isOnSheet)
+                {
+                    var vp = viewIdToViewport[view.Id];
+                    viewportId = vp.Id;
+                    var vpType = doc.GetElement(vp.GetTypeId()) as ElementType;
+                    currentTitle = vpType?.Name ?? "Unknown";
+
+                    // Find sheet number
+                    var sheet = doc.GetElement(vp.SheetId) as ViewSheet;
+                    sheetNumber = sheet?.SheetNumber ?? "";
+                }
+
+                ViewportTitleRows.Add(new ViewportTitleRow
+                {
+                    IsSelected = false,
+                    ViewName = view.Name,
+                    ViewType = view.ViewType.ToString(),
+                    CurrentTitle = currentTitle,
+                    SheetNumber = sheetNumber,
+                    IsOnSheet = isOnSheet,
+                    ViewportId = viewportId,
+                    ViewId = view.Id
+                });
+            }
+
+            // Setup filter + grouping
+            _filteredTitleRows = CollectionViewSource.GetDefaultView(ViewportTitleRows);
+            _filteredTitleRows.Filter = TitleRowFilter;
+            _filteredTitleRows.GroupDescriptions.Clear();
+            _filteredTitleRows.GroupDescriptions.Add(new PropertyGroupDescription("ViewType"));
+            OnPropertyChanged(nameof(FilteredTitleRows));
+        }
+
+        [RelayCommand]
+        private void SelectAllTitleRows()
+        {
+            foreach (var r in ViewportTitleRows)
+            {
+                if (TitleRowFilter(r) && r.IsOnSheet) r.IsSelected = true;
+            }
+        }
+
+        [RelayCommand]
+        private void DeselectAllTitleRows()
+        {
+            foreach (var r in ViewportTitleRows)
+            {
+                r.IsSelected = false;
+            }
+        }
+
+        [RelayCommand]
+        private void ApplyViewportTitle()
+        {
+            if (SelectedViewportTitle == null)
+            {
+                StatusMessage = "Please select a Title Type.";
+                return;
+            }
+
+            var selected = ViewportTitleRows.Where(r => r.IsSelected && r.IsOnSheet).ToList();
+            if (!selected.Any())
+            {
+                StatusMessage = "Select at least one view on sheet.";
+                return;
+            }
+
+            _handler.RequestAction = "APPLY_VIEWPORT_TITLE";
             _handler.Raise();
         }
     }

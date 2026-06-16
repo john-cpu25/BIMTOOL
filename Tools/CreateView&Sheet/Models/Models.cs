@@ -137,4 +137,60 @@ namespace RincoNhan.Tools.CreateViewSheet.Models
         DuplicateWithDetailing,
         DuplicateAsDependent
     }
+
+    public partial class MultiAddRow : ObservableObject
+    {
+        [ObservableProperty]
+        private bool _isSelected = true;
+
+        public SheetItem Sheet { get; set; }
+
+        [ObservableProperty]
+        private ViewItem _archView;
+
+        [ObservableProperty]
+        private ViewItem _underView;
+
+        [ObservableProperty]
+        private ViewItem _overView;
+
+        [ObservableProperty]
+        private string _status = "—";
+
+        public void UpdateStatus()
+        {
+            int count = 0;
+            if (ArchView != null) count++;
+            if (UnderView != null) count++;
+            if (OverView != null) count++;
+
+            if (count == 3) Status = "✓ OK";
+            else if (count > 0) Status = $"⚠ {count}/3";
+            else Status = "✗ No Match";
+        }
+
+        partial void OnArchViewChanged(ViewItem value) => UpdateStatus();
+        partial void OnUnderViewChanged(ViewItem value) => UpdateStatus();
+        partial void OnOverViewChanged(ViewItem value) => UpdateStatus();
+    }
+
+    public class ViewportTitleItem
+    {
+        public string Name { get; set; }
+        public ElementId Id { get; set; }
+    }
+
+    public partial class ViewportTitleRow : ObservableObject
+    {
+        [ObservableProperty]
+        private bool _isSelected;
+
+        public string ViewName { get; set; }
+        public string ViewType { get; set; }  // FloorPlan, CeilingPlan, Section, etc.
+        public string CurrentTitle { get; set; }
+        public string SheetNumber { get; set; }  // Empty if not on sheet
+        public bool IsOnSheet { get; set; }
+        public ElementId ViewportId { get; set; }  // Viewport element id
+        public ElementId ViewId { get; set; }
+    }
 }
