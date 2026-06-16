@@ -149,6 +149,7 @@ namespace RincoNhan.Tools.CreateViewSheet
             }
 
             int createdCount = 0;
+            int setCount = 0;
 
             using (Transaction trans = new Transaction(doc, "Rinco - Create Sheets"))
             {
@@ -167,6 +168,18 @@ namespace RincoNhan.Tools.CreateViewSheet
                             }
 
                             newSheet.Name = string.IsNullOrEmpty(row.SheetName) ? row.SelectedLevel.Name : row.SheetName;
+
+                            // Set Sheet Series parameter directly on ViewSheet
+                            if (!string.IsNullOrEmpty(ViewModel.SelectedSheetSeries))
+                            {
+                                var param = newSheet.LookupParameter("RINCO_TB_SHEET SERIES");
+                                if (param != null && !param.IsReadOnly)
+                                {
+                                    param.Set(ViewModel.SelectedSheetSeries);
+                                    setCount++;
+                                }
+                            }
+
                             createdCount++;
                         }
                     }
@@ -176,7 +189,7 @@ namespace RincoNhan.Tools.CreateViewSheet
                 trans.Commit();
             }
 
-            ViewModel.SetStatus($"✓ Created {createdCount} sheets.");
+            ViewModel.SetStatus($"✓ Created {createdCount} sheets. (Series set: {setCount})");
             ViewModel.RefreshAllData(doc);
         }
 

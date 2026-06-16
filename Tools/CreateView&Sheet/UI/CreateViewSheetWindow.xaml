@@ -81,6 +81,12 @@
             <Setter Property="BorderBrush" Value="#E0E0E0"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
+
+        <CollectionViewSource x:Key="GroupedSheets" Source="{Binding ProjectSheets}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="SheetSeries"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
     </Window.Resources>
 
     <Grid Background="#F5F7F9">
@@ -90,18 +96,12 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header Banner -->
-        <Border Grid.Row="0" Height="60" Background="#2E5C9A">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="CREATE VIEW &amp; SHEET" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                <TextBlock Text="RincoNhan Tools" Foreground="#A0C4E8" FontSize="11" HorizontalAlignment="Center"/>
-            </StackPanel>
-        </Border>
+        <!-- Header removed -->
 
         <!-- Main Content (Tabs) -->
         <TabControl Grid.Row="1" Margin="10" Background="Transparent" BorderThickness="0">
             <!-- TAB 1: CREATE VIEW -->
-            <TabItem Header="Tạo View">
+            <TabItem Header="Create View">
                 <Grid Background="White" Margin="0,10,0,0">
                     <Grid.Resources>
                         <CollectionViewSource x:Key="GroupedCreateViewRows" Source="{Binding CreateViewRows}" IsLiveGroupingRequested="True">
@@ -160,7 +160,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="Suffix (Hậu tố)" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+                            <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
 
                             <DataGridTemplateColumn Header="View Type" Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -209,18 +209,8 @@
             </TabItem>
 
             <!-- TAB 2: CREATE SHEET -->
-            <TabItem Header="Tạo Sheet">
+            <TabItem Header="Create Sheet">
                 <Grid Background="White" Margin="0,10,0,0">
-                    <Grid.Resources>
-                        <CollectionViewSource x:Key="GroupedCreateSheetRows" Source="{Binding CreateSheetRows}" IsLiveGroupingRequested="True">
-                            <CollectionViewSource.LiveGroupingProperties>
-                                <sys:String>SelectedLevel.DisplayName</sys:String>
-                            </CollectionViewSource.LiveGroupingProperties>
-                            <CollectionViewSource.GroupDescriptions>
-                                <PropertyGroupDescription PropertyName="SelectedLevel.DisplayName" />
-                            </CollectionViewSource.GroupDescriptions>
-                        </CollectionViewSource>
-                    </Grid.Resources>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -232,6 +222,11 @@
                             <TextBlock Text="Titleblock:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
                             <ComboBox ItemsSource="{Binding TitleBlocks}" SelectedItem="{Binding SelectedTitleBlock}" DisplayMemberPath="Name" Width="300" Height="28"/>
                         </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="Sheet Series:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                            <ComboBox ItemsSource="{Binding SheetSeriesOptions}" SelectedItem="{Binding SelectedSheetSeries}" Width="400" Height="28" IsEditable="True"/>
+                        </StackPanel>
                         
                         <StackPanel Orientation="Horizontal">
                             <Button Content="+ Add Row" Command="{Binding AddCreateSheetRowCommand}" Style="{StaticResource PrimaryButtonStyle}" Height="30" Margin="0,0,10,0"/>
@@ -240,31 +235,12 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Source={StaticResource GroupedCreateSheetRows}}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
-                        <DataGrid.GroupStyle>
-                            <GroupStyle>
-                                <GroupStyle.ContainerStyle>
-                                    <Style TargetType="{x:Type GroupItem}">
-                                        <Setter Property="Margin" Value="0,0,0,5"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="{x:Type GroupItem}">
-                                                    <Expander IsExpanded="True" Background="#F4F6F9" BorderBrush="#DCDDE1" BorderThickness="1">
-                                                        <Expander.Header>
-                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#2C3E50" Margin="5,0"/>
-                                                        </Expander.Header>
-                                                        <ItemsPresenter />
-                                                    </Expander>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </GroupStyle.ContainerStyle>
-                            </GroupStyle>
-                        </DataGrid.GroupStyle>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding CreateSheetRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                             
+                            <DataGridTextColumn Header="Sheet Number" Binding="{Binding SheetNumber, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+
                             <DataGridTemplateColumn Header="Level" Width="200">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -275,8 +251,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="Sheet Number" Binding="{Binding SheetNumber, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
-                            <DataGridTextColumn Header="Hậu tố" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                            <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                             <DataGridTextColumn Header="Sheet Name" Binding="{Binding SheetName, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
 
                             <DataGridTemplateColumn Header="Actions" Width="80">
@@ -296,8 +271,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- TAB 3: ADD & ALIGN VIEWS -->
-            <TabItem Header="Add Views to Sheet &amp; Align">
+            <!-- TAB 3: ADD VIEWS TO SHEET -->
+            <TabItem Header="Add Views to Sheet">
                 <Grid Background="White" Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -319,7 +294,34 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <DataGrid Grid.Column="1" Grid.Row="1" ItemsSource="{Binding ProjectSheets}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                    <DataGrid Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Source={StaticResource GroupedSheets}}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                        <DataGrid.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <Expander IsExpanded="True">
+                                                        <Expander.Header>
+                                                            <Border Background="#2E5C9A" Padding="8,4" CornerRadius="3" MinWidth="300">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                                                    <TextBlock Text=" (" Foreground="#B0C4DE" FontSize="11"/>
+                                                                    <TextBlock Text="{Binding ItemCount}" Foreground="#B0C4DE" FontSize="11"/>
+                                                                    <TextBlock Text=" sheets)" Foreground="#B0C4DE" FontSize="11"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Expander.Header>
+                                                        <ItemsPresenter/>
+                                                    </Expander>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                             <DataGridTextColumn Header="Number" Binding="{Binding SheetNumber}" Width="100" IsReadOnly="True"/>
@@ -328,25 +330,73 @@
                     </DataGrid>
 
                     <Border Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource CardStyle}" Margin="10">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <CheckBox Content="Stack Views (Chồng view)" IsChecked="{Binding StackViews}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <TextBlock Text="(Places all selected views on the first selected sheet)" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="#7F8C8D" FontStyle="Italic"/>
-                                </StackPanel>
-                                
-                                <Button Grid.Column="1" Content="Add Views to Sheet" Command="{Binding AddViewsToSheetsCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="160"/>
-                            </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
                             
-                            <Separator Margin="0,15"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <CheckBox Content="Stack Views" IsChecked="{Binding StackViews}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="(Places all selected views on the first selected sheet)" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="#7F8C8D" FontStyle="Italic"/>
+                            </StackPanel>
+                            
+                            <Button Grid.Column="1" Content="Add Views to Sheet" Command="{Binding AddViewsToSheetsCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="160"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
 
+            <!-- TAB 4: ALIGN VIEWS -->
+            <TabItem Header="Align Views">
+                <Grid Background="White" Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Select Target Sheets" Style="{StaticResource SectionLabel}" Margin="10,10,0,5"/>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Source={StaticResource GroupedSheets}}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                        <DataGrid.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <Expander IsExpanded="True">
+                                                        <Expander.Header>
+                                                            <Border Background="#2E5C9A" Padding="8,4" CornerRadius="3" MinWidth="300">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                                                    <TextBlock Text=" (" Foreground="#B0C4DE" FontSize="11"/>
+                                                                    <TextBlock Text="{Binding ItemCount}" Foreground="#B0C4DE" FontSize="11"/>
+                                                                    <TextBlock Text=" sheets)" Foreground="#B0C4DE" FontSize="11"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Expander.Header>
+                                                        <ItemsPresenter/>
+                                                    </Expander>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTextColumn Header="Number" Binding="{Binding SheetNumber}" Width="100" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Name" Binding="{Binding SheetName}" Width="*" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="10">
+                        <StackPanel>
                             <TextBlock Text="Align Views Across Sheets" Style="{StaticResource SectionLabel}"/>
-                            <Grid>
+                            <Grid Margin="0,10,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>

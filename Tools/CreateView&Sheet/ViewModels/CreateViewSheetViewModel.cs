@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Autodesk.Revit.DB;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -27,6 +29,8 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
         // Tab 2: Create Sheet
         public ObservableCollection<CreateSheetRow> CreateSheetRows { get; set; } = new ObservableCollection<CreateSheetRow>();
         [ObservableProperty] private TitleBlockItem _selectedTitleBlock;
+        public ObservableCollection<string> SheetSeriesOptions { get; set; } = new ObservableCollection<string>();
+        [ObservableProperty] private string _selectedSheetSeries;
 
         // Tab 3: Add & Align View
         [ObservableProperty] private bool _stackViews;
@@ -104,8 +108,53 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
             }
             if (TitleBlocks.Any()) SelectedTitleBlock = TitleBlocks.First();
 
+            // Load Sheet Series from existing sheets' titleblock parameter
+            LoadSheetSeries(doc);
+
             // Load Views (Plan Views)
             LoadViewsAndSheets(doc);
+        }
+
+        private void LoadSheetSeries(Document doc)
+        {
+            SheetSeriesOptions.Clear();
+
+            var seriesValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Single query for ALL titleblock instances in the project (fast)
+            var allTitleBlocks = new FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_TitleBlocks)
+                .WhereElementIsNotElementType()
+                .ToList();
+
+            foreach (var tbInstance in allTitleBlocks)
+            {
+                var param = tbInstance.LookupParameter("RINCO_TB_SHEET SERIES");
+                if (param != null && param.HasValue && !string.IsNullOrWhiteSpace(param.AsString()))
+                {
+                    seriesValues.Add(param.AsString());
+                }
+            }
+
+            // Add defaults if none found
+            if (!seriesValues.Any())
+            {
+                seriesValues.Add("S0000 SERIES - GENERAL");
+                seriesValues.Add("S1000 SERIES - SITE RETENTION & FOUNDATION PLANS");
+                seriesValues.Add("S2000 SERIES - GENERAL ARRANGEMENT PLANS");
+                seriesValues.Add("S3000 SERIES - WALL ELEVATIONS");
+                seriesValues.Add("S4000 SERIES - CONCRETE DETAILS");
+                seriesValues.Add("S5000 SERIES - PEO & PT PLANS");
+            }
+
+            foreach (var s in seriesValues.OrderBy(x => x))
+            {
+                SheetSeriesOptions.Add(s);
+            }
+
+            // Default to GA Plans
+            SelectedSheetSeries = SheetSeriesOptions.FirstOrDefault(s => s.Contains("GENERAL ARRANGEMENT"))
+                                  ?? SheetSeriesOptions.FirstOrDefault();
         }
 
         private void LoadViewsAndSheets(Document doc)
@@ -136,7 +185,9 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
 
             foreach (var s in sheets)
             {
-                ProjectSheets.Add(new SheetItem { SheetNumber = s.SheetNumber, SheetName = s.Name, Id = s.Id });
+                var seriesParam = s.LookupParameter("RINCO_TB_SHEET SERIES");
+                string series = seriesParam != null ? (seriesParam.AsString() ?? "") : "";
+                ProjectSheets.Add(new SheetItem { SheetNumber = s.SheetNumber, SheetName = s.Name, SheetSeries = series, Id = s.Id });
             }
         }
 
@@ -238,59 +289,92 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
 
         // ================= Tab 2: Create Sheet =================
 
-        private void AddGroupedSheetRow(LevelItem level, string suffix, string sheetNumber, string groupId)
-        {
-            var row = new CreateSheetRow
-            {
-                SelectedLevel = level,
-                Suffix = suffix,
-                SheetNumber = sheetNumber,
-                GroupId = groupId
-            };
-
-            row.OnLevelChangedCallback = (changedRow, newLevel) =>
-            {
-                if (_isSyncingLevel) return;
-                _isSyncingLevel = true;
-                foreach (var r in CreateSheetRows.Where(x => x.GroupId == changedRow.GroupId && x != changedRow))
-                {
-                    r.SelectedLevel = newLevel;
-                }
-                _isSyncingLevel = false;
-            };
-
-            CreateSheetRows.Add(row);
-        }
-
         [RelayCommand]
         private void AddCreateSheetRow()
         {
-            string groupId = Guid.NewGuid().ToString();
             var level = ProjectLevels.FirstOrDefault();
-
-            AddGroupedSheetRow(level, "- OVER", "", groupId);
-            AddGroupedSheetRow(level, "- UNDER", "", groupId);
-            AddGroupedSheetRow(level, "- ARCH", "", groupId);
+            var row = new CreateSheetRow
+            {
+                SelectedLevel = level,
+                Suffix = "GENERAL ARRANGEMENT PLAN",
+                SheetNumber = "",
+            };
+            CreateSheetRows.Add(row);
         }
 
         [RelayCommand]
         private void AddAllLevelsToCreateSheet()
         {
             CreateSheetRows.Clear();
-            int sheetIndex = 1;
+            var allLevels = ProjectLevels.ToList();
+
             foreach (var level in ProjectLevels)
             {
-                string groupId = Guid.NewGuid().ToString();
-                
-                AddGroupedSheetRow(level, "- OVER", $"A{sheetIndex:D3}-OVER", groupId);
-                AddGroupedSheetRow(level, "- UNDER", $"A{sheetIndex:D3}-UNDER", groupId);
-                AddGroupedSheetRow(level, "- ARCH", $"A{sheetIndex:D3}-ARCH", groupId);
-
-                sheetIndex++;
+                var row = new CreateSheetRow
+                {
+                    SelectedLevel = level,
+                    Suffix = "GENERAL ARRANGEMENT PLAN",
+                    SheetNumber = GenerateSheetNumber(level, allLevels),
+                };
+                CreateSheetRows.Add(row);
             }
-            StatusMessage = $"Added {CreateSheetRows.Count} rows ({ProjectLevels.Count} levels × 3 sheets).";
+            StatusMessage = $"Added {CreateSheetRows.Count} rows ({ProjectLevels.Count} levels).";
         }
 
+        private string GenerateSheetNumber(LevelItem level, List<LevelItem> allLevels)
+        {
+            string name = level.Name.ToUpper().Trim();
+
+            // BASEMENT levels → S4099 (multiple basements count down: S4098, S4099)
+            if (name.Contains("BASEMENT"))
+            {
+                var basements = allLevels
+                    .Where(l => l.Name.ToUpper().Contains("BASEMENT"))
+                    .OrderBy(l => l.Elevation)
+                    .ToList();
+                int basementCount = basements.Count;
+                int index = basements.IndexOf(level);
+                return $"S{4099 - (basementCount - 1 - index)}";
+            }
+
+            // GROUND level → S4100
+            if (name.Contains("GROUND"))
+            {
+                return "S4100";
+            }
+
+            // LEVEL X → S4100 + X (e.g. LEVEL 1 → S4101, LEVEL 2 → S4102)
+            var match = Regex.Match(name, @"LEVEL\s*(\d+)");
+            if (match.Success)
+            {
+                int levelNum = int.Parse(match.Groups[1].Value);
+                return $"S{4100 + levelNum}";
+            }
+
+            // Other levels (ROOF, etc.) → continue after the highest LEVEL number
+            int maxLevelNum = 0;
+            foreach (var l in allLevels)
+            {
+                var m = Regex.Match(l.Name.ToUpper(), @"LEVEL\s*(\d+)");
+                if (m.Success)
+                {
+                    int num = int.Parse(m.Groups[1].Value);
+                    if (num > maxLevelNum) maxLevelNum = num;
+                }
+            }
+
+            var otherLevels = allLevels
+                .Where(l => !l.Name.ToUpper().Contains("BASEMENT")
+                         && !l.Name.ToUpper().Contains("GROUND")
+                         && !Regex.IsMatch(l.Name.ToUpper(), @"LEVEL\s*\d+"))
+                .OrderBy(l => l.Elevation)
+                .ToList();
+            int otherIndex = otherLevels.IndexOf(level);
+
+            return $"S{4100 + maxLevelNum + 1 + otherIndex}";
+        }
+
+        [RelayCommand]
         private void RemoveCreateSheetRow(CreateSheetRow row)
         {
             if (row != null && CreateSheetRows.Contains(row))

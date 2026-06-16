@@ -52,6 +52,7 @@ namespace RincoNhan.Tools.CreateViewSheet.Models
     {
         public string SheetNumber { get; set; }
         public string SheetName { get; set; }
+        public string SheetSeries { get; set; }
         public ElementId Id { get; set; }
         
         private bool _isSelected;
