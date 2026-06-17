@@ -303,8 +303,35 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
         private void AddGroupedViewRow(LevelItem level, string suffix, string viewTypeKey, string templateKey, string groupId)
         {
             var matchedViewType = ViewTypes.FirstOrDefault(vt =>
-                vt.Name.Equals(viewTypeKey, StringComparison.OrdinalIgnoreCase))
-                ?? ViewTypes.FirstOrDefault();
+                vt.Name.Equals(viewTypeKey, StringComparison.OrdinalIgnoreCase));
+
+            // Fuzzy matching based on Suffix if exact match fails
+            if (matchedViewType == null)
+            {
+                if (suffix.IndexOf("OVER", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    matchedViewType = ViewTypes.FirstOrDefault(vt => 
+                        vt.Name.EndsWith("OVER", StringComparison.OrdinalIgnoreCase) || 
+                        (vt.Name.IndexOf("OVER", StringComparison.OrdinalIgnoreCase) >= 0 && vt.Name.IndexOf("OVERLAY", StringComparison.OrdinalIgnoreCase) < 0));
+                }
+                else if (suffix.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    matchedViewType = ViewTypes.FirstOrDefault(vt => 
+                        vt.Name.EndsWith("UNDER", StringComparison.OrdinalIgnoreCase) || 
+                        vt.Name.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+                else if (suffix.IndexOf("ARCH", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    matchedViewType = ViewTypes.FirstOrDefault(vt => 
+                        vt.Name.IndexOf("ARCH", StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+            }
+
+            // Fallback to first
+            if (matchedViewType == null)
+            {
+                matchedViewType = ViewTypes.FirstOrDefault();
+            }
 
             var matchedTemplate = ViewTemplates.FirstOrDefault(vt =>
                 vt.Name.Equals(templateKey, StringComparison.OrdinalIgnoreCase))

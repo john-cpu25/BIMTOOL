@@ -71,6 +71,7 @@
             <Setter Property="IsReadOnly" Value="False"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="RowHeight" Value="30"/>
+            <EventSetter Event="PreviewKeyDown" Handler="DataGrid_PreviewKeyDown"/>
         </Style>
 
         <Style x:Key="ColumnHeaderStyle" TargetType="DataGridColumnHeader">

@@ -43,11 +43,9 @@ namespace RincoNhan.Tools.CreateViewSheet.UI
             var checkBox = sender as CheckBox;
             if (checkBox == null) return;
 
-            // Find the parent DataGrid
             var dataGrid = FindParentDataGrid(checkBox);
             if (dataGrid == null) return;
 
-            // Get current row index
             var row = FindParentDataGridRow(checkBox);
             if (row == null) return;
 
@@ -62,14 +60,12 @@ namespace RincoNhan.Tools.CreateViewSheet.UI
                     int start = System.Math.Min(lastIndex, currentIndex);
                     int end = System.Math.Max(lastIndex, currentIndex);
 
-                    // Get items from the DataGrid's ItemsSource
                     var items = dataGrid.Items;
                     for (int i = start; i <= end; i++)
                     {
                         if (i >= 0 && i < items.Count)
                         {
                             var item = items[i];
-                            // Use reflection to set IsSelected
                             var prop = item.GetType().GetProperty("IsSelected");
                             if (prop != null && prop.CanWrite)
                             {
@@ -79,8 +75,49 @@ namespace RincoNhan.Tools.CreateViewSheet.UI
                     }
                 }
             }
+            else if (dataGrid.SelectedItems.Count > 1 && dataGrid.SelectedItems.Contains(row.Item))
+            {
+                // If the user clicks a checkbox on a selected row, apply the check state to all selected rows
+                foreach (var item in dataGrid.SelectedItems)
+                {
+                    if (item == row.Item) continue; // Skip the one just clicked since it already updated via binding
+                    var prop = item.GetType().GetProperty("IsSelected");
+                    if (prop != null && prop.CanWrite)
+                    {
+                        prop.SetValue(item, isChecked);
+                    }
+                }
+            }
 
             _lastClickedIndex[dataGrid] = currentIndex;
+        }
+
+        public void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Space)
+            {
+                var dataGrid = sender as DataGrid;
+                if (dataGrid != null && dataGrid.SelectedItems.Count > 0)
+                {
+                    bool targetState = true;
+                    var firstItem = dataGrid.SelectedItems[0];
+                    var firstProp = firstItem.GetType().GetProperty("IsSelected");
+                    if (firstProp != null)
+                    {
+                        targetState = !(bool)firstProp.GetValue(firstItem);
+                    }
+
+                    foreach (var item in dataGrid.SelectedItems)
+                    {
+                        var prop = item.GetType().GetProperty("IsSelected");
+                        if (prop != null && prop.CanWrite)
+                        {
+                            prop.SetValue(item, targetState);
+                        }
+                    }
+                    e.Handled = true;
+                }
+            }
         }
 
         private DataGrid FindParentDataGrid(DependencyObject child)
