@@ -114,6 +114,41 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
             }
         }
 
+        // Tab 7: Scope Box
+        public ObservableCollection<ScopeBoxViewRow> ScopeBoxViewRows { get; set; } = new ObservableCollection<ScopeBoxViewRow>();
+        public ObservableCollection<ScopeBoxItem> ScopeBoxOptions { get; set; } = new ObservableCollection<ScopeBoxItem>();
+        [ObservableProperty] private ScopeBoxItem _selectedScopeBox;
+
+        private ICollectionView _filteredScopeBoxRows;
+        public ICollectionView FilteredScopeBoxRows => _filteredScopeBoxRows;
+
+        private string _scopeBoxSearchText = "";
+        public string ScopeBoxSearchText
+        {
+            get => _scopeBoxSearchText;
+            set
+            {
+                if (SetProperty(ref _scopeBoxSearchText, value))
+                {
+                    _filteredScopeBoxRows?.Refresh();
+                }
+            }
+        }
+
+        public ObservableCollection<string> ScopeBoxViewTypes { get; set; } = new ObservableCollection<string>();
+        private string _selectedScopeBoxViewType;
+        public string SelectedScopeBoxViewType
+        {
+            get => _selectedScopeBoxViewType;
+            set
+            {
+                if (SetProperty(ref _selectedScopeBoxViewType, value))
+                {
+                    _filteredScopeBoxRows?.Refresh();
+                }
+            }
+        }
+
         [ObservableProperty] private string _statusMessage = "Ready.";
 
         public CreateViewSheetViewModel(CreateViewSheetHandler handler, Document doc)
@@ -208,6 +243,9 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
 
             // Setup Title tab data
             LoadViewportTitleData(doc);
+
+            // Setup Scope Box tab data
+            LoadScopeBoxData(doc);
         }
 
         private void LoadSheetSeries(Document doc)
@@ -216,15 +254,15 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
 
             var seriesValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Single query for ALL titleblock instances in the project (fast)
-            var allTitleBlocks = new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                .WhereElementIsNotElementType()
+            // Single query for ALL sheets in the project
+            var allSheets = new FilteredElementCollector(doc)
+                .OfClass(typeof(ViewSheet))
+                .Cast<ViewSheet>()
                 .ToList();
 
-            foreach (var tbInstance in allTitleBlocks)
+            foreach (var sheet in allSheets)
             {
-                var param = tbInstance.LookupParameter("RINCO_TB_SHEET SERIES");
+                var param = sheet.LookupParameter("RINCO_TB_SHEET SERIES");
                 if (param != null && param.HasValue && !string.IsNullOrWhiteSpace(param.AsString()))
                 {
                     seriesValues.Add(param.AsString());
@@ -294,6 +332,7 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
             LoadViewsAndSheets(doc);
             LoadMultiRows();
             LoadViewportTitleData(doc);
+            LoadScopeBoxData(doc);
         }
 
         // ================= Tab 1: Create View =================
@@ -884,14 +923,142 @@ namespace RincoNhan.Tools.CreateViewSheet.ViewModels
                 return;
             }
 
-            var selected = ViewportTitleRows.Where(r => r.IsSelected && r.IsOnSheet).ToList();
+            var selected = ViewportTitleRows.Where(r => r.IsSelected && r.IsOnSheet && r.ViewportId != ElementId.InvalidElementId).ToList();
             if (!selected.Any())
             {
-                StatusMessage = "Select at least one view on sheet.";
+                StatusMessage = "No valid rows selected.";
                 return;
             }
 
             _handler.RequestAction = "APPLY_VIEWPORT_TITLE";
+            _handler.Raise();
+        }
+
+        // ================= Tab 7: Scope Box =================
+
+        private bool ScopeBoxRowFilter(object obj)
+        {
+            if (obj is ScopeBoxViewRow row)
+            {
+                if (SelectedScopeBoxViewType != "All" && !string.IsNullOrEmpty(SelectedScopeBoxViewType) && row.ViewType != SelectedScopeBoxViewType)
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrWhiteSpace(ScopeBoxSearchText))
+                {
+                    return row.ViewName.IndexOf(ScopeBoxSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                        || row.ViewType.IndexOf(ScopeBoxSearchText, StringComparison.OrdinalIgnoreCase) >= 0
+                        || (row.CurrentScopeBox != null && row.CurrentScopeBox.IndexOf(ScopeBoxSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+                
+                return true;
+            }
+            return false;
+        }
+
+        public void LoadScopeBoxData(Document doc)
+        {
+            ScopeBoxViewRows.Clear();
+            ScopeBoxOptions.Clear();
+
+            // Load Scope Boxes
+            var scopeBoxes = new FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_VolumeOfInterest)
+                .WhereElementIsNotElementType()
+                .ToList();
+
+            ScopeBoxOptions.Add(new ScopeBoxItem { Name = "<None>", Id = ElementId.InvalidElementId });
+            foreach (var sb in scopeBoxes.OrderBy(x => x.Name))
+            {
+                ScopeBoxOptions.Add(new ScopeBoxItem { Name = sb.Name, Id = sb.Id });
+            }
+            SelectedScopeBox = ScopeBoxOptions.FirstOrDefault();
+
+            // Load plan views
+            var views = new FilteredElementCollector(doc)
+                .OfClass(typeof(View))
+                .Cast<View>()
+                .Where(v => !v.IsTemplate
+                    && (v.ViewType == ViewType.FloorPlan
+                     || v.ViewType == ViewType.CeilingPlan
+                     || v.ViewType == ViewType.EngineeringPlan
+                     || v.ViewType == ViewType.AreaPlan
+                     || v.ViewType == ViewType.Section
+                     || v.ViewType == ViewType.Elevation))
+                .OrderBy(v => v.Name)
+                .ToList();
+
+            foreach (var view in views)
+            {
+                string currentScopeBox = "<None>";
+                var sbParam = view.get_Parameter(BuiltInParameter.VIEWER_VOLUME_OF_INTEREST_CROP);
+                if (sbParam != null && sbParam.AsElementId() != ElementId.InvalidElementId)
+                {
+                    var sbElem = doc.GetElement(sbParam.AsElementId());
+                    if (sbElem != null)
+                        currentScopeBox = sbElem.Name;
+                }
+
+                ScopeBoxViewRows.Add(new ScopeBoxViewRow
+                {
+                    ViewId = view.Id,
+                    ViewName = view.Name,
+                    ViewType = view.ViewType.ToString(),
+                    CurrentScopeBox = currentScopeBox
+                });
+            }
+
+            // Populate distinct ViewTypes
+            ScopeBoxViewTypes.Clear();
+            ScopeBoxViewTypes.Add("All");
+            var distinctTypes = views.Select(v => v.ViewType.ToString()).Distinct().OrderBy(x => x).ToList();
+            foreach (var type in distinctTypes)
+            {
+                ScopeBoxViewTypes.Add(type);
+            }
+            SelectedScopeBoxViewType = "All";
+
+            _filteredScopeBoxRows = CollectionViewSource.GetDefaultView(ScopeBoxViewRows);
+            _filteredScopeBoxRows.Filter = ScopeBoxRowFilter;
+            OnPropertyChanged(nameof(FilteredScopeBoxRows));
+        }
+
+        [RelayCommand]
+        private void SelectAllScopeBoxRows()
+        {
+            foreach (var r in ScopeBoxViewRows)
+            {
+                if (ScopeBoxRowFilter(r)) r.IsSelected = true;
+            }
+        }
+
+        [RelayCommand]
+        private void DeselectAllScopeBoxRows()
+        {
+            foreach (var r in ScopeBoxViewRows)
+            {
+                r.IsSelected = false;
+            }
+        }
+
+        [RelayCommand]
+        private void ApplyScopeBox()
+        {
+            if (SelectedScopeBox == null)
+            {
+                StatusMessage = "Please select a Scope Box.";
+                return;
+            }
+
+            var selected = ScopeBoxViewRows.Where(r => r.IsSelected).ToList();
+            if (!selected.Any())
+            {
+                StatusMessage = "No views selected.";
+                return;
+            }
+
+            _handler.RequestAction = "APPLY_SCOPE_BOX";
             _handler.Raise();
         }
     }

@@ -1,0 +1,183 @@
+<Window x:Class="RincoNhan.Tools.AutoViewSheet.UI.AutoViewSheetWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Auto View &amp; Sheet Tool" Height="700" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip"
+        Background="#F5F7F9">
+    <Window.Resources>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#2E5C9A"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style TargetType="Button" x:Key="PrimaryButtonStyle">
+            <Setter Property="Background" Value="#2E5C9A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="4"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <Style x:Key="DataGridStyle" TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DCDDE1"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F0F0F0"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="RowHeight" Value="30"/>
+        </Style>
+
+        <Style x:Key="ColumnHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F5F7F9"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TabControl Grid.Row="1" Margin="10" Background="White" BorderBrush="#DCDDE1">
+            <!-- TAB 1: AUTO PROCESS -->
+            <TabItem Header="Auto Process">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Each row creates a View, creates a Sheet, sets ScopeBox, adds to Sheet, sets Title, and aligns it." VerticalAlignment="Center" Foreground="#7F8C8D"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding AutoRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="✓" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Level" Width="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SelectedLevel.Name}" VerticalAlignment="Center" Margin="5,0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+
+                            <DataGridTemplateColumn Header="View Type" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewTypes, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding SelectedViewType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="View Template" Width="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewTemplates, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding SelectedViewTemplate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Scope Box" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ScopeBoxOptions, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding SelectedScopeBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Sheet Number" Binding="{Binding SheetNumber, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                            <DataGridTextColumn Header="Sheet Name" Binding="{Binding SheetName, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+
+                            <DataGridTemplateColumn Header="Actions" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="X" Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                CommandParameter="{Binding}" Foreground="Red" Background="Transparent" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: GLOBAL SETTINGS -->
+            <TabItem Header="Global Settings">
+                <StackPanel Margin="20">
+                    <TextBlock Text="These settings apply to all sheets and views created in the Auto Process tab." 
+                               Foreground="#7F8C8D" Margin="0,0,0,20"/>
+                    
+                    <TextBlock Text="1. TitleBlock for New Sheets" Style="{StaticResource SectionLabel}"/>
+                    <ComboBox ItemsSource="{Binding TitleBlocks}" SelectedItem="{Binding SelectedTitleBlock}" 
+                              DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
+
+                    <TextBlock Text="2. Sheet Series Parameter" Style="{StaticResource SectionLabel}"/>
+                    <ComboBox ItemsSource="{Binding SheetSeriesOptions}" SelectedItem="{Binding SelectedSheetSeries}" 
+                              IsEditable="True" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
+
+                    <TextBlock Text="3. Viewport Title Type (Turn On Title)" Style="{StaticResource SectionLabel}"/>
+                    <ComboBox ItemsSource="{Binding ViewportTitleTypes}" SelectedItem="{Binding SelectedViewportTitle}" 
+                              DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
+
+                    <TextBlock Text="4. Template View For Alignment" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="Select a View already on a Sheet. New views will be aligned to its exact coordinates." Foreground="#7F8C8D" FontSize="11" Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding AlignTemplates}" SelectedItem="{Binding SelectedAlignTemplate}" 
+                              DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
+
+                    <TextBlock Text="5. Stack Views (Place all views at the same center point)" Style="{StaticResource SectionLabel}"/>
+                    <CheckBox Content="Stack Views on Sheet" IsChecked="{Binding StackViews}" Margin="0,0,0,15"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#DCDDE1" BorderThickness="0,1,0,0" Padding="10">
+            <Grid>
+                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="#34495E" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Run Auto Process" Command="{Binding RunAutoProcessCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="150" Background="#E67E22"/>
+                    <Button Content="Close" Click="CloseButton_Click" Style="{StaticResource PrimaryButtonStyle}" Background="#95A5A6" Margin="10,0,0,0" Width="80"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

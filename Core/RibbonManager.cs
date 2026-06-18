@@ -42,6 +42,7 @@ namespace RincoNhan.Core
             AddClashDetectionButton(generalPanel);
             AddFilterButton(generalPanel);
             AddCreateLevelButton(generalPanel);
+            AddAutoViewSheetButton(generalPanel);
             AddConnectionButton(generalPanel);
             AddJoinElementsButton(generalPanel);
             AddExportExcelButton(generalPanel);
@@ -296,6 +297,22 @@ namespace RincoNhan.Core
             btnData.ToolTip = "Create Revit levels from an Excel file with floor-to-floor heights.";
 
             PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("CreateLevel.png");
+            pb.Image = LoadIcon("CreateLevel.png", 16);
+        }
+
+        private static void AddAutoViewSheetButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdAutoViewSheet",
+                "Auto View\n& Sheet",
+                _assemblyPath,
+                "RincoNhan.Tools.AutoViewSheet.AutoViewSheetCommand"
+            );
+            btnData.ToolTip = "Automatically generate views, sheets, apply scopes, and align views in one click.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            // Trying to use a generic icon like CreateLevel.png if specific one doesn't exist
             pb.LargeImage = LoadIcon("CreateLevel.png");
             pb.Image = LoadIcon("CreateLevel.png", 16);
         }

@@ -56,6 +56,10 @@ namespace RincoNhan.Tools.CreateViewSheet
                 {
                     ApplyViewportTitleAction(doc);
                 }
+                else if (RequestAction == "APPLY_SCOPE_BOX")
+                {
+                    ApplyScopeBoxAction(doc);
+                }
             }
             catch (Exception ex)
             {
@@ -488,6 +492,58 @@ namespace RincoNhan.Tools.CreateViewSheet
 
             ViewModel.SetStatus($"✓ Changed title for {changedCount} viewports to '{ViewModel.SelectedViewportTitle.Name}'.");
             ViewModel.LoadViewportTitleData(doc);
+        }
+
+        // ================= Tab 7: Apply Scope Box =================
+        private void ApplyScopeBoxAction(Document doc)
+        {
+            var targetScopeBoxId = ViewModel.SelectedScopeBox?.Id;
+            if (targetScopeBoxId == null)
+            {
+                ViewModel.SetStatus("Please select a Scope Box.");
+                return;
+            }
+
+            var selected = ViewModel.ScopeBoxViewRows
+                .Where(r => r.IsSelected)
+                .ToList();
+
+            if (!selected.Any())
+            {
+                ViewModel.SetStatus("No views selected.");
+                return;
+            }
+
+            int changedCount = 0;
+
+            using (Transaction trans = new Transaction(doc, "Rinco - Apply Scope Box"))
+            {
+                trans.Start();
+
+                foreach (var row in selected)
+                {
+                    try
+                    {
+                        var view = doc.GetElement(row.ViewId) as View;
+                        if (view != null)
+                        {
+                            var param = view.get_Parameter(BuiltInParameter.VIEWER_VOLUME_OF_INTEREST_CROP);
+                            if (param != null && !param.IsReadOnly)
+                            {
+                                param.Set(targetScopeBoxId);
+                                changedCount++;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                trans.Commit();
+            }
+
+            string sbName = ViewModel.SelectedScopeBox.Id == ElementId.InvalidElementId ? "<None>" : ViewModel.SelectedScopeBox.Name;
+            ViewModel.SetStatus($"✓ Applied Scope Box '{sbName}' to {changedCount} views.");
+            ViewModel.LoadScopeBoxData(doc);
         }
 
         public string GetName() => "CreateViewSheetHandler";

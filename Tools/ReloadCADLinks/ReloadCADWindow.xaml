@@ -5,23 +5,24 @@
         Width="940" Height="520"
         MinWidth="780" MinHeight="420"
         WindowStartupLocation="CenterScreen"
-        Background="#1E1E2E"
+        Background="{DynamicResource BgPrimary}"
         ResizeMode="CanResizeWithGrip"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        Topmost="True">
 
     <Window.Resources>
-        <!-- Color Palette -->
-        <SolidColorBrush x:Key="BgPrimary" Color="#1E1E2E"/>
-        <SolidColorBrush x:Key="BgSecondary" Color="#282840"/>
-        <SolidColorBrush x:Key="BgCard" Color="#313150"/>
-        <SolidColorBrush x:Key="BgHover" Color="#3A3A5C"/>
-        <SolidColorBrush x:Key="AccentBlue" Color="#7C8FFF"/>
-        <SolidColorBrush x:Key="AccentGreen" Color="#6BCB77"/>
-        <SolidColorBrush x:Key="AccentRed" Color="#FF6B6B"/>
-        <SolidColorBrush x:Key="AccentOrange" Color="#FFB347"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#E8E8F0"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#9898B0"/>
-        <SolidColorBrush x:Key="BorderColor" Color="#404060"/>
+        <!-- Light Color Palette -->
+        <SolidColorBrush x:Key="BgPrimary" Color="#F4F6F8"/>
+        <SolidColorBrush x:Key="BgSecondary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BgCard" Color="#F9FAFB"/>
+        <SolidColorBrush x:Key="BgHover" Color="#E2E8F0"/>
+        <SolidColorBrush x:Key="AccentBlue" Color="#4F46E5"/>
+        <SolidColorBrush x:Key="AccentGreen" Color="#10B981"/>
+        <SolidColorBrush x:Key="AccentRed" Color="#EF4444"/>
+        <SolidColorBrush x:Key="AccentOrange" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#111827"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#6B7280"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D5DB"/>
 
         <!-- Modern Button Style -->
         <Style x:Key="ModernButton" TargetType="Button">
@@ -49,7 +50,7 @@
                                 <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBlue}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentBlue}"/>
+                                <Setter TargetName="border" Property="Background" Value="#D1D5DB"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
@@ -65,8 +66,8 @@
             <Setter Property="Background">
                 <Setter.Value>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#6366F1" Offset="0"/>
-                        <GradientStop Color="#8B5CF6" Offset="1"/>
+                        <GradientStop Color="#4F46E5" Offset="0"/>
+                        <GradientStop Color="#7C3AED" Offset="1"/>
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
@@ -94,17 +95,19 @@
                                     CornerRadius="4"
                                     BorderThickness="2"
                                     BorderBrush="{StaticResource BorderColor}"
-                                    Background="Transparent"
+                                    Background="White"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center">
-                                <TextBlock x:Name="checkMark"
-                                           Text="âœ“"
-                                           FontSize="13" FontWeight="Bold"
-                                           Foreground="White"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           Margin="0,-1,0,0"
-                                           Visibility="Collapsed"/>
+                                <Path x:Name="checkMark"
+                                      Data="M 4,10 L 8,14 L 16,5"
+                                      Stroke="White"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Visibility="Collapsed"/>
                             </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -112,12 +115,12 @@
                                 <Setter TargetName="checkBorder" Property="Background">
                                     <Setter.Value>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#6366F1" Offset="0"/>
-                                            <GradientStop Color="#8B5CF6" Offset="1"/>
+                                            <GradientStop Color="#4F46E5" Offset="0"/>
+                                            <GradientStop Color="#7C3AED" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Setter.Value>
                                 </Setter>
-                                <Setter TargetName="checkBorder" Property="BorderBrush" Value="#8B5CF6"/>
+                                <Setter TargetName="checkBorder" Property="BorderBrush" Value="#7C3AED"/>
                                 <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -153,7 +156,7 @@
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource BgHover}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#2A2A4A"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#EEF2FF"/>
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBlue}"/>
                                 <Setter TargetName="Bd" Property="BorderThickness" Value="1"/>
                             </Trigger>
@@ -177,8 +180,8 @@
         <Border Grid.Row="0" Padding="20,16">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#282840" Offset="0"/>
-                    <GradientStop Color="#1E1E2E" Offset="1"/>
+                    <GradientStop Color="#FFFFFF" Offset="0"/>
+                    <GradientStop Color="#F1F5F9" Offset="1"/>
                 </LinearGradientBrush>
             </Border.Background>
             <Grid>
@@ -199,10 +202,10 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" 
                             VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <Button x:Name="btnSelectAll" Content="☑ Select All"
+                    <Button x:Name="btnSelectAll" Content="Select All"
                             Style="{StaticResource ModernButton}"
                             Click="BtnSelectAll_Click" Margin="0,0,8,0"/>
-                    <Button x:Name="btnDeselectAll" Content="✖ Deselect All"
+                    <Button x:Name="btnDeselectAll" Content="Deselect All"
                             Style="{StaticResource ModernButton}"
                             Click="BtnDeselectAll_Click"/>
                 </StackPanel>
@@ -267,6 +270,7 @@
                       BorderThickness="0"
                       Foreground="{StaticResource TextPrimary}"
                       ItemContainerStyle="{StaticResource LinkListItem}"
+                      PreviewKeyDown="LvLinks_PreviewKeyDown"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <ListView.View>
                     <GridView>

@@ -725,6 +725,82 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <!-- TAB 7: SCOPE BOX -->
+            <TabItem Header="Scope Box">
+                <Grid Background="White" Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <StackPanel Grid.Row="0" Margin="10,10,10,0">
+                        <TextBlock Text="Apply Scope Box to views" Style="{StaticResource SectionLabel}" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Grid Grid.Column="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="150"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding ScopeBoxSearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                         Height="28" Padding="6,4" VerticalContentAlignment="Center"
+                                         BorderBrush="#DCDDE1" BorderThickness="1" Margin="0,0,10,0"/>
+                                <TextBlock Grid.Column="1" Text="View Type:" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="SemiBold"/>
+                                <ComboBox Grid.Column="2" ItemsSource="{Binding ScopeBoxViewTypes}" SelectedItem="{Binding SelectedScopeBoxViewType}" 
+                                          Height="28"/>
+                            </Grid>
+
+                            <Button Grid.Column="1" Content="All" Command="{Binding SelectAllScopeBoxRowsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="10,0,0,0" FontSize="11" Padding="0"/>
+                            <Button Grid.Column="2" Content="None" Command="{Binding DeselectAllScopeBoxRowsCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Height="28" Width="50" Margin="5,0,0,0" FontSize="11" Padding="0" Background="#95A5A6"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DataGrid -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding FilteredScopeBoxRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}" Margin="10">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="✓" Width="35">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_ShiftClick" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="View Name" Binding="{Binding ViewName}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="View Type" Binding="{Binding ViewType}" Width="150" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Current Scope Box" Binding="{Binding CurrentScopeBox}" Width="180" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Bottom bar -->
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Apply Scope Box:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding ScopeBoxOptions}" SelectedItem="{Binding SelectedScopeBox}" 
+                                      DisplayMemberPath="Name" Height="28" Margin="0,0,15,0"/>
+                            <Button Grid.Column="2" Content="Apply to Selected" Command="{Binding ApplyScopeBoxCommand}" 
+                                    Style="{StaticResource PrimaryButtonStyle}" Background="#E67E22" Width="160"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <!-- Status Bar -->

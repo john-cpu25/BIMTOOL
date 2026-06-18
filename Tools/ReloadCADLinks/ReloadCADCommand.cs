@@ -34,9 +34,13 @@ namespace RincoNhan.Tools.ReloadCADLinks
                     return Result.Cancelled;
                 }
 
-                // Show the reload window
-                ReloadCADWindow window = new ReloadCADWindow(cadLinks, doc);
-                window.ShowDialog();
+                // Create external event handler for modeless window
+                ReloadCADEventHandler handler = new ReloadCADEventHandler();
+                ExternalEvent externalEvent = ExternalEvent.Create(handler);
+
+                // Show the reload window as modeless
+                ReloadCADWindow window = new ReloadCADWindow(cadLinks, doc, handler, externalEvent);
+                window.Show();
 
                 return Result.Succeeded;
             }

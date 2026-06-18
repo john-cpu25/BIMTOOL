@@ -1,9 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.DB;
 using System.Collections.Generic;
@@ -15,32 +15,19 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
         private CreateLevelHandler _handler;
         private ExternalEvent _externalEvent;
         private Document _doc;
-
-        [ObservableProperty]
-        private string _excelFilePath;
-
-        [ObservableProperty]
-        private ObservableCollection<string> _worksheets = new ObservableCollection<string>();
-
-        [ObservableProperty]
-        private string _selectedWorksheet;
-
-        partial void OnSelectedWorksheetChanged(string value)
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                LoadLevelData();
-            }
-        }
+        private int _levelCounter = 1;
 
         [ObservableProperty]
         private ObservableCollection<LevelData> _levelDataList = new ObservableCollection<LevelData>();
 
         [ObservableProperty]
+        private LevelData _selectedLevelData;
+
+        [ObservableProperty]
         private bool _deleteExistingLevels;
 
         [ObservableProperty]
-        private string _statusMessage = "Ready. Select an Excel file to begin.";
+        private string _statusMessage = "Ready. Add levels to begin.";
 
         [ObservableProperty]
         private string _summaryText;
@@ -53,6 +40,13 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
 
         [ObservableProperty]
         private TemplateLevelItem _selectedTemplateLevel;
+
+        // Input fields for adding new level
+        [ObservableProperty]
+        private string _newLevelName = "LEVEL 1";
+
+        [ObservableProperty]
+        private string _newFloorHeight = "3300";
 
         public CreateLevelViewModel(CreateLevelHandler handler, Document doc)
         {
@@ -109,116 +103,128 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
         }
 
         [RelayCommand]
-        private void Browse()
+        private void AddRow()
         {
             try
             {
-                var dialog = new OpenFileDialog
+                string name = string.IsNullOrWhiteSpace(NewLevelName)
+                    ? $"LEVEL {_levelCounter++}"
+                    : NewLevelName.Trim().ToUpper();
+
+                double floorHeight = 3300;
+                if (double.TryParse(NewFloorHeight, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out double parsed))
                 {
-                    Filter = "Excel Files (*.xlsx)|*.xlsx|All Files (*.*)|*.*",
-                    Title = "Select Excel File with Level Data"
+                    floorHeight = parsed;
+                }
+
+                var newLevel = new LevelData
+                {
+                    Name = name,
+                    FloorHeight = floorHeight,
+                    IsSelected = true
                 };
+                newLevel.FloorHeightChangedCallback = RecalculateAllElevations;
 
-                if (dialog.ShowDialog() == true)
-                {
-                    ExcelFilePath = dialog.FileName;
-                    LoadSheets();
-                }
+                LevelDataList.Add(newLevel);
+                RecalculateAllElevations();
+                UpdateSummary();
+
+                // Auto-suggest next level name (e.g. "Level 1" → "Level 2")
+                NewLevelName = GetNextLevelName(name);
+                StatusMessage = $"Added \"{name}\". Next → \"{NewLevelName}\"";
             }
             catch (Exception ex)
             {
-                string msg = GetFullExceptionMessage(ex);
-                StatusMessage = msg;
-                System.Windows.MessageBox.Show(msg, "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                StatusMessage = "Error adding level: " + ex.Message;
             }
         }
 
-        private void LoadSheets()
+        /// <summary>
+        /// Parses the current level name and suggests the next one by incrementing
+        /// the trailing number. Supports patterns like:
+        ///   "Level 1" → "Level 2"
+        ///   "TẦNG 3"  → "TẦNG 4"
+        ///   "B2"      → "B3"
+        ///   "GROUND"  → "Level 2" (no number → fallback)
+        /// </summary>
+        private string GetNextLevelName(string currentName)
         {
-            Worksheets.Clear();
-            LevelDataList.Clear();
-            SummaryText = "";
+            if (string.IsNullOrWhiteSpace(currentName))
+                return $"LEVEL {LevelDataList.Count + 1}";
 
-            try
+            // Match trailing number with optional space/separator before it
+            var match = Regex.Match(currentName, @"^(.*?)(\s*)(\d+)$");
+            if (match.Success)
             {
-                // Use SimpleExcelReader (built-in .NET, no ClosedXML)
-                var sheetNames = SimpleExcelReader.GetSheetNames(ExcelFilePath);
-
-                foreach (var name in sheetNames)
-                {
-                    Worksheets.Add(name);
-                }
-
-                if (Worksheets.Any())
-                {
-                    SelectedWorksheet = Worksheets.First();
-                }
-                else
-                {
-                    StatusMessage = "No worksheets found in the Excel file.";
-                }
+                string prefix = match.Groups[1].Value;      // "Level", "TẦNG", "B", etc.
+                string separator = match.Groups[2].Value;    // space or empty
+                int number = int.Parse(match.Groups[3].Value);
+                return $"{prefix}{separator}{number + 1}";
             }
-            catch (Exception ex)
-            {
-                string msg = GetFullExceptionMessage(ex);
-                StatusMessage = msg;
-                System.Windows.MessageBox.Show(msg, "Error Loading Excel", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-            }
+
+            // No trailing number found → fallback
+            return $"LEVEL {LevelDataList.Count + 1}";
         }
 
-        private void LoadLevelData()
+        [RelayCommand]
+        private void RemoveRow()
         {
-            LevelDataList.Clear();
-            SummaryText = "";
-
-            if (string.IsNullOrEmpty(ExcelFilePath) || string.IsNullOrEmpty(SelectedWorksheet))
-            {
-                return;
-            }
-
             try
             {
-                // Use SimpleExcelReader (built-in .NET, no ClosedXML)
-                var rawData = SimpleExcelReader.ReadLevelData(ExcelFilePath, SelectedWorksheet);
-
-                if (rawData.Count == 0)
+                if (SelectedLevelData == null)
                 {
-                    StatusMessage = "No level data found in the worksheet.";
+                    StatusMessage = "Select a level to remove.";
                     return;
                 }
 
-                // Calculate cumulative elevation
-                // GROUND (first level) = elevation 0
-                // Each subsequent level = previous elevation + previous floor height
-                double cumulativeElevation = 0;
-
-                for (int i = 0; i < rawData.Count; i++)
-                {
-                    var item = rawData[i];
-                    var levelData = new LevelData
-                    {
-                        Name = item.name,
-                        FloorHeight = item.height ?? 0,
-                        Elevation = cumulativeElevation,
-                        IsSelected = true
-                    };
-
-                    LevelDataList.Add(levelData);
-
-                    if (item.height.HasValue)
-                    {
-                        cumulativeElevation += item.height.Value;
-                    }
-                }
-
+                string removedName = SelectedLevelData.Name;
+                LevelDataList.Remove(SelectedLevelData);
+                RecalculateAllElevations();
                 UpdateSummary();
-                StatusMessage = $"Loaded {LevelDataList.Count} levels from Excel.";
+                StatusMessage = $"Removed \"{removedName}\". Total: {LevelDataList.Count} levels.";
             }
             catch (Exception ex)
             {
-                string msg = GetFullExceptionMessage(ex);
-                StatusMessage = msg;
+                StatusMessage = "Error removing level: " + ex.Message;
             }
+        }
+
+        [RelayCommand]
+        private void MoveUp()
+        {
+            try
+            {
+                if (SelectedLevelData == null) return;
+                int index = LevelDataList.IndexOf(SelectedLevelData);
+                if (index <= 0) return;
+
+                LevelDataList.Move(index, index - 1);
+                RecalculateAllElevations();
+                UpdateSummary();
+            }
+            catch { }
+        }
+
+        [RelayCommand]
+        private void MoveDown()
+        {
+            try
+            {
+                if (SelectedLevelData == null) return;
+                int index = LevelDataList.IndexOf(SelectedLevelData);
+                if (index < 0 || index >= LevelDataList.Count - 1) return;
+
+                LevelDataList.Move(index, index + 1);
+                RecalculateAllElevations();
+                UpdateSummary();
+            }
+            catch { }
+        }
+
+        private void RecalculateAllElevations()
+        {
+            LevelDataHelper.RecalculateElevations(LevelDataList);
         }
 
         private void UpdateSummary()
@@ -275,6 +281,7 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
                 foreach (var l in LevelDataList) l.IsSelected = true;
                 var temp = new ObservableCollection<LevelData>(LevelDataList);
                 LevelDataList = temp;
+                ReattachCallbacks();
                 UpdateSummary();
             }
             catch { }
@@ -288,9 +295,34 @@ namespace RincoNhan.Tools.CreateLevel.ViewModels
                 foreach (var l in LevelDataList) l.IsSelected = false;
                 var temp = new ObservableCollection<LevelData>(LevelDataList);
                 LevelDataList = temp;
+                ReattachCallbacks();
                 UpdateSummary();
             }
             catch { }
+        }
+
+        [RelayCommand]
+        private void ClearAll()
+        {
+            try
+            {
+                LevelDataList.Clear();
+                _levelCounter = 1;
+                UpdateSummary();
+                StatusMessage = "All levels cleared.";
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Re-attach the OnFloorHeightChanged callback after replacing the collection.
+        /// </summary>
+        private void ReattachCallbacks()
+        {
+            foreach (var l in LevelDataList)
+            {
+                l.FloorHeightChangedCallback = RecalculateAllElevations;
+            }
         }
 
         private static string GetFullExceptionMessage(Exception ex)

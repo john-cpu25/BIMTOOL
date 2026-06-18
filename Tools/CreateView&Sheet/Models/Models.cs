@@ -193,4 +193,21 @@ namespace RincoNhan.Tools.CreateViewSheet.Models
         public ElementId ViewportId { get; set; }  // Viewport element id
         public ElementId ViewId { get; set; }
     }
+
+    public class ScopeBoxItem
+    {
+        public string Name { get; set; }
+        public ElementId Id { get; set; }
+    }
+
+    public partial class ScopeBoxViewRow : ObservableObject
+    {
+        [ObservableProperty]
+        private bool _isSelected;
+
+        public string ViewName { get; set; }
+        public string ViewType { get; set; }
+        public string CurrentScopeBox { get; set; }
+        public ElementId ViewId { get; set; }
+    }
 }

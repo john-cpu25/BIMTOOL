@@ -18,8 +18,10 @@ namespace RincoNhan.Tools.ReloadCADLinks
         private readonly ObservableCollection<CADLinkInfo> _cadLinks;
         private readonly Document _doc;
         private string _selectedFolderPath = null;
+        private readonly ReloadCADEventHandler _handler;
+        private readonly ExternalEvent _externalEvent;
 
-        public ReloadCADWindow(List<CADLinkInfo> cadLinks, Document doc)
+        public ReloadCADWindow(List<CADLinkInfo> cadLinks, Document doc, ReloadCADEventHandler handler, ExternalEvent externalEvent)
         {
             // Ensure WPF Application exists (required for XAML resource loading in Revit)
             if (System.Windows.Application.Current == null)
@@ -30,10 +32,14 @@ namespace RincoNhan.Tools.ReloadCADLinks
             InitializeComponent();
 
             _doc = doc;
+            _handler = handler;
+            _externalEvent = externalEvent;
             _cadLinks = new ObservableCollection<CADLinkInfo>(cadLinks);
             lvLinks.ItemsSource = _cadLinks;
 
             UpdateSummary();
+
+            this.Closed += (s, e) => { _externalEvent?.Dispose(); };
         }
 
         /// <summary>
@@ -78,11 +84,47 @@ namespace RincoNhan.Tools.ReloadCADLinks
         }
 
         /// <summary>
-        /// Handle individual checkbox click to update summary
+        /// Handle individual checkbox click to update summary and support multi-selection
         /// </summary>
         private void CheckBox_Click(object sender, RoutedEventArgs e)
         {
+            if (sender is System.Windows.Controls.CheckBox checkBox && checkBox.DataContext is CADLinkInfo clickedLink)
+            {
+                // If the clicked row is part of multiple selected rows, apply the same checked state to all selected rows
+                if (lvLinks.SelectedItems.Count > 1 && lvLinks.SelectedItems.Contains(clickedLink))
+                {
+                    bool newState = checkBox.IsChecked ?? false;
+                    foreach (CADLinkInfo link in lvLinks.SelectedItems)
+                    {
+                        if (link.IsReloadable && link != clickedLink)
+                        {
+                            link.IsSelected = newState;
+                        }
+                    }
+                }
+            }
             UpdateSummary();
+        }
+
+        /// <summary>
+        /// Support toggling checkboxes using Spacebar for multiple selected items
+        /// </summary>
+        private void LvLinks_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Space && lvLinks.SelectedItems.Count > 0)
+            {
+                // Toggle based on the first selected item
+                bool newState = !((CADLinkInfo)lvLinks.SelectedItems[0]).IsSelected;
+                foreach (CADLinkInfo link in lvLinks.SelectedItems)
+                {
+                    if (link.IsReloadable)
+                    {
+                        link.IsSelected = newState;
+                    }
+                }
+                UpdateSummary();
+                e.Handled = true;
+            }
         }
 
         /// <summary>
@@ -169,137 +211,159 @@ namespace RincoNhan.Tools.ReloadCADLinks
             progressBar.Value = 0;
             progressBar.Maximum = selectedLinks.Count;
 
-            int successCount = 0;
-            int failCount = 0;
-            int index = 0;
-
-            using (Transaction trans = new Transaction(_doc, "Reload CAD Links"))
+            _handler.Action = () =>
             {
-                trans.Start();
+                int successCount = 0;
+                int failCount = 0;
+                int index = 0;
 
-                foreach (var link in selectedLinks)
+                using (Transaction trans = new Transaction(_doc, "Reload CAD Links"))
                 {
-                    index++;
-                    txtStatus.Text = $"Reloading ({index}/{selectedLinks.Count}): {link.FileName}...";
-                    progressBar.Value = index;
+                    trans.Start();
 
-                    // Force UI update
-                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
-                        System.Windows.Threading.DispatcherPriority.Background,
-                        new Action(delegate { }));
-
-                    try
+                    foreach (var link in selectedLinks)
                     {
-                        // Determine the file path to use — priority:
-                        // 1. Per-link OverridePath (user chose a specific file for this link)
-                        // 2. Folder-level override (match file name in selected folder)
-                        // 3. Original FilePath (fallback)
-                        string reloadPath = link.FilePath;
-
-                        if (!string.IsNullOrEmpty(link.OverridePath) && File.Exists(link.OverridePath))
-                        {
-                            reloadPath = link.OverridePath;
-                        }
-                        else if (!string.IsNullOrEmpty(_selectedFolderPath))
-                        {
-                            string altPath = Path.Combine(_selectedFolderPath, link.FileName);
-                            if (File.Exists(altPath))
-                                reloadPath = altPath;
-                        }
-
-                        // Check if file exists on disk (Only if not a Cloud path OR if we have an override/alt path)
-                        // If it's a Cloud path and no override was provided, we skip the File.Exists check
-                        bool isCloudOriginal = link.IsCloudPath && string.Equals(reloadPath, link.FilePath);
+                        index++;
                         
-                        if (!isCloudOriginal && !File.Exists(reloadPath))
+                        Dispatcher.Invoke(() =>
                         {
-                            link.Status = "File not found";
-                            link.StatusIcon = "";
+                            txtStatus.Text = $"Reloading ({index}/{selectedLinks.Count}): {link.FileName}...";
+                            progressBar.Value = index;
+                        });
+
+                        try
+                        {
+                            // Determine the file path to use — priority:
+                            // 1. Per-link OverridePath (user chose a specific file for this link)
+                            // 2. Folder-level override (match file name in selected folder)
+                            // 3. Original FilePath (fallback)
+                            string reloadPath = link.FilePath;
+
+                            if (!string.IsNullOrEmpty(link.OverridePath) && File.Exists(link.OverridePath))
+                            {
+                                reloadPath = link.OverridePath;
+                            }
+                            else if (!string.IsNullOrEmpty(_selectedFolderPath))
+                            {
+                                string altPath = Path.Combine(_selectedFolderPath, link.FileName);
+                                if (File.Exists(altPath))
+                                    reloadPath = altPath;
+                            }
+
+                            // Check if file exists on disk (Only if not a Cloud path OR if we have an override/alt path)
+                            // If it's a Cloud path and no override was provided, we skip the File.Exists check
+                            bool isCloudOriginal = link.IsCloudPath && string.Equals(reloadPath, link.FilePath);
+                            
+                            if (!isCloudOriginal && !File.Exists(reloadPath))
+                            {
+                                Dispatcher.Invoke(() =>
+                                {
+                                    link.Status = "File not found";
+                                    link.StatusIcon = "";
+                                });
+                                failCount++;
+                                continue;
+                            }
+
+                            // Get the CADLinkType element
+                            CADLinkType cadLinkType = _doc.GetElement(link.TypeId) as CADLinkType;
+                            if (cadLinkType == null)
+                            {
+                                Dispatcher.Invoke(() =>
+                                {
+                                    link.Status = "Link type not found";
+                                    link.StatusIcon = "";
+                                });
+                                failCount++;
+                                continue;
+                            }
+
+                            // Verify if the link needs to change path
+                            bool isNewPath = !string.Equals(reloadPath, link.FilePath, StringComparison.OrdinalIgnoreCase);
+
+                            // Reload the CAD link
+                            if (isCloudOriginal && !isNewPath)
+                            {
+                                // If it's a cloud link and path hasn't changed, just reload
+                                cadLinkType.Reload();
+                            }
+                            else
+                            {
+                                // Reload from the resolved path (local or cloud)
+                                cadLinkType.LoadFrom(reloadPath);
+                            }
+                            
+                            // Update the CAD link Name in Revit if file name changed
+                            string newFileName = Path.GetFileName(reloadPath);
+                            if (cadLinkType.Name != newFileName)
+                            {
+                                try { cadLinkType.Name = newFileName; } catch { } // Ignore if name collision
+                            }
+
+                            Dispatcher.Invoke(() =>
+                            {
+                                // Update the displayed path if it changed
+                                if (isNewPath)
+                                {
+                                    link.FilePath = reloadPath;
+                                    link.FileName = newFileName;
+                                }
+
+                                // Update status
+                                link.Status = "Reload successful";
+                                link.StatusIcon = "";
+                                link.LinkedStatus = LinkedFileStatus.Loaded;
+                                link.OverridePath = null; // Clear chosen override path since it's applied
+                            });
+                            successCount++;
+                        }
+                        catch (Autodesk.Revit.Exceptions.ApplicationException revitEx)
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                link.Status = $"Revit Error: {revitEx.Message}";
+                                link.StatusIcon = "";
+                            });
                             failCount++;
-                            continue;
                         }
-
-                        // Get the CADLinkType element
-                        CADLinkType cadLinkType = _doc.GetElement(link.TypeId) as CADLinkType;
-                        if (cadLinkType == null)
+                        catch (Exception ex)
                         {
-                            link.Status = "Link type not found";
-                            link.StatusIcon = "";
+                            Dispatcher.Invoke(() =>
+                            {
+                                link.Status = $"Error: {ex.Message}";
+                                link.StatusIcon = "";
+                            });
                             failCount++;
-                            continue;
                         }
-
-                        // Verify if the link needs to change path
-                        bool isNewPath = !string.Equals(reloadPath, link.FilePath, StringComparison.OrdinalIgnoreCase);
-
-                        // Reload the CAD link
-                        if (isCloudOriginal && !isNewPath)
-                        {
-                            // If it's a cloud link and path hasn't changed, just reload
-                            cadLinkType.Reload();
-                        }
-                        else
-                        {
-                            // Reload from the resolved path (local or cloud)
-                            cadLinkType.LoadFrom(reloadPath);
-                        }
-                        
-                        // Update the CAD link Name in Revit if file name changed
-                        string newFileName = Path.GetFileName(reloadPath);
-                        if (cadLinkType.Name != newFileName)
-                        {
-                            try { cadLinkType.Name = newFileName; } catch { } // Ignore if name collision
-                        }
-
-                        // Update the displayed path if it changed
-                        if (isNewPath)
-                        {
-                            link.FilePath = reloadPath;
-                            link.FileName = newFileName;
-                        }
-
-                        // Update status
-                        link.Status = "Reload successful";
-                        link.StatusIcon = "";
-                        link.LinkedStatus = LinkedFileStatus.Loaded;
-                        link.OverridePath = null; // Clear chosen override path since it's applied
-                        successCount++;
                     }
-                    catch (Autodesk.Revit.Exceptions.ApplicationException revitEx)
-                    {
-                        link.Status = $"Revit Error: {revitEx.Message}";
-                        link.StatusIcon = "";
-                        failCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        link.Status = $"Error: {ex.Message}";
-                        link.StatusIcon = "";
-                        failCount++;
-                    }
+
+                    trans.Commit();
                 }
 
-                trans.Commit();
-            }
+                Dispatcher.Invoke(() =>
+                {
+                    // Re-enable UI
+                    btnReload.IsEnabled = true;
+                    btnSelectAll.IsEnabled = true;
+                    btnDeselectAll.IsEnabled = true;
 
-            // Re-enable UI
-            btnReload.IsEnabled = true;
-            btnSelectAll.IsEnabled = true;
-            btnDeselectAll.IsEnabled = true;
+                    // Update status with results
+                    string statusMsg = $"✅ Reload complete: {successCount} successful";
+                    if (failCount > 0)
+                    {
+                        statusMsg += $",  ❌ {failCount} failed";
+                        MessageBox.Show($"{failCount} links failed to reload.\nPlease check the messages in the 'Status' column.\nNote: Revit does not allow reloading to a file that is already linked in the project.", "Reload Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                    txtStatus.Text = statusMsg;
+                    txtStatus.Foreground = failCount > 0
+                        ? new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFB347"))
+                        : new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#6BCB77"));
 
-            // Update status with results
-            string statusMsg = $"✅ Reload complete: {successCount} successful";
-            if (failCount > 0)
-            {
-                statusMsg += $",  ❌ {failCount} failed";
-                MessageBox.Show($"{failCount} links failed to reload.\nPlease check the messages in the 'Status' column.\nNote: Revit does not allow reloading to a file that is already linked in the project.", "Reload Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            txtStatus.Text = statusMsg;
-            txtStatus.Foreground = failCount > 0
-                ? new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFB347"))
-                : new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#6BCB77"));
+                    UpdateSummary();
+                });
+            };
 
-            UpdateSummary();
+            _externalEvent.Raise();
         }
 
         /// <summary>

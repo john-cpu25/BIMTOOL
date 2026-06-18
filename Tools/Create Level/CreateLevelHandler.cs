@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace RincoNhan.Tools.CreateLevel
 {
@@ -24,7 +26,7 @@ namespace RincoNhan.Tools.CreateLevel
                 return;
             }
 
-            using (Transaction trans = new Transaction(doc, "Create Levels from Excel"))
+            using (Transaction trans = new Transaction(doc, "Create Levels"))
             {
                 trans.Start();
                 try
@@ -120,8 +122,10 @@ namespace RincoNhan.Tools.CreateLevel
         /// This preserves all properties: LevelType, bubble visibility, line extents, etc.
         /// Does NOT create new plan views (unlike Level.Create).
         /// </summary>
-        private Level CreateLevelByCopy(Document doc, Level templateLevel, double elevationFeet, string name)
+        private Level CreateLevelByCopy(Document doc, Level templateLevel, double elevationFeet, string baseName)
         {
+            string name = GetUniqueName(doc, baseName);
+
             if (templateLevel != null)
             {
                 double templateElevation = templateLevel.Elevation;
@@ -132,7 +136,6 @@ namespace RincoNhan.Tools.CreateLevel
 
                 if (copiedIds != null && copiedIds.Count > 0)
                 {
-                    // CopyElement may copy associated views too — find the Level element
                     Level copiedLevel = null;
                     foreach (var id in copiedIds)
                     {
@@ -146,7 +149,17 @@ namespace RincoNhan.Tools.CreateLevel
 
                     if (copiedLevel != null)
                     {
-                        copiedLevel.Name = name;
+                        try
+                        {
+                            copiedLevel.Name = name;
+                        }
+                        catch (Exception ex)
+                        {
+                            // If rename fails (e.g. view clash or some other revit constraint)
+                            // try to append a random suffix to force creation so transaction doesn't fail
+                            try { copiedLevel.Name = name + "_" + Guid.NewGuid().ToString().Substring(0, 4); } catch { }
+                            System.Diagnostics.Debug.WriteLine($"Failed to name level '{name}': {ex.Message}");
+                        }
                         return copiedLevel;
                     }
                 }
@@ -154,7 +167,7 @@ namespace RincoNhan.Tools.CreateLevel
 
             // Fallback: create normally if no template
             Level newLevel = Level.Create(doc, elevationFeet);
-            newLevel.Name = name;
+            try { newLevel.Name = name; } catch { }
             return newLevel;
         }
 
@@ -181,14 +194,49 @@ namespace RincoNhan.Tools.CreateLevel
             return $"{baseName} ({suffix})";
         }
 
-        public string GetName() => "CreateLevelFromExcel";
+        public string GetName() => "CreateLevels";
     }
 
-    public class LevelData
+    public partial class LevelData : ObservableObject
     {
-        public string Name { get; set; }
-        public double FloorHeight { get; set; }
-        public double Elevation { get; set; }
-        public bool IsSelected { get; set; } = true;
+        [ObservableProperty]
+        private string _name;
+
+        [ObservableProperty]
+        private double _floorHeight;
+
+        [ObservableProperty]
+        private double _elevation;
+
+        [ObservableProperty]
+        private bool _isSelected = true;
+
+        /// <summary>
+        /// Callback to notify the parent ViewModel to recalculate elevations
+        /// when FloorHeight changes.
+        /// </summary>
+        public Action FloorHeightChangedCallback { get; set; }
+
+        partial void OnFloorHeightChanged(double value)
+        {
+            FloorHeightChangedCallback?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Recalculates cumulative elevations for a list of LevelData.
+    /// First level starts at elevation 0, each subsequent = previous elevation + previous floor height.
+    /// </summary>
+    public static class LevelDataHelper
+    {
+        public static void RecalculateElevations(IList<LevelData> levels)
+        {
+            double cumulative = 0;
+            for (int i = 0; i < levels.Count; i++)
+            {
+                cumulative += levels[i].FloorHeight;
+                levels[i].Elevation = cumulative;
+            }
+        }
     }
 }
