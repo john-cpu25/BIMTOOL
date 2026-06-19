@@ -306,7 +306,7 @@ namespace RincoNhan.Tools.CreateViewSheet
                 return;
             }
 
-            XYZ targetCenter = templateViewport.GetBoxCenter();
+            View templateView = doc.GetElement(templateViewport.ViewId) as View;
             XYZ targetLabelOffset = templateViewport.LabelOffset;
             int alignedCount = 0;
 
@@ -317,6 +317,28 @@ namespace RincoNhan.Tools.CreateViewSheet
             using (Transaction trans = new Transaction(doc, "Rinco - Align Views"))
             {
                 trans.Start();
+
+                BoundingBoxXYZ savedBoxT = null;
+                bool savedBoxActiveT = false;
+                bool savedBoxVisibleT = false;
+                XYZ minSource = XYZ.Zero;
+
+                if (alignView)
+                {
+                    savedBoxT = templateView.CropBox;
+                    savedBoxActiveT = templateView.CropBoxActive;
+                    savedBoxVisibleT = templateView.CropBoxVisible;
+
+                    BoundingBoxXYZ newBox = new BoundingBoxXYZ();
+                    newBox.Min = new XYZ(-10000000000, -10000000000, 0);
+                    newBox.Max = new XYZ(10000000000, 10000000000, 0);
+
+                    templateView.CropBox = newBox;
+                    templateView.CropBoxActive = true;
+                    doc.Regenerate();
+
+                    minSource = templateViewport.GetBoxOutline().MinimumPoint;
+                }
 
                 foreach (var sheetItem in selectedSheets)
                 {
@@ -333,9 +355,28 @@ namespace RincoNhan.Tools.CreateViewSheet
                         var view = doc.GetElement(vp.ViewId) as View;
                         if (view != null && view.ViewType != ViewType.Legend)
                         {
-                            if (alignView)
+                            if (alignView && vp.Id != templateViewport.Id)
                             {
-                                vp.SetBoxCenter(targetCenter);
+                                BoundingBoxXYZ savedBoxV = view.CropBox;
+                                bool savedBoxActiveV = view.CropBoxActive;
+                                bool savedBoxVisibleV = view.CropBoxVisible;
+
+                                BoundingBoxXYZ newBox = new BoundingBoxXYZ();
+                                newBox.Min = new XYZ(-10000000000, -10000000000, 0);
+                                newBox.Max = new XYZ(10000000000, 10000000000, 0);
+
+                                view.CropBox = newBox;
+                                view.CropBoxActive = true;
+                                doc.Regenerate();
+
+                                XYZ minResult = vp.GetBoxOutline().MinimumPoint;
+                                XYZ diff = minSource - minResult;
+
+                                ElementTransformUtils.MoveElement(doc, vp.Id, diff);
+
+                                view.CropBox = savedBoxV;
+                                view.CropBoxActive = savedBoxActiveV;
+                                view.CropBoxVisible = savedBoxVisibleV;
                             }
                             if (alignTitle)
                             {
@@ -344,6 +385,13 @@ namespace RincoNhan.Tools.CreateViewSheet
                             alignedCount++;
                         }
                     }
+                }
+
+                if (alignView)
+                {
+                    templateView.CropBox = savedBoxT;
+                    templateView.CropBoxActive = savedBoxActiveT;
+                    templateView.CropBoxVisible = savedBoxVisibleT;
                 }
 
                 trans.Commit();
