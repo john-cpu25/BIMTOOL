@@ -47,7 +47,7 @@ namespace RincoNhan.Core
             AddJoinElementsButton(generalPanel);
             AddExportExcelButton(generalPanel);
             AddImportEXtoLegendButton(generalPanel);
-
+            AddAlignDimButton(generalPanel);
             // === FAMILY Panel ===
             AddExportFamilyDataButton(familyPanel);
             AddImportFamilyDataButton(familyPanel);
@@ -108,6 +108,22 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("Filter.png");
             pb.Image = LoadIcon("Filter.png", 16);
+        }
+
+        private static void AddAlignDimButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdAlignDim",
+                "Align\nDim",
+                _assemblyPath,
+                "RincoNhan.Tools.Align_Dim.AlignDimCommand"
+            );
+            btnData.ToolTip = "Align a dimension at a specific distance from a grid.";
+            
+            // Using a default icon or a specific one if provided
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("AlignDim.png") ?? LoadIcon("AlignTags.png");
+            pb.Image = LoadIcon("AlignDim.png", 16) ?? LoadIcon("AlignTags.png", 16);
         }
 
         private static void AddReloadCADButton(RibbonPanel panel)
