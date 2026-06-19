@@ -182,7 +182,7 @@
                               DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
                     <TextBlock Text="5. Stack Views (Place all views at the same center point)" Style="{StaticResource SectionLabel}"/>
-                    <CheckBox Content="Stack Views on Sheet" IsChecked="{Binding StackViews}" Margin="0,0,0,15"/>
+                    <CheckBox Content="Stack Views on Sheet" IsChecked="{Binding StackViews}" IsEnabled="False" Margin="0,0,0,15"/>
                 </StackPanel>
             </TabItem>
         </TabControl>

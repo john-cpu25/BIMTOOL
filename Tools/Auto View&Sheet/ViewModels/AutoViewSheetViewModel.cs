@@ -26,7 +26,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         public ObservableCollection<ViewportTitleItem> ViewportTitleTypes { get; set; } = new ObservableCollection<ViewportTitleItem>();
         [ObservableProperty] private ViewportTitleItem _selectedViewportTitle;
 
-        [ObservableProperty] private bool _stackViews;
+        [ObservableProperty] private bool _stackViews = true;
 
         // Data Row Options
         public List<LevelItem> ProjectLevels { get; set; } = new List<LevelItem>();
@@ -161,7 +161,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                     if (vpType != null) ViewportTitleTypes.Add(new ViewportTitleItem { Name = vpType.Name, Id = vpType.Id });
                 }
             }
-            SelectedViewportTitle = ViewportTitleTypes.FirstOrDefault();
+            SelectedViewportTitle = ViewportTitleTypes.FirstOrDefault(vt => vt.Name.Equals("RINCO_Title_GA", StringComparison.OrdinalIgnoreCase)) ?? ViewportTitleTypes.FirstOrDefault();
 
             // Auto-populate all levels
             AddAllLevels();
@@ -295,12 +295,15 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         private string ComputeSheetNumber(string baseNum, int offset)
         {
             if (string.IsNullOrEmpty(baseNum)) return "";
-            if (baseNum.StartsWith("S"))
+            if (offset == 0) return baseNum;
+
+            var match = Regex.Match(baseNum, @"^([A-Za-z]*)(\d+)(.*)$");
+            if (match.Success)
             {
-                if (int.TryParse(baseNum.Substring(1), out int num))
-                {
-                    return $"S{num + offset}";
-                }
+                string prefix = match.Groups[1].Value;
+                int num = int.Parse(match.Groups[2].Value);
+                string suffix = match.Groups[3].Value;
+                return $"{prefix}{num + offset}{suffix}";
             }
             return $"{baseNum}.{offset}";
         }
@@ -366,18 +369,30 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         private void AddAllLevels()
         {
             AutoRows.Clear();
-            foreach (var level in ProjectLevels)
-            {
-                string groupId = Guid.NewGuid().ToString();
-                string baseSheet = GenerateBaseSheetNumber(level, ProjectLevels);
+            var levels = ProjectLevels;
+            HashSet<string> usedBaseNums = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                AddGroupedViewRow(level, "- ARCH", "ARCH OVERLAY_PLANS", "RINCO - GA - ARCH 1/100", groupId, baseSheet, 0);
-                AddGroupedViewRow(level, "- UNDER", "UNDER_PLANS", "RINCO - GA - UNDER 1/100", groupId, baseSheet, 0);
-                AddGroupedViewRow(level, "- OVER", "OVER_PLANS", "RINCO - GA - OVER 1/100", groupId, baseSheet, 0);
+            foreach (var level in levels)
+            {
+                string baseSheetNum = GenerateBaseSheetNumber(level, levels);
+                
+                string uniqueBaseNum = baseSheetNum;
+                int suffixCount = 1;
+                while (usedBaseNums.Contains(uniqueBaseNum))
+                {
+                    uniqueBaseNum = $"{baseSheetNum}.{suffixCount}";
+                    suffixCount++;
+                }
+                usedBaseNums.Add(uniqueBaseNum);
+
+                string groupId = level.Id.ToString();
+
+                AddGroupedViewRow(level, "- ARCH", "ARCH OVERLAY_PLANS", "RINCO - GA - ARCH 1/100", groupId, uniqueBaseNum, 0);
+                AddGroupedViewRow(level, "- UNDER", "UNDER_PLANS", "RINCO - GA - UNDER 1/100", groupId, uniqueBaseNum, 0);
+                AddGroupedViewRow(level, "- OVER", "OVER_PLANS", "RINCO - GA - OVER 1/100", groupId, uniqueBaseNum, 0);
             }
         }
 
-        [RelayCommand]
         private void RemoveRow(AutoViewSheetRow row)
         {
             if (row != null && AutoRows.Contains(row))
