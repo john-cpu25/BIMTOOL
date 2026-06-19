@@ -71,28 +71,58 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Each row creates a View, creates a Sheet, sets ScopeBox, adds to Sheet, sets Title, and aligns it." VerticalAlignment="Center" Foreground="#7F8C8D"/>
-                    </StackPanel>
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="Search:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,5,0" Foreground="#2C3E50"/>
+                            <TextBox Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" Height="26" VerticalContentAlignment="Center" Margin="0,0,15,0" ToolTip="Search by Sheet Name, Number, or Level"/>
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding AutoRows}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}">
+                            <Button Content="Sort A-Z/Z-A" Command="{Binding ToggleSortCommand}" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,15,0" Cursor="Hand"/>
+
+                            <Button Content="Expand All" Click="BtnExpandAll_Click" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,5,0" Cursor="Hand"/>
+                            <Button Content="Collapse All" Click="BtnCollapseAll_Click" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,15,0" Cursor="Hand"/>
+                            
+                            <Button Content="Check All" Command="{Binding SelectAllCommand}" CommandParameter="True" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,5,0" Cursor="Hand"/>
+                            <Button Content="Uncheck All" Command="{Binding SelectAllCommand}" CommandParameter="False" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Cursor="Hand"/>
+                        </StackPanel>
+                        
+                        <TextBlock Grid.Column="1" Text="Each row creates a View, creates a Sheet, sets ScopeBox, adds to Sheet, sets Title, and aligns it." VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="#7F8C8D" FontStyle="Italic"/>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1" x:Name="MainDataGrid" ItemsSource="{Binding AutoRowsView}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}">
+                        <DataGrid.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Margin" Value="0,0,0,5"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <Expander IsExpanded="True" BorderBrush="#DCDDE1" BorderThickness="1" Background="#F8FAFC">
+                                                        <Expander.Header>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,5">
+                                                                <CheckBox IsChecked="{Binding Items[0].IsGroupSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="5,0,10,0" VerticalAlignment="Center"/>
+                                                                <ComboBox ItemsSource="{Binding DataContext.ProjectLevels, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Items[0].SelectedLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Name" Width="140" Margin="0,0,10,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                                <TextBox Text="{Binding Items[0].SheetNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,5,0" FontWeight="Bold" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="-" Margin="5,0" VerticalAlignment="Center" Foreground="#2C3E50"/>
+                                                                <TextBox Text="{Binding Items[0].SheetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="400" FontWeight="Bold" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Expander.Header>
+                                                        <ItemsPresenter />
+                                                    </Expander>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="✓" Width="40">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Level" Width="140">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding SelectedLevel.Name}" VerticalAlignment="Center" Margin="5,0"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
                             <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
 
                             <DataGridTemplateColumn Header="View Type" Width="120">
@@ -114,19 +144,6 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Scope Box" Width="120">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding DataContext.ScopeBoxOptions, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                  SelectedItem="{Binding SelectedScopeBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                  DisplayMemberPath="Name" Margin="2"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTextColumn Header="Sheet Number" Binding="{Binding SheetNumber, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
-                            <DataGridTextColumn Header="Sheet Name" Binding="{Binding SheetName, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
 
                             <DataGridTemplateColumn Header="Actions" Width="70">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -159,9 +176,9 @@
                     <ComboBox ItemsSource="{Binding ViewportTitleTypes}" SelectedItem="{Binding SelectedViewportTitle}" 
                               DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="4. Template View For Alignment" Style="{StaticResource SectionLabel}"/>
-                    <TextBlock Text="Select a View already on a Sheet. New views will be aligned to its exact coordinates." Foreground="#7F8C8D" FontSize="11" Margin="0,0,0,5"/>
-                    <ComboBox ItemsSource="{Binding AlignTemplates}" SelectedItem="{Binding SelectedAlignTemplate}" 
+                    <TextBlock Text="4. Global Scope Box" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="Apply this Scope Box to all created views." Foreground="#7F8C8D" FontSize="11" Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding ScopeBoxOptions}" SelectedItem="{Binding SelectedGlobalScopeBox}" 
                               DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
                     <TextBlock Text="5. Stack Views (Place all views at the same center point)" Style="{StaticResource SectionLabel}"/>

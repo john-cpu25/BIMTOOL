@@ -61,8 +61,30 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
         public bool IsSelected
         {
             get => _isSelected;
-            set { _isSelected = value; OnPropertyChanged(); }
+            set 
+            { 
+                _isSelected = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(IsGroupSelected));
+            }
         }
+
+        public bool IsGroupSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged(nameof(IsSelected));
+                    OnPropertyChanged(nameof(IsGroupSelected));
+                    GroupSelectionChangedCallback?.Invoke(this, value);
+                }
+            }
+        }
+
+        public string SheetNumberAndName => $"{SheetNumber} - {SheetName}";
 
         private LevelItem _selectedLevel;
         public LevelItem SelectedLevel
@@ -138,6 +160,7 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
                 {
                     _sheetNumber = value; 
                     OnPropertyChanged(); 
+                    OnPropertyChanged(nameof(SheetNumberAndName));
                     SheetNumberChangedCallback?.Invoke(this, value);
                 }
             }
@@ -153,6 +176,7 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
                 {
                     _sheetName = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(SheetNumberAndName));
                     SheetNameChangedCallback?.Invoke(this, value);
                 }
             }
@@ -163,5 +187,6 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
         public Action<AutoViewSheetRow, string> SheetNumberChangedCallback { get; set; }
         public Action<AutoViewSheetRow, string> SheetNameChangedCallback { get; set; }
         public Action<AutoViewSheetRow, ScopeBoxItem> ScopeBoxChangedCallback { get; set; }
+        public Action<AutoViewSheetRow, bool> GroupSelectionChangedCallback { get; set; }
     }
 }

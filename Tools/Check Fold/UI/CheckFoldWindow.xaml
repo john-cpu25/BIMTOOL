@@ -229,6 +229,9 @@
                             <DataTrigger Binding="{Binding Status}" Value="Sai">
                                 <Setter Property="Background" Value="#FFFFEDD5"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="Lỗi Vị Trí">
+                                <Setter Property="Background" Value="#FFF1F2F6"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -245,6 +248,9 @@
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding Status}" Value="Sai">
                                     <Setter Property="Foreground" Value="{StaticResource AccentOrange}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Lỗi Vị Trí">
+                                    <Setter Property="Foreground" Value="{StaticResource AccentRed}"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

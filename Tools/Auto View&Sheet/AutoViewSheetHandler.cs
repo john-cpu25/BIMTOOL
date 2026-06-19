@@ -114,12 +114,12 @@ namespace RincoNhan.Tools.AutoViewSheet
                         }
 
                         // 3. ADD SCOPE BOX
-                        if (row.SelectedScopeBox != null && row.SelectedScopeBox.Id != ElementId.InvalidElementId)
+                        if (ViewModel.SelectedGlobalScopeBox != null && ViewModel.SelectedGlobalScopeBox.Id != ElementId.InvalidElementId)
                         {
                             var sbParam = newView.get_Parameter(BuiltInParameter.VIEWER_VOLUME_OF_INTEREST_CROP);
                             if (sbParam != null && !sbParam.IsReadOnly)
                             {
-                                sbParam.Set(row.SelectedScopeBox.Id);
+                                sbParam.Set(ViewModel.SelectedGlobalScopeBox.Id);
                             }
                         }
 
@@ -164,11 +164,7 @@ namespace RincoNhan.Tools.AutoViewSheet
                                 }
                             }
 
-                            // 6. ALIGN VIEW
-                            if (ViewModel.SelectedAlignTemplate != null && ViewModel.SelectedAlignTemplate.Id != ElementId.InvalidElementId)
-                            {
-                                AlignViewport(doc, newViewport, ViewModel.SelectedAlignTemplate.Id);
-                            }
+
                         }
 
                         successCount++;
@@ -264,24 +260,6 @@ namespace RincoNhan.Tools.AutoViewSheet
             return newSheet;
         }
 
-        private void AlignViewport(Document doc, Viewport targetViewport, ElementId templateViewId)
-        {
-            // Find the viewport of the template view
-            var templateViewport = new FilteredElementCollector(doc)
-                .OfClass(typeof(Viewport))
-                .Cast<Viewport>()
-                .FirstOrDefault(vp => vp.ViewId == templateViewId);
-
-            if (templateViewport != null)
-            {
-                XYZ targetCenter = templateViewport.GetBoxCenter();
-                try
-                {
-                    targetViewport.SetBoxCenter(targetCenter);
-                }
-                catch { }
-            }
-        }
 
         private string GetUniqueViewName(Document doc, string baseName)
         {

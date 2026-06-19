@@ -100,6 +100,40 @@ namespace RincoNhan.Tools.CheckFold
         }
 
         /// <summary>
+        /// Get the top elevation of an element (Floor or Beam) in mm.
+        /// </summary>
+        public static double GetElementTopElevation(Document doc, Element element)
+        {
+            // First try to get STRUCTURAL_ELEVATION_AT_TOP (accurate for most structural floors and beams)
+            var param = element.get_Parameter(BuiltInParameter.STRUCTURAL_ELEVATION_AT_TOP);
+            if (param != null && param.HasValue)
+            {
+                // Use AsValueString to match Revit's displayed rounding, exactly as old code
+                string valStr = param.AsValueString();
+                if (!string.IsNullOrEmpty(valStr) && double.TryParse(valStr, out double val))
+                {
+                    return val;
+                }
+                return param.AsDouble() * FeetToMm;
+            }
+
+            // Fallback for Floors without structural elevation parameter
+            if (element is Floor floor)
+            {
+                return GetFloorTopElevation(doc, floor);
+            }
+            
+            // Fallback for beams: try to get z-coordinate from geometry or bounding box
+            var bb = element.get_BoundingBox(null);
+            if (bb != null)
+            {
+                return bb.Max.Z * FeetToMm;
+            }
+            
+            return 0;
+        }
+
+        /// <summary>
         /// Get the bottom elevation of a floor = top elevation - thickness, in mm.
         /// </summary>
         public static double GetFloorBottomElevation(Document doc, Floor floor)
@@ -389,10 +423,15 @@ namespace RincoNhan.Tools.CheckFold
         /// </summary>
         public static string GetRLStepValue(FamilyInstance stepFamily)
         {
-            var param = stepFamily.LookupParameter("RL STEP");
-            if (param != null && param.HasValue && param.StorageType == StorageType.String)
+            var pList = stepFamily.GetParameters("RL STEP");
+            if (pList.Count == 0) pList = stepFamily.GetParameters("R.L STEP");
+            
+            foreach (var param in pList)
             {
-                return param.AsString() ?? "";
+                if (param != null && param.HasValue && param.StorageType == StorageType.String)
+                {
+                    return param.AsString() ?? "";
+                }
             }
             return "";
         }
@@ -424,19 +463,26 @@ namespace RincoNhan.Tools.CheckFold
         {
             bool anySuccess = false;
 
-            // 1. Update "RL STEP" text parameter (displayed value)
-            var rlParam = stepFamily.LookupParameter("RL STEP");
-            if (rlParam != null && !rlParam.IsReadOnly)
+            // 1. Update "RL STEP" or "R.L STEP" text parameter (displayed value)
+            var pList = stepFamily.GetParameters("RL STEP");
+            if (pList.Count == 0) pList = stepFamily.GetParameters("R.L STEP");
+            
+            foreach (var rlParam in pList)
             {
-                if (rlParam.StorageType == StorageType.String)
+                if (rlParam != null && !rlParam.IsReadOnly)
                 {
-                    rlParam.Set(isVaries ? "Varies" : valueMm.ToString("F0"));
-                    anySuccess = true;
-                }
-                else if (rlParam.StorageType == StorageType.Double && !isVaries)
-                {
-                    rlParam.Set(valueMm / FeetToMm);
-                    anySuccess = true;
+                    if (rlParam.StorageType == StorageType.String)
+                    {
+                        rlParam.Set(isVaries ? "Varies" : valueMm.ToString("F0"));
+                        anySuccess = true;
+                        break;
+                    }
+                    else if (rlParam.StorageType == StorageType.Double && !isVaries)
+                    {
+                        rlParam.Set(valueMm / FeetToMm);
+                        anySuccess = true;
+                        break;
+                    }
                 }
             }
 
@@ -455,13 +501,121 @@ namespace RincoNhan.Tools.CheckFold
             return anySuccess;
         }
 
+        private static List<XYZ> CreateOffsetPoints(XYZ pt, double offset)
+        {
+            return new List<XYZ>()
+            {
+                pt,                                 // Center
+                pt + new XYZ(offset, 0, 0),         // Right
+                pt + new XYZ(-offset, 0, 0),        // Left
+                pt + new XYZ(0, offset, 0),         // Up/North
+                pt + new XYZ(0, -offset, 0)         // Down/South
+            };
+        }
+
+        private static bool IsTopFace(Face face)
+        {
+            if (!(face is PlanarFace pf)) return false;
+            XYZ normal = pf.FaceNormal;
+            // Top face has normal pointing generally upwards (+Z)
+            // This allows detecting sloped floors
+            return normal.Z > 0.5;
+        }
+
+        public static List<Element> GetElementsContainingPoint(List<Element> elements, FamilyInstance stepFamily)
+        {
+            List<Element> result = new List<Element>();
+            double offset = 30.0 / FeetToMm; // 30mm offset to be more forgiving of step placement
+            
+            List<XYZ> testPoints = new List<XYZ>();
+            
+            if (stepFamily.Location is LocationPoint loc)
+            {
+                testPoints.AddRange(CreateOffsetPoints(loc.Point, offset));
+            }
+            
+            var bb = stepFamily.get_BoundingBox(null);
+            if (bb != null)
+            {
+                XYZ center = (bb.Min + bb.Max) / 2.0;
+                testPoints.AddRange(CreateOffsetPoints(center, offset));
+                testPoints.Add(bb.Min);
+                testPoints.Add(bb.Max);
+                testPoints.Add(new XYZ(bb.Min.X, bb.Max.Y, bb.Min.Z));
+                testPoints.Add(new XYZ(bb.Max.X, bb.Min.Y, bb.Min.Z));
+            }
+
+            foreach (Element element in elements)
+            {
+                Options opt = new Options();
+                GeometryElement geo = element.get_Geometry(opt);
+                if (geo == null) continue;
+
+                bool found = false;
+                foreach (GeometryObject obj in geo)
+                {
+                    Solid solid = obj as Solid;
+                    
+                    // If it's a family instance, geometry might be nested
+                    if (solid == null && obj is GeometryInstance inst)
+                    {
+                        var instGeo = inst.GetInstanceGeometry();
+                        foreach (var instObj in instGeo)
+                        {
+                            if (instObj is Solid instSolid && instSolid.Faces.Size > 0)
+                            {
+                                if (CheckSolidContainsPoint(instSolid, testPoints))
+                                {
+                                    result.Add(element);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else if (solid != null && solid.Faces.Size > 0)
+                    {
+                        if (CheckSolidContainsPoint(solid, testPoints))
+                        {
+                            result.Add(element);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+            }
+            return result;
+        }
+
+        private static bool CheckSolidContainsPoint(Solid solid, List<XYZ> testPoints)
+        {
+            foreach (Face face in solid.Faces)
+            {
+                if (!IsTopFace(face)) continue;
+
+                foreach (XYZ tpt in testPoints)
+                {
+                    IntersectionResult ir = face.Project(tpt);
+                    if (ir == null) continue;
+
+                    UV uv = ir.UVPoint;
+                    if (face.IsInside(uv))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         /// <summary>
         /// Build a StepCheckItem for a single RINCO_AN_Step family instance.
-        /// Finds all floors at the step's XY location, picks the 2 slabs with different elevations.
+        /// Finds all floors/beams at the step's XY location using 5 test points.
         /// Compares "RL STEP" text value with calculated step height.
         /// </summary>
         public static StepCheckItem BuildStepCheckItem(Document doc, FamilyInstance stepFamily,
-            List<Floor> allFloors)
+            List<Element> allSlabsAndBeams)
         {
             string currentRL = GetRLStepValue(stepFamily);
             double currentOffset = GetStepOffsetValue(stepFamily);
@@ -477,99 +631,83 @@ namespace RincoNhan.Tools.CheckFold
 
             // Get step family location (XY)
             var loc = stepFamily.Location as LocationPoint;
-            if (loc == null)
+            if (loc == null && stepFamily.get_BoundingBox(null) == null)
             {
                 item.FoldTypeName = "No Location";
                 item.Status = "Sai";
                 return item;
             }
-            XYZ stepXY = loc.Point;
 
-            // Find all floors whose bounding box contains the step's XY (with tolerance)
-            double tol = 0.5; // 0.5 feet ≈ 150mm
-            var floorsAtLocation = new List<(Floor floor, double topElevation)>();
+            // Find all floors/beams containing the step (using BoundingBox + Location)
+            var overlappingElements = GetElementsContainingPoint(allSlabsAndBeams, stepFamily);
+            var elementsAtLocation = new List<(Element elem, double topElevation)>();
 
-            foreach (var floor in allFloors)
+            foreach (var elem in overlappingElements)
             {
-                var bb = floor.get_BoundingBox(null);
-                if (bb == null) continue;
-
-                // Check if step XY is within the floor's bounding box (expanded)
-                bool xInside = stepXY.X >= bb.Min.X - tol && stepXY.X <= bb.Max.X + tol;
-                bool yInside = stepXY.Y >= bb.Min.Y - tol && stepXY.Y <= bb.Max.Y + tol;
-
-                if (xInside && yInside)
-                {
-                    double topElev = GetFloorTopElevation(doc, floor);
-                    floorsAtLocation.Add((floor, topElev));
-                }
+                double topElev = GetElementTopElevation(doc, elem);
+                elementsAtLocation.Add((elem, topElev));
             }
 
-            if (floorsAtLocation.Count < 2)
+            if (elementsAtLocation.Count < 2)
             {
-                item.FoldTypeName = floorsAtLocation.Count == 1
-                    ? (doc.GetElement(floorsAtLocation[0].floor.GetTypeId()) as FloorType)?.Name ?? "1 slab only"
-                    : "No Slab Found";
-                item.Status = "Sai";
+                if (elementsAtLocation.Count == 1)
+                {
+                    item.FoldTypeName = (doc.GetElement(elementsAtLocation[0].elem.GetTypeId()) as ElementType)?.Name ?? "1 slab/beam only";
+                    item.HighSlabInfo = item.FoldTypeName; // Show what we found
+                }
+                else
+                {
+                    item.FoldTypeName = "No Slab Found";
+                }
+                item.Status = "Lỗi Vị Trí"; // Cannot calculate step if < 2 elements
                 return item;
             }
 
             // Sort by elevation descending
-            floorsAtLocation.Sort((a, b) => b.topElevation.CompareTo(a.topElevation));
+            elementsAtLocation.Sort((a, b) => b.topElevation.CompareTo(a.topElevation));
 
-            // Find the two closest floors with DIFFERENT elevations (step pair)
-            Floor highSlab = null;
-            Floor lowSlab = null;
-            double minDiff = double.MaxValue;
-
-            for (int i = 0; i < floorsAtLocation.Count; i++)
-            {
-                for (int j = i + 1; j < floorsAtLocation.Count; j++)
-                {
-                    double diff = Math.Abs(floorsAtLocation[i].topElevation - floorsAtLocation[j].topElevation);
-                    if (diff < minDiff) // Allow 0 difference to detect flush slabs
-                    {
-                        minDiff = diff;
-                        highSlab = floorsAtLocation[i].floor;
-                        lowSlab = floorsAtLocation[j].floor;
-                    }
-                }
-            }
+            // To find the actual step, we take the Highest element and the Lowest element.
+            // This avoids issues where a 3rd flush slab is hit and falsely gives a 0 difference.
+            Element highSlab = elementsAtLocation.First().elem;
+            Element lowSlab = elementsAtLocation.Last().elem;
 
             if (highSlab != null && lowSlab != null)
             {
-                bool highSloped = IsFloorSloped(doc, highSlab);
-                bool lowSloped = IsFloorSloped(doc, lowSlab);
+                bool highSloped = highSlab is Floor hf && IsFloorSloped(doc, hf);
+                bool lowSloped = lowSlab is Floor lf && IsFloorSloped(doc, lf);
 
                 if (highSloped || lowSloped)
                 {
                     item.IsVaries = true;
                     item.CalculatedValue = 0;
                     
-                    var highType = doc.GetElement(highSlab.GetTypeId()) as FloorType;
-                    var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
+                    var highType = doc.GetElement(highSlab.GetTypeId()) as ElementType;
+                    var lowType = doc.GetElement(lowSlab.GetTypeId()) as ElementType;
                     item.HighSlabInfo = $"{highType?.Name} (Sloped)";
                     item.LowSlabInfo = $"{lowType?.Name} (Sloped)";
-                    item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
+                    item.FoldTypeName = $"{elementsAtLocation.Count} elements";
 
                     item.Status = currentRL.Equals("Varies", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
                 }
                 else
                 {
-                    double highTop = GetFloorTopElevation(doc, highSlab);
-                    double lowTop = GetFloorTopElevation(doc, lowSlab);
+                    double highTop = GetElementTopElevation(doc, highSlab);
+                    double lowTop = GetElementTopElevation(doc, lowSlab);
                     item.CalculatedValue = highTop - lowTop;
 
-                    var highType = doc.GetElement(highSlab.GetTypeId()) as FloorType;
-                    var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
+                    var highType = doc.GetElement(highSlab.GetTypeId()) as ElementType;
+                    var lowType = doc.GetElement(lowSlab.GetTypeId()) as ElementType;
                     var highOffParam = highSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
                     var lowOffParam = lowSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
                     double highOffMm = highOffParam != null ? highOffParam.AsDouble() * FeetToMm : 0;
                     double lowOffMm = lowOffParam != null ? lowOffParam.AsDouble() * FeetToMm : 0;
 
+                    if (highSlab is FamilyInstance) highOffMm = highTop; // For beams, show top elevation if no offset param
+                    if (lowSlab is FamilyInstance) lowOffMm = lowTop;
+
                     item.HighSlabInfo = $"{highType?.Name} ({highOffMm:F0})";
                     item.LowSlabInfo = $"{lowType?.Name} ({lowOffMm:F0})";
-                    item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
+                    item.FoldTypeName = $"{elementsAtLocation.Count} elements";
 
                     double currentNumeric = 0;
                     double.TryParse(currentRL, out currentNumeric);

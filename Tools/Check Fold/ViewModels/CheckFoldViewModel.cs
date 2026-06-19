@@ -70,7 +70,7 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
             _handler.OnStepDataLoaded = stepItems => Dispatch(() => HandleStepData(stepItems));
             _handler.NotifyStatus = msg => Dispatch(() => StatusMessage = msg);
             _handler.OnCheckCompleted = wrongCount => Dispatch(() => HandleCheckCompleted(wrongCount));
-            _handler.OnUpdateCompleted = (updated, failed) => Dispatch(() => HandleUpdateCompleted(updated, failed));
+            _handler.OnUpdateCompleted = (successfulItems, updated, failed) => Dispatch(() => HandleUpdateCompleted(successfulItems, updated, failed));
             _handler.OnResetCompleted = () => Dispatch(() => HandleResetCompleted());
             
             _handler.OnMissingStepsChecked = items => Dispatch(() => HandleMissingStepsChecked(items));
@@ -125,23 +125,23 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
             HasChecked = true;
         }
 
-        private void HandleUpdateCompleted(int updated, int failed)
+        private void HandleUpdateCompleted(List<StepCheckItem> successfulItems, int updated, int failed)
         {
-            // Move updated items from Wrong list to Updated list
-            var updatedItems = WrongRLItems.Where(i => i.IsSelected).ToList();
-            foreach (var item in updatedItems)
+            // Move ONLY successfully updated items from Wrong list to Updated list
+            foreach (var item in successfulItems)
             {
                 item.CurrentRLValue = item.CalculatedValueStr;
                 item.CurrentOffsetValue = item.IsVaries ? 0 : -Math.Abs(item.CalculatedValue);
                 item.Status = "OK";
                 item.IsUpdated = true;
                 UpdatedRLItems.Add(item);
+                WrongRLItems.Remove(item);
             }
 
-            // Remove from wrong list
-            foreach (var item in updatedItems)
+            // Deselect items that failed
+            foreach (var item in WrongRLItems)
             {
-                WrongRLItems.Remove(item);
+                item.IsSelected = false; 
             }
 
             UpdatedRLCount = UpdatedRLItems.Count;

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Data;
+using System.ComponentModel;
 using Autodesk.Revit.DB;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -24,9 +26,6 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         public ObservableCollection<ViewportTitleItem> ViewportTitleTypes { get; set; } = new ObservableCollection<ViewportTitleItem>();
         [ObservableProperty] private ViewportTitleItem _selectedViewportTitle;
 
-        public ObservableCollection<ViewItem> AlignTemplates { get; set; } = new ObservableCollection<ViewItem>();
-        [ObservableProperty] private ViewItem _selectedAlignTemplate;
-
         [ObservableProperty] private bool _stackViews;
 
         // Data Row Options
@@ -34,9 +33,23 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         public ObservableCollection<ViewTypeItem> ViewTypes { get; set; } = new ObservableCollection<ViewTypeItem>();
         public ObservableCollection<ViewTemplateItem> ViewTemplates { get; set; } = new ObservableCollection<ViewTemplateItem>();
         public ObservableCollection<ScopeBoxItem> ScopeBoxOptions { get; set; } = new ObservableCollection<ScopeBoxItem>();
+        [ObservableProperty] private ScopeBoxItem _selectedGlobalScopeBox;
 
-        // Main Grid Rows
         public ObservableCollection<AutoViewSheetRow> AutoRows { get; set; } = new ObservableCollection<AutoViewSheetRow>();
+        public ICollectionView AutoRowsView { get; private set; }
+
+        private string _searchText;
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                if (SetProperty(ref _searchText, value))
+                {
+                    AutoRowsView.Refresh();
+                }
+            }
+        }
 
         [ObservableProperty] private string _statusMessage = "Ready.";
 
@@ -45,7 +58,43 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             _handler = handler;
             _handler.ViewModel = this;
 
+            AutoRowsView = CollectionViewSource.GetDefaultView(AutoRows);
+            AutoRowsView.GroupDescriptions.Add(new PropertyGroupDescription("SheetNumberAndName"));
+            AutoRowsView.Filter = FilterRows;
+            AutoRowsView.SortDescriptions.Add(new SortDescription("SheetNumber", ListSortDirection.Ascending));
+
             LoadData(doc);
+        }
+
+        private bool FilterRows(object obj)
+        {
+            if (string.IsNullOrWhiteSpace(SearchText)) return true;
+            if (obj is AutoViewSheetRow row)
+            {
+                return (row.SheetName != null && row.SheetName.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                       (row.SheetNumber != null && row.SheetNumber.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                       (row.SelectedLevel != null && row.SelectedLevel.Name.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+            return false;
+        }
+
+        private bool _sortAscending = true;
+        [RelayCommand]
+        private void ToggleSort()
+        {
+            _sortAscending = !_sortAscending;
+            AutoRowsView.SortDescriptions.Clear();
+            AutoRowsView.SortDescriptions.Add(new SortDescription("SheetNumber", _sortAscending ? ListSortDirection.Ascending : ListSortDirection.Descending));
+        }
+
+        [RelayCommand]
+        private void SelectAll(string action)
+        {
+            bool check = action == "True";
+            foreach (var row in AutoRows)
+            {
+                row.IsGroupSelected = check;
+            }
         }
 
         private void LoadData(Document doc)
@@ -62,9 +111,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             var viewTypes = new FilteredElementCollector(doc)
                 .OfClass(typeof(ViewFamilyType))
                 .Cast<ViewFamilyType>()
-                .Where(vt => vt.ViewFamily == ViewFamily.FloorPlan
-                          || vt.ViewFamily == ViewFamily.CeilingPlan
-                          || vt.ViewFamily == ViewFamily.StructuralPlan)
+                .Where(vt => vt.ViewFamily == ViewFamily.StructuralPlan)
                 .OrderBy(vt => vt.Name)
                 .ToList();
             foreach (var vt in viewTypes) ViewTypes.Add(new ViewTypeItem { Name = vt.Name, Id = vt.Id });
@@ -87,6 +134,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 .OrderBy(sb => sb.Name)
                 .ToList();
             foreach (var sb in scopeBoxes) ScopeBoxOptions.Add(new ScopeBoxItem { Name = sb.Name, Id = sb.Id });
+            SelectedGlobalScopeBox = ScopeBoxOptions.FirstOrDefault();
 
             // TitleBlocks
             var titleBlocks = new FilteredElementCollector(doc)
@@ -114,18 +162,6 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 }
             }
             SelectedViewportTitle = ViewportTitleTypes.FirstOrDefault();
-
-            // Align Templates (Views on sheets)
-            AlignTemplates.Add(new ViewItem { Name = "<None>", Id = ElementId.InvalidElementId });
-            var viewsOnSheets = allViewports.Select(vp => vp.ViewId).Distinct().ToList();
-            var validViews = new FilteredElementCollector(doc, viewsOnSheets)
-                .OfClass(typeof(View))
-                .Cast<View>()
-                .Where(v => v.ViewType != ViewType.Schedule && v.ViewType != ViewType.Legend)
-                .OrderBy(v => v.Name)
-                .ToList();
-            foreach (var v in validViews) AlignTemplates.Add(new ViewItem { Name = v.Name, Id = v.Id });
-            SelectedAlignTemplate = AlignTemplates.FirstOrDefault();
 
             // Auto-populate all levels
             AddAllLevels();
@@ -209,8 +245,16 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 SelectedViewTemplate = matchedTemplate,
                 SelectedScopeBox = ScopeBoxOptions.FirstOrDefault(),
                 SheetNumber = ComputeSheetNumber(baseSheetNum, offset),
-                SheetName = $"{level.Name} - GENERAL ARRANGEMENT",
+                SheetName = $"{level.Name} GENERAL ARRANGEMENT PLAN",
                 GroupId = groupId
+            };
+
+            row.GroupSelectionChangedCallback = (changedRow, isSelected) =>
+            {
+                foreach (var r in AutoRows.Where(x => x.GroupId == changedRow.GroupId && x != changedRow))
+                {
+                    r.IsSelected = isSelected;
+                }
             };
 
             row.LevelChangedCallback = (changedRow, newLevel) =>
