@@ -24,26 +24,32 @@ namespace RincoNhan.Tools.Align_Dim
             if (!(dimCurve is Line dimLine))
                 throw new Exception("Selected dimension is not a linear dimension.");
 
-            XYZ gridDir = gridLine.Direction;
+            XYZ dimDir = dimLine.Direction;
             XYZ dimPoint = dimLine.Origin;
             XYZ gridOrigin = gridLine.Origin;
-            XYZ vectorFromGridOriginToDim = dimPoint - gridOrigin;
-            double projectionLength = vectorFromGridOriginToDim.DotProduct(gridDir);
-            XYZ projectedPointOnGrid = gridOrigin + gridDir * projectionLength;
 
-            XYZ perpVector = dimPoint - projectedPointOnGrid;
-            
-            double currentDistance = perpVector.GetLength();
+            View dimView = dim.View;
+            if (dimView == null) dimView = doc.ActiveView;
+
+            XYZ viewNormal = dimView.ViewDirection;
+            XYZ moveDir = dimDir.CrossProduct(viewNormal).Normalize();
+
+            XYZ vectorFromGridOriginToDim = dimPoint - gridOrigin;
+            double currentSignedDistance = vectorFromGridOriginToDim.DotProduct(moveDir);
+
+            double currentDistance = Math.Abs(currentSignedDistance);
+            XYZ perpVectorFromGridToDim;
+
             if (currentDistance < 1e-6)
             {
-                perpVector = gridDir.CrossProduct(XYZ.BasisZ).Normalize();
+                perpVectorFromGridToDim = moveDir;
             }
             else
             {
-                perpVector = perpVector.Normalize();
+                perpVectorFromGridToDim = moveDir * Math.Sign(currentSignedDistance);
             }
 
-            XYZ moveVector = perpVector * (targetDistanceFeet - currentDistance);
+            XYZ moveVector = perpVectorFromGridToDim * (targetDistanceFeet - currentDistance);
 
             using (Transaction trans = new Transaction(doc, "Align Dimension"))
             {
@@ -65,20 +71,24 @@ namespace RincoNhan.Tools.Align_Dim
             if (!(dimCurve is Line sourceDimLine))
                 throw new Exception("Selected dimension is not a linear dimension.");
 
-            // Calculate the target distance from the source dimension
             XYZ gridDir = gridLine.Direction;
             XYZ sourceDimPoint = sourceDimLine.Origin;
             XYZ gridOrigin = gridLine.Origin;
-            XYZ vectorFromGridToDim = sourceDimPoint - gridOrigin;
-            double projectionLength = vectorFromGridToDim.DotProduct(gridDir);
-            XYZ projectedPoint = gridOrigin + gridDir * projectionLength;
-            
-            XYZ perpVector = sourceDimPoint - projectedPoint;
-            double targetDistanceFeet = perpVector.GetLength();
-            XYZ targetDirection = perpVector.Normalize();
 
+            View sourceView = sourceDim.View;
+            if (sourceView == null) sourceView = doc.ActiveView;
+            XYZ sourceViewNormal = sourceView.ViewDirection;
+            XYZ moveDir = sourceDimLine.Direction.CrossProduct(sourceViewNormal).Normalize();
+
+            XYZ vectorFromGridToDim = sourceDimPoint - gridOrigin;
+            double sourceSignedDist = vectorFromGridToDim.DotProduct(moveDir);
+            double targetDistanceFeet = Math.Abs(sourceSignedDist);
+
+            XYZ targetDirection;
             if (targetDistanceFeet < 1e-6)
-                targetDirection = gridDir.CrossProduct(XYZ.BasisZ).Normalize();
+                targetDirection = moveDir;
+            else
+                targetDirection = moveDir * Math.Sign(sourceSignedDist);
 
             using (Transaction trans = new Transaction(doc, "Match Dimension in Views"))
             {
@@ -88,6 +98,7 @@ namespace RincoNhan.Tools.Align_Dim
                 {
                     View view = doc.GetElement(viewId) as View;
                     if (view == null) continue;
+                    XYZ targetViewNormal = view.ViewDirection;
 
                     // Find all dimensions in the target view
                     var targetDims = new FilteredElementCollector(doc, viewId)
@@ -99,6 +110,7 @@ namespace RincoNhan.Tools.Align_Dim
                     Dimension closestDim = null;
                     double minDistanceDiff = double.MaxValue;
                     double closestTargetDist = 0;
+                    XYZ closestTargetDir = null;
 
                     foreach (var targetDim in targetDims)
                     {
@@ -107,37 +119,42 @@ namespace RincoNhan.Tools.Align_Dim
                             // Check if parallel to grid
                             if (targetDimLine.Direction.IsAlmostEqualTo(gridDir) || targetDimLine.Direction.IsAlmostEqualTo(-gridDir))
                             {
-                                // Check if on the same side and roughly in the same location
+                                XYZ tMoveDir = targetDimLine.Direction.CrossProduct(targetViewNormal).Normalize();
                                 XYZ tDimPoint = targetDimLine.Origin;
-                                XYZ vFromGrid = tDimPoint - gridOrigin;
-                                double pLen = vFromGrid.DotProduct(gridDir);
-                                XYZ pPoint = gridOrigin + gridDir * pLen;
+                                XYZ tVector = tDimPoint - gridOrigin;
                                 
-                                XYZ tPerpVector = tDimPoint - pPoint;
-                                double tDist = tPerpVector.GetLength();
+                                double tSignedDist = tVector.DotProduct(tMoveDir);
+                                double tDist = Math.Abs(tSignedDist);
                                 
-                                if (tDist > 1e-6)
+                                XYZ tDir;
+                                if (tDist < 1e-6)
                                 {
-                                    XYZ tDir = tPerpVector.Normalize();
-                                    if (tDir.IsAlmostEqualTo(targetDirection))
+                                    tDir = targetDirection;
+                                }
+                                else
+                                {
+                                    tDir = tMoveDir * Math.Sign(tSignedDist);
+                                }
+
+                                if (tDist < 1e-6 || tDir.IsAlmostEqualTo(targetDirection))
+                                {
+                                    double diff = Math.Abs(tDist - targetDistanceFeet);
+                                    if (diff < minDistanceDiff)
                                     {
-                                        double diff = Math.Abs(tDist - targetDistanceFeet);
-                                        if (diff < minDistanceDiff)
-                                        {
-                                            minDistanceDiff = diff;
-                                            closestDim = targetDim;
-                                            closestTargetDist = tDist;
-                                        }
+                                        minDistanceDiff = diff;
+                                        closestDim = targetDim;
+                                        closestTargetDist = tDist;
+                                        closestTargetDir = tDir;
                                     }
                                 }
                             }
                         }
                     }
 
-                    if (closestDim != null)
+                    if (closestDim != null && closestTargetDir != null)
                     {
                         // It's parallel, on the same side, and closest to original position. We move it.
-                        XYZ moveVector = targetDirection * (targetDistanceFeet - closestTargetDist);
+                        XYZ moveVector = closestTargetDir * (targetDistanceFeet - closestTargetDist);
                         try
                         {
                             ElementTransformUtils.MoveElement(doc, closestDim.Id, moveVector);
