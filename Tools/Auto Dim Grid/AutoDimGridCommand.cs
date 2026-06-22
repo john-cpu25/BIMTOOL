@@ -5,6 +5,8 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
+using RincoNhan.Tools.Auto_Dim_Grid.UI;
+using RincoNhan.Tools.Auto_Dim_Grid.ViewModels;
 
 namespace RincoNhan.Tools.Auto_Dim_Grid
 {
@@ -30,8 +32,6 @@ namespace RincoNhan.Tools.Auto_Dim_Grid
 
             try
             {
-                XYZ pickPoint = uidoc.Selection.PickPoint("Chọn vị trí đặt đường Dim");
-
                 var grids = new FilteredElementCollector(doc, currentView.Id)
                     .OfClass(typeof(Grid))
                     .Cast<Grid>()
@@ -44,12 +44,27 @@ namespace RincoNhan.Tools.Auto_Dim_Grid
                     return Result.Succeeded;
                 }
 
-                using (Transaction tx = new Transaction(doc, "Auto Dim Grid"))
-                {
-                    tx.Start();
-                    AutoDimGridLogic.CreateDimensions(doc, currentView, grids, pickPoint);
-                    tx.Commit();
-                }
+                var gridHandler = new AutoDimGridEventHandler();
+                ExternalEvent gridEvent = ExternalEvent.Create(gridHandler);
+
+                var wallHandler = new AutoDimWallEventHandler();
+                ExternalEvent wallEvent = ExternalEvent.Create(wallHandler);
+
+                var multiWallsHandler = new AutoDimMultiWallsEventHandler();
+                ExternalEvent multiWallsEvent = ExternalEvent.Create(multiWallsHandler);
+
+                var viewModel = new AutoDimGridViewModel(doc);
+                gridHandler.ViewModel = viewModel;
+                wallHandler.ViewModel = viewModel;
+                multiWallsHandler.ViewModel = viewModel;
+
+                var window = new AutoDimGridWindow(viewModel, gridEvent, wallEvent, multiWallsEvent);
+
+                // Set owner to Revit main window
+                var helper = new System.Windows.Interop.WindowInteropHelper(window);
+                helper.Owner = uiapp.MainWindowHandle;
+
+                window.Show();
 
                 return Result.Succeeded;
             }

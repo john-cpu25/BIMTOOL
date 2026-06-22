@@ -139,12 +139,12 @@ namespace RincoNhan.Core
         private static void AddAutoDimGridButton(RibbonPanel panel)
         {
             PushButtonData btnData = new PushButtonData(
-                "cmdAutoDimGrid",
-                "Auto Dim\nGrid",
+                "cmdAutoDimension",
+                "Auto\nDimension",
                 _assemblyPath,
                 "RincoNhan.Tools.Auto_Dim_Grid.AutoDimGridCommand"
             );
-            btnData.ToolTip = "Auto dimension grids.";
+            btnData.ToolTip = "Auto dimension grids, walls and doors.";
             
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("AutoDimGrid.png") ?? LoadIcon("AlignTags.png");
