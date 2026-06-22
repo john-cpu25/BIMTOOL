@@ -29,6 +29,8 @@ namespace RincoNhan.Core
 
             // Define Panels
             RibbonPanel generalPanel = GetOrCreatePanel(application, tabName, "General");
+            RibbonPanel layoutPanel = GetOrCreatePanel(application, tabName, "Layout");
+            RibbonPanel excelPanel = GetOrCreatePanel(application, tabName, "Excel");
             RibbonPanel familyPanel = GetOrCreatePanel(application, tabName, "Family");
             RibbonPanel loadingPanel = GetOrCreatePanel(application, tabName, "Loading");
             RibbonPanel mtoPanel = GetOrCreatePanel(application, tabName, "MTO");
@@ -36,24 +38,29 @@ namespace RincoNhan.Core
             RibbonPanel rebarPanel = GetOrCreatePanel(application, tabName, "Rebar");
             RibbonPanel linkPanel = GetOrCreatePanel(application, tabName, "Link");
             RibbonPanel wallPanel = GetOrCreatePanel(application, tabName, "Wall");
+            RibbonPanel dimPanel = GetOrCreatePanel(application, tabName, "Dim");
 
             // === GENERAL Panel ===
             AddAddSharedParamButton(generalPanel);
             AddClashDetectionButton(generalPanel);
             AddFilterButton(generalPanel);
             AddCreateLevelButton(generalPanel);
-            AddAutoViewSheetButton(generalPanel);
             AddConnectionButton(generalPanel);
             AddJoinElementsButton(generalPanel);
-            AddExportExcelButton(generalPanel);
-            AddImportEXtoLegendButton(generalPanel);
-            AddAlignDimButton(generalPanel);
+
+            // === DIM Panel ===
+            AddAlignDimButton(dimPanel);
+            AddAutoDimGridButton(dimPanel);
+
+            // === LAYOUT Panel ===
+            AddCreateViewSheetButton(layoutPanel);
+            AddAutoViewSheetButton(layoutPanel);
+
+            // === EXCEL Panel ===
+            AddExportExcelButton(excelPanel);
+            AddImportEXtoLegendButton(excelPanel);
             // === FAMILY Panel ===
-            AddExportFamilyDataButton(familyPanel);
-            AddImportFamilyDataButton(familyPanel);
-            AddExportFamilyTypeDataButton(familyPanel);
-            AddImportFamilyTypeDataButton(familyPanel);
-            AddExportSharedParamButton(familyPanel);
+            AddFamilyDataSplitButton(familyPanel);
 
             // === LOADING Panel ===
             AddLoadingHatchButton(loadingPanel);
@@ -74,10 +81,13 @@ namespace RincoNhan.Core
             AddRebarColumnButton(rebarPanel);
 
             // === LINK Panel ===
-            AddOverrideCadButton(linkPanel);
-            AddReloadCADButton(linkPanel);
-            AddSmartLinkCadButton(linkPanel);
-            AddSmartLinkRevitButton(linkPanel);
+            PushButtonData pbdOverrideCad = GetOverrideCadButtonData();
+            PushButtonData pbdReloadCAD = GetReloadCADButtonData();
+            PushButtonData pbdSmartLinkCad = GetSmartLinkCadButtonData();
+            PushButtonData pbdSmartLinkRevit = GetSmartLinkRevitButtonData();
+
+            linkPanel.AddStackedItems(pbdOverrideCad, pbdReloadCAD);
+            linkPanel.AddStackedItems(pbdSmartLinkCad, pbdSmartLinkRevit);
 
             // === WALL Panel ===
             AddViewRefButton(wallPanel);
@@ -126,19 +136,35 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("AlignDim.png", 16) ?? LoadIcon("AlignTags.png", 16);
         }
 
-        private static void AddReloadCADButton(RibbonPanel panel)
+        private static void AddAutoDimGridButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdAutoDimGrid",
+                "Auto Dim\nGrid",
+                _assemblyPath,
+                "RincoNhan.Tools.Auto_Dim_Grid.AutoDimGridCommand"
+            );
+            btnData.ToolTip = "Auto dimension grids.";
+            
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("AutoDimGrid.png") ?? LoadIcon("AlignTags.png");
+            pb.Image = LoadIcon("AutoDimGrid.png", 16) ?? LoadIcon("AlignTags.png", 16);
+        }
+
+        private static PushButtonData GetReloadCADButtonData()
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdReloadCADLinks",
-                "Reload\nCAD Links",
+                "\u2800\u2800",
                 _assemblyPath,
                 "RincoNhan.Tools.ReloadCADLinks.ReloadCADCommand"
             );
-            btnData.ToolTip = "Batch reload CAD links with path overriding.";
+            btnData.ToolTip = "Reload CAD Links\nBatch reload CAD links with path overriding.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ReloadCAD.png");
-            pb.Image = LoadIcon("ReloadCAD.png", 16);
+            btnData.LargeImage = LoadIcon("ReloadCAD.png");
+            btnData.Image = LoadIcon("ReloadCAD.png", 16);
+            
+            return btnData;
         }
 
         private static void AddJoinElementsButton(RibbonPanel panel)
@@ -317,6 +343,21 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("CreateLevel.png", 16);
         }
 
+        private static void AddCreateViewSheetButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdCreateViewSheet",
+                "Create View\n& Sheet",
+                _assemblyPath,
+                "RincoNhan.Tools.CreateViewSheet.Command"
+            );
+            btnData.ToolTip = "Create Views & Sheets.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("CreateViewSheet.png") ?? LoadIcon("CreateLevel.png");
+            pb.Image = LoadIcon("CreateViewSheet.png", 16) ?? LoadIcon("CreateLevel.png", 16);
+        }
+
         private static void AddAutoViewSheetButton(RibbonPanel panel)
         {
             PushButtonData btnData = new PushButtonData(
@@ -333,34 +374,36 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("CreateLevel.png", 16);
         }
 
-        private static void AddSmartLinkCadButton(RibbonPanel panel)
+        private static PushButtonData GetSmartLinkCadButtonData()
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdSmartLinkCad",
-                "Smart\nLink Cad",
+                "\u2800\u2800\u2800",
                 _assemblyPath,
                 "RincoNhan.Tools.SmartLinkCad.SmartLinkCadCommand"
             );
-            btnData.ToolTip = "Batch override graphics of CAD files and layers.";
+            btnData.ToolTip = "Smart Link Cad\nBatch override graphics of CAD files and layers.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("Smart Link Cad.png");
-            pb.Image = LoadIcon("Smart Link Cad.png", 16);
+            btnData.LargeImage = LoadIcon("Smart Link Cad.png");
+            btnData.Image = LoadIcon("Smart Link Cad.png", 16);
+            
+            return btnData;
         }
 
-        private static void AddSmartLinkRevitButton(RibbonPanel panel)
+        private static PushButtonData GetSmartLinkRevitButtonData()
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdSmartLinkRevit",
-                "Smart\nLink RVT",
+                "\u2800\u2800\u2800\u2800",
                 _assemblyPath,
                 "RincoNhan.Tools.SmartLinkRevit.SmartLinkRevitCommand"
             );
-            btnData.ToolTip = "Batch apply RVT Link Display Settings across multiple host views.";
+            btnData.ToolTip = "Smart Link RVT\nBatch apply RVT Link Display Settings across multiple host views.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("Smart Link Revit.png");
-            pb.Image = LoadIcon("Smart Link Revit.png", 16);
+            btnData.LargeImage = LoadIcon("Smart Link Revit.png");
+            btnData.Image = LoadIcon("Smart Link Revit.png", 16);
+            
+            return btnData;
         }
 
         private static void AddQueryElementButton(RibbonPanel panel)
@@ -423,19 +466,70 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("MtoGroupBar.png", 16);
         }
 
-        private static void AddExportSharedParamButton(RibbonPanel panel)
+        private static void AddFamilyDataSplitButton(RibbonPanel panel)
         {
-            PushButtonData btnData = new PushButtonData(
+            SplitButtonData sbData = new SplitButtonData("cmdFamilyDataSplit", "Family\nData");
+            SplitButton sb = panel.AddItem(sbData) as SplitButton;
+
+            // Export Family JSON
+            PushButtonData btnExportFamily = new PushButtonData(
+                "cmdExportFamilyData",
+                "Export\nFamily JSON",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ExportFamilyDataCommand"
+            );
+            btnExportFamily.ToolTip = "Export Family's Lines, Ref Planes, and Dimensions to JSON.";
+            PushButton pbExportFamily = sb.AddPushButton(btnExportFamily);
+            pbExportFamily.LargeImage = LoadIcon("ExportFamilyJSON.png");
+            pbExportFamily.Image = LoadIcon("ExportFamilyJSON.png", 16);
+
+            // Import Family JSON
+            PushButtonData btnImportFamily = new PushButtonData(
+                "cmdImportFamilyData",
+                "Import\nFamily JSON",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ImportFamilyDataCommand"
+            );
+            btnImportFamily.ToolTip = "Import Lines and Ref Planes from JSON into current Family.";
+            PushButton pbImportFamily = sb.AddPushButton(btnImportFamily);
+            pbImportFamily.LargeImage = LoadIcon("ImportFamilyJSON.png");
+            pbImportFamily.Image = LoadIcon("ImportFamilyJSON.png", 16);
+
+            // Export Type Data
+            PushButtonData btnExportType = new PushButtonData(
+                "cmdExportFamilyTypeData",
+                "Export\nType Data",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ExportFamilyTypeDataCommand"
+            );
+            btnExportType.ToolTip = "Export Family Types and Parameters to JSON (run in Project env).";
+            PushButton pbExportType = sb.AddPushButton(btnExportType);
+            pbExportType.LargeImage = LoadIcon("ExportTypeData.png");
+            pbExportType.Image = LoadIcon("ExportTypeData.png", 16);
+
+            // Import Type Data
+            PushButtonData btnImportType = new PushButtonData(
+                "cmdImportFamilyTypeData",
+                "Import\nType Data",
+                _assemblyPath,
+                "RincoNhan.Tools.ExportFamilyData.ImportFamilyTypeDataCommand"
+            );
+            btnImportType.ToolTip = "Import Family Types and Parameters from JSON (run in Family env).";
+            PushButton pbImportType = sb.AddPushButton(btnImportType);
+            pbImportType.LargeImage = LoadIcon("ImportTypeData.png");
+            pbImportType.Image = LoadIcon("ImportTypeData.png", 16);
+
+            // Export Shared Param
+            PushButtonData btnExportSharedParam = new PushButtonData(
                 "cmdExportSharedParam",
                 "Export\nShared Param",
                 _assemblyPath,
                 "RincoNhan.Tools.ExportSharedParameters.ExportSharedParamCommand"
             );
-            btnData.ToolTip = "Export all Shared Parameters in the document to a TXT or Excel file.";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ExportSharedParam.png");
-            pb.Image = LoadIcon("ExportSharedParam.png", 16);
+            btnExportSharedParam.ToolTip = "Export all Shared Parameters in the document to a TXT or Excel file.";
+            PushButton pbExportSharedParam = sb.AddPushButton(btnExportSharedParam);
+            pbExportSharedParam.LargeImage = LoadIcon("ExportSharedParam.png");
+            pbExportSharedParam.Image = LoadIcon("ExportSharedParam.png", 16);
         }
 
         private static void AddAddSharedParamButton(RibbonPanel panel)
@@ -453,65 +547,7 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("AddSharedParam.png", 16);
         }
 
-        private static void AddExportFamilyDataButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdExportFamilyData",
-                "Export\nFamily JSON",
-                _assemblyPath,
-                "RincoNhan.Tools.ExportFamilyData.ExportFamilyDataCommand"
-            );
-            btnData.ToolTip = "Export Family's Lines, Ref Planes, and Dimensions to JSON.";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ExportFamilyJSON.png");
-            pb.Image = LoadIcon("ExportFamilyJSON.png", 16);
-        }
-
-        private static void AddImportFamilyDataButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdImportFamilyData",
-                "Import\nFamily JSON",
-                _assemblyPath,
-                "RincoNhan.Tools.ExportFamilyData.ImportFamilyDataCommand"
-            );
-            btnData.ToolTip = "Import Lines and Ref Planes from JSON into current Family.";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ImportFamilyJSON.png");
-            pb.Image = LoadIcon("ImportFamilyJSON.png", 16);
-        }
-
-        private static void AddExportFamilyTypeDataButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdExportFamilyTypeData",
-                "Export\nType Data",
-                _assemblyPath,
-                "RincoNhan.Tools.ExportFamilyData.ExportFamilyTypeDataCommand"
-            );
-            btnData.ToolTip = "Export Family Types and Parameters to JSON (run in Project env).";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ExportTypeData.png");
-            pb.Image = LoadIcon("ExportTypeData.png", 16);
-        }
-
-        private static void AddImportFamilyTypeDataButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdImportFamilyTypeData",
-                "Import\nType Data",
-                _assemblyPath,
-                "RincoNhan.Tools.ExportFamilyData.ImportFamilyTypeDataCommand"
-            );
-            btnData.ToolTip = "Import Family Types and Parameters from JSON (run in Family env).";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ImportTypeData.png");
-            pb.Image = LoadIcon("ImportTypeData.png", 16);
-        }
+        // Removed individual Family buttons
 
         private static void AddLoadingHatchButton(RibbonPanel panel)
         {
@@ -601,19 +637,20 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("ClashDetection.png", 16);
         }
 
-        private static void AddOverrideCadButton(RibbonPanel panel)
+        private static PushButtonData GetOverrideCadButtonData()
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdOverrideCad",
-                "Override\nCAD",
+                "\u2800",
                 _assemblyPath,
                 "RincoNhan.Tools.OverrideCad.Command"
             );
-            btnData.ToolTip = "Override CAD link display settings.";
+            btnData.ToolTip = "Override CAD\nOverride CAD link display settings.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("OverrideCad.png");
-            pb.Image = LoadIcon("OverrideCad.png", 16);
+            btnData.LargeImage = LoadIcon("OverrideCad.png");
+            btnData.Image = LoadIcon("OverrideCad.png", 16);
+            
+            return btnData;
         }
         private static void AddCheckFoldButton(RibbonPanel panel)
         {
