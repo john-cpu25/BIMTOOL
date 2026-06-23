@@ -61,13 +61,10 @@ namespace RincoNhan.Core
             AddImportEXtoLegendButton(excelPanel);
             // === FAMILY Panel ===
             AddFamilyDataSplitButton(familyPanel);
-
             // === LOADING Panel ===
             AddLoadingHatchButton(loadingPanel);
             AddLoadingScheduleButton(loadingPanel);
-
-            // === CONVERT HATCH ===
-            AddConvertHatchSplitButton(generalPanel);
+            AddConvertHatchButton(loadingPanel);
 
             // === MTO Panel ===
             AddMtoGroupBarButton(mtoPanel);
@@ -697,6 +694,21 @@ namespace RincoNhan.Core
             PushButton pbImportHatch = sb.AddPushButton(btnImportHatch);
             pbImportHatch.LargeImage = LoadIcon("ImportHatch.png") ?? LoadIcon("LoadingHatch.png");
             pbImportHatch.Image = LoadIcon("ImportHatch.png", 16) ?? LoadIcon("LoadingHatch.png", 16);
+        }
+
+        private static void AddConvertHatchButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdConvertHatch",
+                "Convert\nHatch",
+                _assemblyPath,
+                "RincoNhan.Tools.ConvertHatch.ConvertHatchCommand"
+            );
+            btnData.ToolTip = "Convert Hatch Tool.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("ConvertHatch.png") ?? LoadIcon("ExportHatch.png");
+            pb.Image = LoadIcon("ConvertHatch.png", 16) ?? LoadIcon("ExportHatch.png", 16);
         }
     }
 }

@@ -125,4 +125,6 @@
     
     <Copy SourceFiles="$(ProjectDir)PackageContents.xml" DestinationFolder="$(BundleFolder)" SkipUnchangedFiles="true" />
   </Target>
+<ItemGroup><Reference Include="HuyAddin"><HintPath>ALL\HuyAddin.dll</HintPath></Reference></ItemGroup>
 </Project>
+
