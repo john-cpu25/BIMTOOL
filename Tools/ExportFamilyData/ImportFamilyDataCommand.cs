@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Text.Json;
+
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
@@ -34,7 +34,7 @@ namespace RincoNhan.Tools.ExportFamilyData
                     if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     {
                         string jsonString = File.ReadAllText(openFileDialog.FileName);
-                        var data = JsonSerializer.Deserialize<FamilyDataModel>(jsonString);
+                        var data = JsonHelper.Deserialize<FamilyDataModel>(jsonString);
 
                         if (data == null)
                         {
@@ -524,3 +524,4 @@ namespace RincoNhan.Tools.ExportFamilyData
         }
     }
 }
+

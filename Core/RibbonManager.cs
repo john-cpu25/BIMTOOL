@@ -66,6 +66,9 @@ namespace RincoNhan.Core
             AddLoadingHatchButton(loadingPanel);
             AddLoadingScheduleButton(loadingPanel);
 
+            // === CONVERT HATCH ===
+            AddConvertHatchSplitButton(generalPanel);
+
             // === MTO Panel ===
             AddMtoGroupBarButton(mtoPanel);
             AddMtoQueryButton(mtoPanel);
@@ -665,6 +668,35 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("CheckFold.png");
             pb.Image = LoadIcon("CheckFold.png", 16);
+        }
+        private static void AddConvertHatchSplitButton(RibbonPanel panel)
+        {
+            SplitButtonData sbData = new SplitButtonData("cmdConvertHatchSplit", "Convert\nHatch");
+            SplitButton sb = panel.AddItem(sbData) as SplitButton;
+
+            // Export Hatch
+            PushButtonData btnExportHatch = new PushButtonData(
+                "cmdExportHatch",
+                "Export\nHatch",
+                _assemblyPath,
+                "RincoNhan.Tools.ConvertHatch.ExportHatchCommand"
+            );
+            btnExportHatch.ToolTip = "Export Filled Regions to JSON.";
+            PushButton pbExportHatch = sb.AddPushButton(btnExportHatch);
+            pbExportHatch.LargeImage = LoadIcon("ExportHatch.png") ?? LoadIcon("LoadingHatch.png");
+            pbExportHatch.Image = LoadIcon("ExportHatch.png", 16) ?? LoadIcon("LoadingHatch.png", 16);
+
+            // Import Hatch
+            PushButtonData btnImportHatch = new PushButtonData(
+                "cmdImportHatch",
+                "Import\nHatch",
+                _assemblyPath,
+                "RincoNhan.Tools.ConvertHatch.ImportHatchCommand"
+            );
+            btnImportHatch.ToolTip = "Import Filled Regions from JSON.";
+            PushButton pbImportHatch = sb.AddPushButton(btnImportHatch);
+            pbImportHatch.LargeImage = LoadIcon("ImportHatch.png") ?? LoadIcon("LoadingHatch.png");
+            pbImportHatch.Image = LoadIcon("ImportHatch.png", 16) ?? LoadIcon("LoadingHatch.png", 16);
         }
     }
 }

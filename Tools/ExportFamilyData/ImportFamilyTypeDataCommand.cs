@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Text.Json;
+
 using System.Linq;
 using System.Collections.Generic;
 using Autodesk.Revit.Attributes;
@@ -36,7 +36,7 @@ namespace RincoNhan.Tools.ExportFamilyData
                         FamilyTypeExportModel data = null;
                         try
                         {
-                            data = JsonSerializer.Deserialize<FamilyTypeExportModel>(jsonString);
+                            data = JsonHelper.Deserialize<FamilyTypeExportModel>(jsonString);
                         }
                         catch
                         {
@@ -448,3 +448,4 @@ namespace RincoNhan.Tools.ExportFamilyData
         }
     }
 }
+

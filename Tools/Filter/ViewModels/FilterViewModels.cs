@@ -6,7 +6,7 @@ using System.Linq;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using System.Text.Json;
+
 using Autodesk.Revit.DB;
 using RincoNhan.Tools.Filter.Models;
 using System.Windows.Data;
@@ -309,13 +309,13 @@ namespace RincoNhan.Tools.Filter.ViewModels
                 string dir = Path.GetDirectoryName(_libraryPath);
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
+
                 var lib = new FilterLibrary 
                 { 
                     IsDarkMode = this.IsDarkMode,
                     Filters = SavedFilters.ToList() 
                 };
-                string json = JsonSerializer.Serialize(lib, options);
+                string json = JsonHelper.Serialize(lib);
                 File.WriteAllText(_libraryPath, json);
             }
             catch (Exception ex)
@@ -331,7 +331,7 @@ namespace RincoNhan.Tools.Filter.ViewModels
                 if (File.Exists(_libraryPath))
                 {
                     string json = File.ReadAllText(_libraryPath);
-                    var lib = JsonSerializer.Deserialize<FilterLibrary>(json);
+                    var lib = JsonHelper.Deserialize<FilterLibrary>(json);
                     if (lib != null)
                     {
                         IsDarkMode = lib.IsDarkMode;
@@ -595,3 +595,6 @@ namespace RincoNhan.Tools.Filter.ViewModels
         }
     }
 }
+
+
+

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using RincoNhan.Tools.CheckFold.Models;
+using RincoModeling.Tools.CheckFold.Models;
 
-namespace RincoNhan.Tools.CheckFold
+namespace RincoModeling.Tools.CheckFold
 {
     /// <summary>
     /// IExternalEventHandler for all Revit API calls from modeless window.
@@ -21,7 +21,7 @@ namespace RincoNhan.Tools.CheckFold
         public Action<List<StepCheckItem>> OnStepDataLoaded { get; set; }
         public Action<string> NotifyStatus { get; set; }
         public Action<int> OnCheckCompleted { get; set; }
-        public Action<List<StepCheckItem>, int, int> OnUpdateCompleted { get; set; }
+        public Action<int, int> OnUpdateCompleted { get; set; }
         public Action OnResetCompleted { get; set; }
         
         public Action<List<MissingStepItem>> OnMissingStepsChecked { get; set; }
@@ -87,16 +87,9 @@ namespace RincoNhan.Tools.CheckFold
                 foldItems.Add(CheckFoldLogic.BuildFoldCheckItem(doc, fold, nonFoldFloors));
             }
 
-            // Load step data - pass ALL floors (fold + non-fold) and beams for step detection
-            var allFloors = new List<Element>(foldFloors);
+            // Load step data - pass ALL floors (fold + non-fold) for step detection
+            var allFloors = new List<Floor>(foldFloors);
             allFloors.AddRange(nonFoldFloors);
-            
-            var beams = new FilteredElementCollector(doc, view.Id)
-                .OfClass(typeof(FamilyInstance))
-                .OfCategory(BuiltInCategory.OST_StructuralFraming)
-                .ToElements();
-            allFloors.AddRange(beams);
-
             var stepFamilies = CheckFoldLogic.GetStepFamilies(doc, view);
             var stepItems = new List<StepCheckItem>();
             foreach (var step in stepFamilies)
@@ -119,15 +112,8 @@ namespace RincoNhan.Tools.CheckFold
         {
             var foldFloors = CheckFoldLogic.GetFoldFloors(doc, view);
             var nonFoldFloors = CheckFoldLogic.GetNonFoldFloors(doc, view);
-            var allFloors = new List<Element>(foldFloors);
+            var allFloors = new List<Floor>(foldFloors);
             allFloors.AddRange(nonFoldFloors);
-            
-            var beams = new FilteredElementCollector(doc, view.Id)
-                .OfClass(typeof(FamilyInstance))
-                .OfCategory(BuiltInCategory.OST_StructuralFraming)
-                .ToElements();
-            allFloors.AddRange(beams);
-
             var stepFamilies = CheckFoldLogic.GetStepFamilies(doc, view);
 
             // Build fresh step data
@@ -188,7 +174,6 @@ namespace RincoNhan.Tools.CheckFold
             Color green = new Color(0, 200, 80);
             int updated = 0;
             int failed = 0;
-            var successfulItems = new List<StepCheckItem>();
 
             using (Transaction tx = new Transaction(doc, "Check Fold - Update RL STEP"))
             {
@@ -197,7 +182,7 @@ namespace RincoNhan.Tools.CheckFold
                 foreach (var item in ItemsToUpdate)
                 {
                     var stepFamily = doc.GetElement(item.StepFamilyId) as FamilyInstance;
-                    if (stepFamily == null || item.Status == "Lỗi Vị Trí") { failed++; continue; }
+                    if (stepFamily == null) { failed++; continue; }
 
                     bool success = CheckFoldLogic.SetStepValues(stepFamily, item.CalculatedValue, item.IsVaries);
 
@@ -206,7 +191,6 @@ namespace RincoNhan.Tools.CheckFold
                         // Override color to green
                         CheckFoldLogic.SetElementColorOverride(doc, view, item.StepFamilyId, green);
                         _overriddenIds.Add(item.StepFamilyId);
-                        successfulItems.Add(item);
                         updated++;
                     }
                     else
@@ -218,7 +202,7 @@ namespace RincoNhan.Tools.CheckFold
                 tx.Commit();
             }
 
-            OnUpdateCompleted?.Invoke(successfulItems, updated, failed);
+            OnUpdateCompleted?.Invoke(updated, failed);
 
             string msg = $"✓ Đã cập nhật {updated} Step thành công (đã tô xanh lá).";
             if (failed > 0) msg += $" {failed} thất bại.";
@@ -374,3 +358,4 @@ namespace RincoNhan.Tools.CheckFold
         public string GetName() => "CheckFoldHandler";
     }
 }
+

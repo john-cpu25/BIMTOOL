@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
-using RincoNhan.Tools.CheckFold.Models;
-using RincoNhan.Tools.CheckFold.ViewModels;
+using RincoModeling.Tools.CheckFold.Models;
+using RincoModeling.Tools.CheckFold.ViewModels;
 
-namespace RincoNhan.Tools.CheckFold.UI
+namespace RincoModeling.Tools.CheckFold.UI
 {
     public partial class CheckFoldWindow : Window
     {
@@ -43,3 +43,4 @@ namespace RincoNhan.Tools.CheckFold.UI
         }
     }
 }
+

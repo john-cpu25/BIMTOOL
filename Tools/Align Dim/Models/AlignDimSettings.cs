@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Text.Json;
+
 
 namespace RincoNhan.Tools.Align_Dim.Models
 {
@@ -27,7 +27,7 @@ namespace RincoNhan.Tools.Align_Dim.Models
                 if (File.Exists(path))
                 {
                     string json = File.ReadAllText(path);
-                    var settings = JsonSerializer.Deserialize<AlignDimSettings>(json);
+                    var settings = JsonHelper.Deserialize<AlignDimSettings>(json);
                     if (settings != null)
                         return settings;
                 }
@@ -44,7 +44,7 @@ namespace RincoNhan.Tools.Align_Dim.Models
             try
             {
                 string path = GetConfigPath();
-                string json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+                string json = JsonHelper.Serialize(this);
                 File.WriteAllText(path, json);
             }
             catch
@@ -54,3 +54,6 @@ namespace RincoNhan.Tools.Align_Dim.Models
         }
     }
 }
+
+
+

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Autodesk.Revit.DB;
 
-namespace RincoNhan.Tools.CheckFold.Models
+namespace RincoModeling.Tools.CheckFold.Models
 {
     public class MissingStepItem : INotifyPropertyChanged
     {
@@ -43,3 +43,4 @@ namespace RincoNhan.Tools.CheckFold.Models
         }
     }
 }
+

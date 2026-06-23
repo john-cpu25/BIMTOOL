@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
+
 using System.Windows.Forms;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
@@ -123,8 +123,8 @@ namespace RincoNhan.Tools.ExportFamilyData
 
                     if (saveFileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true };
-                        string jsonString = JsonSerializer.Serialize(exportData, options);
+                        
+                        string jsonString = JsonHelper.Serialize(exportData);
                         File.WriteAllText(saveFileDialog.FileName, jsonString);
 
                         Autodesk.Revit.UI.TaskDialog.Show("Hoàn tất", $"Đã xuất thành công {exportData.Types.Count} Types của Family '{family.Name}' ra file JSON!");
@@ -382,3 +382,6 @@ namespace RincoNhan.Tools.ExportFamilyData
         }
     }
 }
+
+
+

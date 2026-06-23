@@ -6,9 +6,9 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RincoNhan.Tools.CheckFold.Models;
+using RincoModeling.Tools.CheckFold.Models;
 
-namespace RincoNhan.Tools.CheckFold.ViewModels
+namespace RincoModeling.Tools.CheckFold.ViewModels
 {
     public partial class CheckFoldViewModel : ObservableObject
     {
@@ -70,7 +70,7 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
             _handler.OnStepDataLoaded = stepItems => Dispatch(() => HandleStepData(stepItems));
             _handler.NotifyStatus = msg => Dispatch(() => StatusMessage = msg);
             _handler.OnCheckCompleted = wrongCount => Dispatch(() => HandleCheckCompleted(wrongCount));
-            _handler.OnUpdateCompleted = (successfulItems, updated, failed) => Dispatch(() => HandleUpdateCompleted(successfulItems, updated, failed));
+            _handler.OnUpdateCompleted = (updated, failed) => Dispatch(() => HandleUpdateCompleted(updated, failed));
             _handler.OnResetCompleted = () => Dispatch(() => HandleResetCompleted());
             
             _handler.OnMissingStepsChecked = items => Dispatch(() => HandleMissingStepsChecked(items));
@@ -125,23 +125,23 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
             HasChecked = true;
         }
 
-        private void HandleUpdateCompleted(List<StepCheckItem> successfulItems, int updated, int failed)
+        private void HandleUpdateCompleted(int updated, int failed)
         {
-            // Move ONLY successfully updated items from Wrong list to Updated list
-            foreach (var item in successfulItems)
+            // Move updated items from Wrong list to Updated list
+            var updatedItems = WrongRLItems.Where(i => i.IsSelected).ToList();
+            foreach (var item in updatedItems)
             {
                 item.CurrentRLValue = item.CalculatedValueStr;
                 item.CurrentOffsetValue = item.IsVaries ? 0 : -Math.Abs(item.CalculatedValue);
                 item.Status = "OK";
                 item.IsUpdated = true;
                 UpdatedRLItems.Add(item);
-                WrongRLItems.Remove(item);
             }
 
-            // Deselect items that failed
-            foreach (var item in WrongRLItems)
+            // Remove from wrong list
+            foreach (var item in updatedItems)
             {
-                item.IsSelected = false; 
+                WrongRLItems.Remove(item);
             }
 
             UpdatedRLCount = UpdatedRLItems.Count;
@@ -260,3 +260,4 @@ namespace RincoNhan.Tools.CheckFold.ViewModels
         }
     }
 }
+

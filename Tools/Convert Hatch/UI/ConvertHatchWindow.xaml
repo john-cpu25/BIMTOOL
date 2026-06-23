@@ -1,0 +1,163 @@
+<Window x:Class="RincoNhan.Tools.ConvertHatch.UI.ConvertHatchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mixed Elements Tool" Height="380" Width="480"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F7FA"
+        FontFamily="Segoe UI, Tahoma, Geneva, Verdana, sans-serif"
+        Topmost="True" ResizeMode="NoResize">
+    
+    <Window.Resources>
+        <!-- Generic Button Base -->
+        <ControlTemplate x:Key="RoundedButtonTemplate" TargetType="Button">
+            <Border x:Name="border" Background="{TemplateBinding Background}" 
+                    CornerRadius="6" 
+                    Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="border" Property="Opacity" Value="0.85"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="border" Property="Opacity" Value="0.7"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style x:Key="BlueButton" TargetType="Button">
+            <Setter Property="Background" Value="#007BFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template" Value="{StaticResource RoundedButtonTemplate}"/>
+        </Style>
+
+        <Style x:Key="GreenButton" TargetType="Button">
+            <Setter Property="Background" Value="#28A745"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template" Value="{StaticResource RoundedButtonTemplate}"/>
+        </Style>
+
+        <Style x:Key="TealButton" TargetType="Button">
+            <Setter Property="Background" Value="#17A2B8"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template" Value="{StaticResource RoundedButtonTemplate}"/>
+        </Style>
+
+        <!-- TabItem Style -->
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="15,12"/>
+            <Setter Property="BorderThickness" Value="0,0,0,3"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#007BFF"/>
+                                <Setter Property="BorderBrush" Value="#007BFF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#007BFF"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TabControl Style -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Tab Header Panel -->
+                            <Border Grid.Row="0" Background="#FFFFFF">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" Opacity="0.06" BlurRadius="5" ShadowDepth="2"/>
+                                </Border.Effect>
+                                <TabPanel IsItemsHost="True" Margin="10,0,10,0" HorizontalAlignment="Center"/>
+                            </Border>
+
+                            <!-- Tab Content -->
+                            <Border Grid.Row="1" Background="#FFFFFF" CornerRadius="8" 
+                                    BorderBrush="#E5E7EB" BorderThickness="1" Margin="20,20,20,20">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="10" ShadowDepth="4"/>
+                                </Border.Effect>
+                                <ContentPresenter ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <TabControl>
+            <!-- Tab 1: Export -->
+            <TabItem Header="Export Elements">
+                <StackPanel Margin="20" VerticalAlignment="Center">
+                    <Path Data="M 12 4 L 12 16 M 12 16 L 8 12 M 12 16 L 16 12 M 4 20 L 20 20" 
+                          Stroke="#007BFF" StrokeThickness="2" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                    <TextBlock Text="Export filled regions, texts, and lines to a JSON file." 
+                               TextWrapping="Wrap" Margin="0,0,0,25" FontSize="14" Foreground="#4B5563" HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <Button x:Name="btnExportHatch" Content="EXPORT TO JSON" Style="{StaticResource BlueButton}" Height="45" Width="220" Click="btnExportHatch_Click"/>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Tab 2: Import -->
+            <TabItem Header="Import Elements">
+                <StackPanel Margin="20" VerticalAlignment="Center">
+                    <Path Data="M 12 20 L 12 8 M 12 8 L 8 12 M 12 8 L 16 12 M 4 4 L 20 4" 
+                          Stroke="#28A745" StrokeThickness="2" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                    <TextBlock Text="Import filled regions, texts, and lines from an existing JSON." 
+                               TextWrapping="Wrap" Margin="0,0,0,25" FontSize="14" Foreground="#4B5563" HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <Button x:Name="btnImportHatch" Content="IMPORT FROM JSON" Style="{StaticResource GreenButton}" Height="45" Width="220" Click="btnImportHatch_Click"/>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Tab 3: Batch Export PAT -->
+            <TabItem Header="Batch PAT">
+                <StackPanel Margin="20" VerticalAlignment="Center">
+                    <Path Data="M 10 4 H 4 A 2 2 0 0 0 2 6 V 18 A 2 2 0 0 0 4 20 H 20 A 2 2 0 0 0 22 18 V 8 A 2 2 0 0 0 20 6 H 12 Z" 
+                          Stroke="#17A2B8" Fill="#E0F7FA" StrokeThickness="2" Width="30" Height="30" Stretch="Uniform" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                    <TextBlock Text="Export all Drafting/Model patterns to individual .pat files." 
+                               TextWrapping="Wrap" Margin="0,0,0,25" FontSize="14" Foreground="#4B5563" HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <Button x:Name="btnBatchExport" Content="SELECT FOLDER &amp; EXPORT" Style="{StaticResource TealButton}" Height="45" Width="220" Click="btnBatchExport_Click"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

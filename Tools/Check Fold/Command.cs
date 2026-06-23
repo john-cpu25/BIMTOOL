@@ -2,9 +2,9 @@ using System;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using RincoNhan.Tools.CheckFold.UI;
+using RincoModeling.Tools.CheckFold.UI;
 
-namespace RincoNhan.Tools.CheckFold
+namespace RincoModeling.Tools.CheckFold
 {
     [Transaction(TransactionMode.Manual)]
     public class Command : IExternalCommand
@@ -44,3 +44,4 @@ namespace RincoNhan.Tools.CheckFold
         }
     }
 }
+

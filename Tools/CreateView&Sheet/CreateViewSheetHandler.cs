@@ -307,7 +307,11 @@ namespace RincoNhan.Tools.CreateViewSheet
             }
 
             View templateView = doc.GetElement(templateViewport.ViewId) as View;
+#if REVIT2022_OR_GREATER
             XYZ targetLabelOffset = templateViewport.LabelOffset;
+#else
+            XYZ targetLabelOffset = XYZ.Zero;
+#endif
             int alignedCount = 0;
 
             string mode = ViewModel.AlignMode ?? "View + Title";
@@ -380,7 +384,11 @@ namespace RincoNhan.Tools.CreateViewSheet
                             }
                             if (alignTitle)
                             {
-                                try { vp.LabelOffset = targetLabelOffset; } catch { }
+                                try { 
+#if REVIT2022_OR_GREATER
+                                    vp.LabelOffset = targetLabelOffset; 
+#endif
+                                } catch { }
                             }
                             alignedCount++;
                         }

@@ -156,7 +156,7 @@ namespace RincoNhan.Tools.Connection.ViewModels
                     // Convert internal units to display units
                     double val = param.AsDouble();
                     if (System.Math.Abs(val) < 1e-10) return "0";
-                    // Nếu là đơn vị chiều dài, convert từ feet sang mm
+#if REVIT2022_OR_GREATER
                     if (param.Definition.GetDataType() == SpecTypeId.Length)
                     {
                         val = val * 304.8; // feet to mm
@@ -167,6 +167,20 @@ namespace RincoNhan.Tools.Connection.ViewModels
                         val = val * 180 / System.Math.PI; // radians to degrees
                         return $"{val:F1}°";
                     }
+#else
+#pragma warning disable CS0618 // Type or member is obsolete
+                    if (param.Definition.ParameterType == ParameterType.Length)
+                    {
+                        val = val * 304.8; // feet to mm
+                        return $"{val:F1} mm";
+                    }
+                    if (param.Definition.ParameterType == ParameterType.Angle)
+                    {
+                        val = val * 180 / System.Math.PI; // radians to degrees
+                        return $"{val:F1}°";
+                    }
+#pragma warning restore CS0618
+#endif
                     return $"{val:F4}";
                 case StorageType.ElementId:
                     ElementId id = param.AsElementId();

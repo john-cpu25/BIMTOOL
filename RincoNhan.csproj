@@ -53,10 +53,10 @@
   <PropertyGroup>
     <!-- Define constants for Revit versions -->
     <DefineConstants>$(DefineConstants);REVIT$(RevitVersion)</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2021'">$(DefineConstants);REVIT2021_OR_GREATER</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2022'">$(DefineConstants);REVIT2022_OR_GREATER</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2024'">$(DefineConstants);REVIT2024_OR_GREATER</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2025'">$(DefineConstants);REVIT2025_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' >= '2021'">$(DefineConstants);REVIT2021_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' >= '2022'">$(DefineConstants);REVIT2022_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' >= '2024'">$(DefineConstants);REVIT2024_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' >= '2025'">$(DefineConstants);REVIT2025_OR_GREATER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -64,6 +64,11 @@
     <Compile Remove="Tools\**\bin\**" />
     <Page Remove="Tools\**\obj\**" />
     <Page Remove="Tools\**\bin\**" />
+    <!-- Exclude PyRevit UI files from WPF compilation -->
+    <Page Remove="Tools\**\*.pushbutton\*.xaml" />
+    <Page Remove="Tools\**\*.splitpushbutton\**\*.xaml" />
+    <None Include="Tools\**\*.pushbutton\*.xaml" />
+    <None Include="Tools\**\*.splitpushbutton\**\*.xaml" />
   </ItemGroup>
 
   <!-- Revit API references using dynamic versions -->
@@ -78,7 +83,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.122" />
     <PackageReference Include="ClosedXML" Version="0.102.3" />

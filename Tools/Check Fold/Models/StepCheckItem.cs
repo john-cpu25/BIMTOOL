@@ -1,7 +1,7 @@
 using Autodesk.Revit.DB;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace RincoNhan.Tools.CheckFold.Models
+namespace RincoModeling.Tools.CheckFold.Models
 {
     public partial class StepCheckItem : ObservableObject
     {
@@ -52,3 +52,4 @@ namespace RincoNhan.Tools.CheckFold.Models
         private bool _isSelected = true;
     }
 }
+
