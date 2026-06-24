@@ -14,6 +14,8 @@ namespace RincoModeling.Tools.CheckFold.Models
         /// <summary>Associated fold type name (nearest fold)</summary>
         public string FoldTypeName { get; set; }
 
+        public System.Collections.Generic.List<ElementId> AllSlabIds { get; set; } = new System.Collections.Generic.List<ElementId>();
+
         /// <summary>"RL STEP" text parameter value (displayed on view, e.g. "30")</summary>
         [ObservableProperty]
         private string _currentRLValue;
@@ -33,8 +35,12 @@ namespace RincoModeling.Tools.CheckFold.Models
         /// <summary>High slab info: "TypeName (offset mm)"</summary>
         public string HighSlabInfo { get; set; }
 
+        public ElementId HighSlabId { get; set; }
+
         /// <summary>Low slab info: "TypeName (offset mm)"</summary>
         public string LowSlabInfo { get; set; }
+
+        public ElementId LowSlabId { get; set; }
 
         /// <summary>Primary parameter name used for check</summary>
         public string ParameterName { get; set; }

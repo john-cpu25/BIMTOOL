@@ -264,10 +264,20 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
         /// <summary>
         /// Select and zoom to an element in Revit when user clicks a row.
         /// </summary>
+        [RelayCommand]
         public void SelectElementInRevit(ElementId elementId)
         {
             if (elementId == null) return;
-            _handler.ElementIdToSelect = elementId;
+            _handler.ElementIdsToSelect = new List<ElementId> { elementId };
+            _handler.Action = "SelectElement";
+            _externalEvent.Raise();
+        }
+
+        [RelayCommand]
+        public void SelectElementsInRevit(List<ElementId> elementIds)
+        {
+            if (elementIds == null || elementIds.Count == 0) return;
+            _handler.ElementIdsToSelect = elementIds;
             _handler.Action = "SelectElement";
             _externalEvent.Raise();
         }

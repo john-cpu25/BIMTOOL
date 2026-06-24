@@ -458,6 +458,44 @@ namespace RincoModeling.Tools.CheckFold
             return anySuccess;
         }
 
+        private static List<XYZ> CreateOffsetPoints(XYZ pt, double offset)
+        {
+            return new List<XYZ>
+            {
+                pt,
+                new XYZ(pt.X + offset, pt.Y, pt.Z),
+                new XYZ(pt.X - offset, pt.Y, pt.Z),
+                new XYZ(pt.X, pt.Y + offset, pt.Z),
+                new XYZ(pt.X, pt.Y - offset, pt.Z)
+            };
+        }
+
+        private static bool IsFloorContainingPoint(Floor floor, XYZ stepPoint)
+        {
+            double offset = 10.0 / 304.8;
+            var testPoints = CreateOffsetPoints(stepPoint, offset);
+            
+            var topFaceRefs = HostObjectUtils.GetTopFaces(floor);
+            foreach (var r in topFaceRefs)
+            {
+                var geomObj = floor.GetGeometryObjectFromReference(r);
+                var face = geomObj as Face;
+                if (face == null) continue;
+
+                foreach (XYZ tpt in testPoints)
+                {
+                    IntersectionResult ir = face.Project(tpt);
+                    if (ir == null) continue;
+
+                    if (face.IsInside(ir.UVPoint))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         /// <summary>
         /// Build a StepCheckItem for a single RINCO_AN_Step family instance.
         /// Finds all floors at the step's XY location, picks the 2 slabs with different elevations.
@@ -487,62 +525,97 @@ namespace RincoModeling.Tools.CheckFold
                 return item;
             }
             XYZ stepXY = loc.Point;
-
+            
             // Find all floors whose bounding box contains the step's XY (with tolerance)
             double tol = 0.5; // 0.5 feet ≈ 150mm
-            var floorsAtLocation = new List<(Floor floor, double topElevation)>();
+            double stepZMm = stepXY.Z * FeetToMm;
 
+            var floorData = new List<(Floor floor, double topElev, List<Face> topFaces)>();
             foreach (var floor in allFloors)
             {
                 var bb = floor.get_BoundingBox(null);
                 if (bb == null) continue;
 
-                // Check if step XY is within the floor's bounding box (expanded)
-                bool xInside = stepXY.X >= bb.Min.X - tol && stepXY.X <= bb.Max.X + tol;
-                bool yInside = stepXY.Y >= bb.Min.Y - tol && stepXY.Y <= bb.Max.Y + tol;
+                if (stepXY.X < bb.Min.X - tol || stepXY.X > bb.Max.X + tol ||
+                    stepXY.Y < bb.Min.Y - tol || stepXY.Y > bb.Max.Y + tol)
+                    continue;
 
-                if (xInside && yInside)
+                double topElev = GetFloorTopElevation(doc, floor);
+                
+                // Filter floors to only those within a reasonable vertical distance (e.g., 5000mm)
+                if (Math.Abs(topElev - stepZMm) > 5000.0) continue;
+
+                var faces = new List<Face>();
+                var topFaceRefs = HostObjectUtils.GetTopFaces(floor);
+                foreach (var r in topFaceRefs)
                 {
-                    double topElev = GetFloorTopElevation(doc, floor);
-                    floorsAtLocation.Add((floor, topElev));
+                    var geomObj = floor.GetGeometryObjectFromReference(r);
+                    if (geomObj is Face f) faces.Add(f);
+                }
+                floorData.Add((floor, topElev, faces));
+            }
+
+            var testPoints = CreateOffsetPoints(stepXY, 10.0 / 304.8);
+            var hitFloors = new Dictionary<double, Floor>();
+
+            foreach (var data in floorData)
+            {
+                bool hit = false;
+                foreach (var face in data.topFaces)
+                {
+                    foreach (var tpt in testPoints)
+                    {
+                        var ir = face.Project(tpt);
+                        if (ir != null && face.IsInside(ir.UVPoint))
+                        {
+                            hit = true;
+                            break;
+                        }
+                    }
+                    if (hit) break;
+                }
+
+                if (hit)
+                {
+                    // Round to 1mm to group
+                    double roundedElev = Math.Round(data.topElev, 0);
+                    if (!hitFloors.ContainsKey(roundedElev))
+                    {
+                        hitFloors[roundedElev] = data.floor;
+                    }
                 }
             }
 
-            double stepZMm = stepXY.Z * FeetToMm;
+            item.AllSlabIds = hitFloors.Values.Select(f => f.Id).ToList();
 
-            // Filter floors to only those within a reasonable vertical distance (e.g., 5000mm)
-            floorsAtLocation = floorsAtLocation.Where(f => Math.Abs(f.topElevation - stepZMm) < 5000.0).ToList();
-
-            if (floorsAtLocation.Count < 2)
+            if (hitFloors.Count == 0)
             {
-                item.FoldTypeName = floorsAtLocation.Count == 1
-                    ? (doc.GetElement(floorsAtLocation[0].floor.GetTypeId()) as FloorType)?.Name ?? "1 slab only"
-                    : "No Slab Found";
+                item.FoldTypeName = "0 slabs";
                 item.Status = "Sai";
                 return item;
             }
 
-            // Group by TopElevation (rounding to 1mm to avoid floating point issues)
-            var groups = floorsAtLocation
-                .GroupBy(f => Math.Round(f.topElevation, 0))
-                .OrderBy(g => g.Key) // Sort by elevation ascending
-                .ToList();
-
-            if (groups.Count < 2)
+            if (hitFloors.Count == 1)
             {
                 item.FoldTypeName = "1 elevation only";
                 item.Status = "Sai";
                 return item;
             }
 
-            // Lowest elevation is the first group, Highest is the last group
-            Floor lowSlab = groups.First().First().floor;
-            Floor highSlab = groups.Last().First().floor;
-            double elev1 = groups.First().Key;
-            double elev2 = groups.Last().Key;
+            var sortedElevs = hitFloors.Keys.OrderByDescending(k => k).ToList();
+            
+            // Lấy thằng có ELEVATION AT TOP CAO NHẤT VÀ THẤP NHẤT
+            double elev1 = sortedElevs.First(); // Cao nhất
+            double elev2 = sortedElevs.Last();  // Thấp nhất
+            
+            Floor highSlab = hitFloors[elev1];
+            Floor lowSlab = hitFloors[elev2];
 
             if (highSlab != null && lowSlab != null)
             {
+                item.HighSlabId = highSlab.Id;
+                item.LowSlabId = lowSlab.Id;
+
                 bool highSloped = IsFloorSloped(doc, highSlab);
                 bool lowSloped = IsFloorSloped(doc, lowSlab);
 
@@ -555,7 +628,7 @@ namespace RincoModeling.Tools.CheckFold
                     var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
                     item.HighSlabInfo = $"{highType?.Name} (Sloped)";
                     item.LowSlabInfo = $"{lowType?.Name} (Sloped)";
-                    item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
+                    item.FoldTypeName = $"{hitFloors.Count} slabs";
 
                     item.Status = currentRL.Equals("VARIES", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
                 }
@@ -569,7 +642,7 @@ namespace RincoModeling.Tools.CheckFold
                     var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
                     item.HighSlabInfo = $"{highType?.Name} ({highTop:F0})";
                     item.LowSlabInfo = $"{lowType?.Name} ({lowTop:F0})";
-                    item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
+                    item.FoldTypeName = $"{hitFloors.Count} slabs";
 
                     double currentNumeric = 0;
                     double.TryParse(currentRL, out currentNumeric);

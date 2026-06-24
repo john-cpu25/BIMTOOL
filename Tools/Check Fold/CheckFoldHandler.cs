@@ -30,8 +30,8 @@ namespace RincoModeling.Tools.CheckFold
         // Step items for update operations (set by ViewModel before raising)
         public List<StepCheckItem> ItemsToUpdate { get; set; }
 
-        // Element to select/zoom when clicking a row
-        public ElementId ElementIdToSelect { get; set; }
+        // Elements to select/zoom when clicking a row
+        public List<ElementId> ElementIdsToSelect { get; set; }
 
         // Track overridden element IDs for Reset
         private readonly HashSet<ElementId> _overriddenIds = new HashSet<ElementId>();
@@ -224,48 +224,49 @@ namespace RincoModeling.Tools.CheckFold
 
         private void SelectElement(UIApplication app)
         {
-            if (ElementIdToSelect == null) return;
+            if (ElementIdsToSelect == null || ElementIdsToSelect.Count == 0) return;
 
             var uidoc = app.ActiveUIDocument;
             if (uidoc == null) return;
             var doc = uidoc.Document;
 
-            // Select the element
-            uidoc.Selection.SetElementIds(new List<ElementId> { ElementIdToSelect });
-
-            // Zoom to element
+            uidoc.Selection.SetElementIds(ElementIdsToSelect);
+            
+            // Zoom to elements
             try
             {
-                var element = doc.GetElement(ElementIdToSelect);
-                if (element != null)
+                BoundingBoxXYZ totalBBox = null;
+                foreach (var id in ElementIdsToSelect)
                 {
-                    // Switch to element's view if it is view-specific
-                    if (element.OwnerViewId != ElementId.InvalidElementId && element.OwnerViewId != uidoc.ActiveView.Id)
+                    var element = doc.GetElement(id);
+                    if (element != null)
                     {
-                        var ownerView = doc.GetElement(element.OwnerViewId) as View;
-                        if (ownerView != null)
+                        var bbox = element.get_BoundingBox(null) ?? element.get_BoundingBox(uidoc.ActiveView);
+                        if (bbox != null)
                         {
-                            uidoc.ActiveView = ownerView;
-                        }
-                    }
-
-                    // Zoom with a bounding box for better framing
-                    var bb = element.get_BoundingBox(uidoc.ActiveView);
-                    if (bb != null)
-                    {
-                        var uiview = uidoc.GetOpenUIViews().FirstOrDefault(v => v.ViewId == uidoc.ActiveView.Id);
-                        if (uiview != null)
-                        {
-                            double offset = 5.0; // 5 feet
-                            XYZ min = new XYZ(bb.Min.X - offset, bb.Min.Y - offset, bb.Min.Z - offset);
-                            XYZ max = new XYZ(bb.Max.X + offset, bb.Max.Y + offset, bb.Max.Z + offset);
-                            uiview.ZoomAndCenterRectangle(min, max);
-                            return;
+                            if (totalBBox == null)
+                            {
+                                totalBBox = new BoundingBoxXYZ { Min = bbox.Min, Max = bbox.Max };
+                            }
+                            else
+                            {
+                                totalBBox.Min = new XYZ(Math.Min(totalBBox.Min.X, bbox.Min.X), Math.Min(totalBBox.Min.Y, bbox.Min.Y), Math.Min(totalBBox.Min.Z, bbox.Min.Z));
+                                totalBBox.Max = new XYZ(Math.Max(totalBBox.Max.X, bbox.Max.X), Math.Max(totalBBox.Max.Y, bbox.Max.Y), Math.Max(totalBBox.Max.Z, bbox.Max.Z));
+                            }
                         }
                     }
                 }
 
-                uidoc.ShowElements(ElementIdToSelect);
+                if (totalBBox != null)
+                {
+                    var uiviews = uidoc.GetOpenUIViews();
+                    var activeUIView = uiviews.FirstOrDefault(v => v.ViewId == uidoc.ActiveView.Id);
+                    activeUIView?.ZoomAndCenterRectangle(totalBBox.Min, totalBBox.Max);
+                }
+                else
+                {
+                    uidoc.ShowElements(ElementIdsToSelect);
+                }
             }
             catch { /* Fallback fail gracefully */ }
         }

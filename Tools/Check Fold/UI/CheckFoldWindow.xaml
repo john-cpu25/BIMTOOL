@@ -531,10 +531,54 @@
                                 <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
                                                          Width="35" Header="✓" ElementStyle="{x:Null}"/>
                                 <DataGridTextColumn Binding="{Binding StepFamilyId}" Header="ID" Width="65"/>
-                                <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Info" Width="1.2*"/>
-                                <DataGridTextColumn Binding="{Binding HighSlabInfo}" Header="Sàn Cao" Width="1.5*"/>
-                                <DataGridTextColumn Binding="{Binding LowSlabInfo}" Header="Sàn Thấp" Width="1.5*"/>
-                                <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL STEP" Width="70"/>
+                                <DataGridTemplateColumn Header="Info" Width="1.2*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementsInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding AllSlabIds}">
+                                                    <TextBlock Text="{Binding FoldTypeName}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Sàn Cao" Width="1.5*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding HighSlabId}">
+                                                    <TextBlock Text="{Binding HighSlabInfo}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Sàn Thấp" Width="1.5*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding LowSlabId}">
+                                                    <TextBlock Text="{Binding LowSlabInfo}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="RL STEP" Width="70">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding StepFamilyId}">
+                                                    <TextBlock Text="{Binding CurrentRLValue}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Binding="{Binding CalculatedValueStr}" Header="Tính toán" Width="70"/>
                                 <DataGridTemplateColumn Header="Status" Width="75" CellTemplate="{StaticResource StatusCellTemplate}"/>
                             </DataGrid.Columns>
@@ -561,10 +605,54 @@
                         <DataGrid Grid.Row="1" ItemsSource="{Binding CorrectRLItems}" Margin="0,0,0,6" SelectionChanged="DataGrid_SelectionChanged">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Binding="{Binding StepFamilyId}" Header="ID" Width="65"/>
-                                <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Info" Width="1.2*"/>
-                                <DataGridTextColumn Binding="{Binding HighSlabInfo}" Header="Sàn Cao" Width="1.5*"/>
-                                <DataGridTextColumn Binding="{Binding LowSlabInfo}" Header="Sàn Thấp" Width="1.5*"/>
-                                <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL STEP" Width="70"/>
+                                <DataGridTemplateColumn Header="Info" Width="1.2*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementsInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding AllSlabIds}">
+                                                    <TextBlock Text="{Binding FoldTypeName}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Sàn Cao" Width="1.5*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding HighSlabId}">
+                                                    <TextBlock Text="{Binding HighSlabInfo}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Sàn Thấp" Width="1.5*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding LowSlabId}">
+                                                    <TextBlock Text="{Binding LowSlabInfo}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="RL STEP" Width="70">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding StepFamilyId}">
+                                                    <TextBlock Text="{Binding CurrentRLValue}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Binding="{Binding CalculatedValueStr}" Header="Tính toán" Width="70"/>
                                 <DataGridTemplateColumn Header="Status" Width="75" CellTemplate="{StaticResource StatusCellTemplate}"/>
                             </DataGrid.Columns>
@@ -591,7 +679,18 @@
                         <DataGrid Grid.Row="1" ItemsSource="{Binding UpdatedRLItems}" SelectionChanged="DataGrid_SelectionChanged">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Binding="{Binding TypeName}" Header="Type Name" Width="1.5*"/>
-                                <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Fold Type" Width="1.2*"/>
+                                <DataGridTemplateColumn Header="Fold Type" Width="1.2*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="4,0" VerticalAlignment="Center">
+                                                <Hyperlink Command="{Binding DataContext.SelectElementsInRevitCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                           CommandParameter="{Binding AllSlabIds}">
+                                                    <TextBlock Text="{Binding FoldTypeName}"/>
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL Mới" Width="75"/>
                                 <DataGridTextColumn Binding="{Binding CurrentOffsetValue, StringFormat=F1}" Header="Offset Mới" Width="80"/>
                                 <DataGridTemplateColumn Header="Status" Width="85">
