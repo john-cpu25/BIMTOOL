@@ -64,9 +64,6 @@ namespace RincoModeling.Tools.CheckFold
                     case "CheckMissingSteps":
                         CheckMissingSteps(doc, view);
                         break;
-                    case "ClearHighlights":
-                        ClearHighlights(doc, view);
-                        break;
                 }
             }
             catch (Exception ex)
@@ -126,12 +123,10 @@ namespace RincoModeling.Tools.CheckFold
             // Update step data on UI
             OnStepDataLoaded?.Invoke(stepItems);
 
-            // Apply overrides
-            Color orange = new Color(255, 165, 0);
-            Color red = new Color(255, 0, 0);
             int wrongCount = 0;
+            Color red = new Color(255, 0, 0);
 
-            using (Transaction tx = new Transaction(doc, "Check Fold - Highlight Wrong RL"))
+            using (Transaction tx = new Transaction(doc, "Check Fold - Highlight Sai Steps"))
             {
                 tx.Start();
 
@@ -146,8 +141,7 @@ namespace RincoModeling.Tools.CheckFold
                 {
                     if (item.Status == "Sai")
                     {
-                        Color overrideColor = Math.Abs(item.CalculatedValue) < 1.0 ? red : orange;
-                        CheckFoldLogic.SetElementColorOverride(doc, view, item.StepFamilyId, overrideColor);
+                        CheckFoldLogic.SetElementColorOverride(doc, view, item.StepFamilyId, red);
                         _overriddenIds.Add(item.StepFamilyId);
                         wrongCount++;
                     }
@@ -159,7 +153,7 @@ namespace RincoModeling.Tools.CheckFold
             OnCheckCompleted?.Invoke(wrongCount);
 
             NotifyStatus?.Invoke(wrongCount > 0
-                ? $"⚠ Tìm thấy {wrongCount} Step sai (đã tô cam)."
+                ? $"⚠ Tìm thấy {wrongCount} Step sai (đã tô đỏ)."
                 : "✓ Tất cả Height Offset đều đúng!");
         }
 
@@ -225,7 +219,7 @@ namespace RincoModeling.Tools.CheckFold
             }
 
             OnResetCompleted?.Invoke();
-            NotifyStatus?.Invoke("Đã reset tất cả override màu.");
+            NotifyStatus?.Invoke("Đã reset tất cả màu tô đỏ/xanh.");
         }
 
         private void SelectElement(UIApplication app)
@@ -234,6 +228,7 @@ namespace RincoModeling.Tools.CheckFold
 
             var uidoc = app.ActiveUIDocument;
             if (uidoc == null) return;
+            var doc = uidoc.Document;
 
             // Select the element
             uidoc.Selection.SetElementIds(new List<ElementId> { ElementIdToSelect });
@@ -241,9 +236,38 @@ namespace RincoModeling.Tools.CheckFold
             // Zoom to element
             try
             {
+                var element = doc.GetElement(ElementIdToSelect);
+                if (element != null)
+                {
+                    // Switch to element's view if it is view-specific
+                    if (element.OwnerViewId != ElementId.InvalidElementId && element.OwnerViewId != uidoc.ActiveView.Id)
+                    {
+                        var ownerView = doc.GetElement(element.OwnerViewId) as View;
+                        if (ownerView != null)
+                        {
+                            uidoc.ActiveView = ownerView;
+                        }
+                    }
+
+                    // Zoom with a bounding box for better framing
+                    var bb = element.get_BoundingBox(uidoc.ActiveView);
+                    if (bb != null)
+                    {
+                        var uiview = uidoc.GetOpenUIViews().FirstOrDefault(v => v.ViewId == uidoc.ActiveView.Id);
+                        if (uiview != null)
+                        {
+                            double offset = 5.0; // 5 feet
+                            XYZ min = new XYZ(bb.Min.X - offset, bb.Min.Y - offset, bb.Min.Z - offset);
+                            XYZ max = new XYZ(bb.Max.X + offset, bb.Max.Y + offset, bb.Max.Z + offset);
+                            uiview.ZoomAndCenterRectangle(min, max);
+                            return;
+                        }
+                    }
+                }
+
                 uidoc.ShowElements(ElementIdToSelect);
             }
-            catch { /* ShowElements may fail for 2D annotations in 3D views */ }
+            catch { /* Fallback fail gracefully */ }
         }
 
         private void CheckMissingSteps(Document doc, View view)
@@ -280,34 +304,6 @@ namespace RincoModeling.Tools.CheckFold
                         try { doc.Delete(id); } catch { }
                     }
 
-                    // Create Graphic Overrides for red lines
-                    OverrideGraphicSettings ogs = new OverrideGraphicSettings();
-                    ogs.SetProjectionLineColor(new Color(255, 0, 0));
-                    ogs.SetProjectionLineWeight(6); // Thick line
-
-                    foreach (var item in missingSteps)
-                    {
-                        if (item.StepEdge != null)
-                        {
-                            try
-                            {
-                                var detailCurve = doc.Create.NewDetailCurve(view, item.StepEdge);
-                                if (detailCurve != null)
-                                {
-                                    view.SetElementOverrides(detailCurve.Id, ogs);
-                                    _highlightLineIds.Add(detailCurve.Id);
-
-                                    var commentsParam = detailCurve.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
-                                    if (commentsParam != null && !commentsParam.IsReadOnly)
-                                    {
-                                        commentsParam.Set("CheckFold_MissingStep");
-                                    }
-                                }
-                            }
-                            catch { }
-                        }
-                    }
-
                     tx.Commit();
                 }
             }
@@ -316,43 +312,6 @@ namespace RincoModeling.Tools.CheckFold
             NotifyStatus?.Invoke(missingSteps.Count > 0
                 ? $"⚠ Tìm thấy {missingSteps.Count} vị trí thiếu Step (đã vẽ line đỏ)."
                 : "✓ Tuyệt vời! Không phát hiện vị trí nào thiếu Step.");
-        }
-
-        private void ClearHighlights(Document doc, View view)
-        {
-            using (Transaction tx = new Transaction(doc, "Check Fold - Clear Highlights"))
-            {
-                tx.Start();
-
-                // Delete from memory (current session)
-                foreach (var id in _highlightLineIds)
-                {
-                    try { doc.Delete(id); } catch { }
-                }
-                _highlightLineIds.Clear();
-
-                // Delete from model (previous sessions)
-                var leftoverLines = new FilteredElementCollector(doc, view.Id)
-                    .OfClass(typeof(CurveElement))
-                    .WhereElementIsNotElementType()
-                    .ToElements()
-                    .Where(e => 
-                    {
-                        var p = e.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
-                        return p != null && p.AsString() == "CheckFold_MissingStep";
-                    })
-                    .Select(e => e.Id)
-                    .ToList();
-
-                foreach (var id in leftoverLines)
-                {
-                    try { doc.Delete(id); } catch { }
-                }
-
-                tx.Commit();
-            }
-            
-            OnHighlightsCleared?.Invoke();
         }
 
         public string GetName() => "CheckFoldHandler";

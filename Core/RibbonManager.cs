@@ -657,8 +657,8 @@ namespace RincoNhan.Core
             PushButtonData btnData = new PushButtonData(
                 "cmdCheckFold",
                 "Check\nFold",
-                _assemblyPath,
-                "RincoNhan.Tools.CheckFold.Command"
+                Assembly.GetExecutingAssembly().Location,
+                "RincoModeling.Tools.CheckFold.Command"
             );
             btnData.ToolTip = "Check fold slab thickness and 2D step annotations.";
 

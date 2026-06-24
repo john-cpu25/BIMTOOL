@@ -31,6 +31,9 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
         private int _wrongRLCount;
 
         [ObservableProperty]
+        private int _correctRLCount;
+
+        [ObservableProperty]
         private int _updatedRLCount;
 
         [ObservableProperty]
@@ -53,6 +56,9 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
 
         /// <summary>Tab 2 - Updated RL list (shown after Update)</summary>
         public ObservableCollection<StepCheckItem> UpdatedRLItems { get; } = new ObservableCollection<StepCheckItem>();
+
+        /// <summary>Tab 2 - Correct RL list</summary>
+        public ObservableCollection<StepCheckItem> CorrectRLItems { get; } = new ObservableCollection<StepCheckItem>();
 
         /// <summary>Tab 3 - Missing 3D Steps list</summary>
         public ObservableCollection<MissingStepItem> MissingStepItems { get; } = new ObservableCollection<MissingStepItem>();
@@ -114,14 +120,23 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
         {
             WrongRLItems.Clear();
             UpdatedRLItems.Clear();
+            CorrectRLItems.Clear();
             HasUpdated = false;
 
+            int correctCount = 0;
             foreach (var item in _allStepItems)
             {
-                WrongRLItems.Add(item);
+                if (item.Status == "Sai")
+                    WrongRLItems.Add(item);
+                else
+                {
+                    CorrectRLItems.Add(item);
+                    correctCount++;
+                }
             }
 
             WrongRLCount = wrongCount;
+            CorrectRLCount = correctCount;
             HasChecked = true;
         }
 
@@ -138,22 +153,27 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
                 UpdatedRLItems.Add(item);
             }
 
-            // Remove from wrong list
+            // Remove from wrong list and add to correct list
             foreach (var item in updatedItems)
             {
                 WrongRLItems.Remove(item);
+                CorrectRLItems.Insert(0, item);
             }
 
             UpdatedRLCount = UpdatedRLItems.Count;
             WrongRLCount = WrongRLItems.Count;
+            CorrectRLCount = CorrectRLItems.Count;
             HasUpdated = true;
         }
+
 
         private void HandleResetCompleted()
         {
             WrongRLItems.Clear();
             UpdatedRLItems.Clear();
+            CorrectRLItems.Clear();
             WrongRLCount = 0;
+            CorrectRLCount = 0;
             UpdatedRLCount = 0;
             HasChecked = false;
             HasUpdated = false;
@@ -167,6 +187,7 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
             HasUpdated = false;
             HasMissingSteps = false;
             WrongRLItems.Clear();
+            CorrectRLItems.Clear();
             UpdatedRLItems.Clear();
             MissingStepItems.Clear();
 
@@ -211,14 +232,6 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
             _externalEvent.Raise();
         }
 
-        [RelayCommand]
-        private void ClearHighlights()
-        {
-            StatusMessage = "Đang xóa các đường highlight đỏ...";
-            _handler.Action = "ClearHighlights";
-            _externalEvent.Raise();
-        }
-
         private void HandleMissingStepsChecked(List<MissingStepItem> items)
         {
             MissingStepItems.Clear();
@@ -257,6 +270,16 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
             _handler.ElementIdToSelect = elementId;
             _handler.Action = "SelectElement";
             _externalEvent.Raise();
+        }
+
+        [RelayCommand]
+        private void ToggleSelectWrongRL()
+        {
+            bool allSelected = WrongRLItems.All(i => i.IsSelected);
+            foreach (var item in WrongRLItems)
+            {
+                item.IsSelected = !allSelected;
+            }
         }
     }
 }

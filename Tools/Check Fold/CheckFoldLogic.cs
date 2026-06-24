@@ -209,8 +209,10 @@ namespace RincoModeling.Tools.CheckFold
 
             foreach (var (slab, topElev) in nearbySlabs)
             {
+                double slabBottom = topElev - GetFloorThickness(doc, slab);
+                
                 double diffToTop = Math.Abs(topElev - foldTop);
-                double diffToBottom = Math.Abs(topElev - foldBottom);
+                double diffToBottom = Math.Min(Math.Abs(topElev - foldBottom), Math.Abs(slabBottom - foldBottom));
 
                 if (diffToTop < minHighDiff)
                 {
@@ -236,7 +238,8 @@ namespace RincoModeling.Tools.CheckFold
                     foreach (var (slab, topElev) in nearbySlabs)
                     {
                         if (slab.Id == highSlab.Id) continue;
-                        double diff = Math.Abs(topElev - foldBottom);
+                        double slabBottom = topElev - GetFloorThickness(doc, slab);
+                        double diff = Math.Min(Math.Abs(topElev - foldBottom), Math.Abs(slabBottom - foldBottom));
                         if (diff < nextBest) { nextBest = diff; lowSlab = slab; }
                     }
                 }
@@ -430,7 +433,7 @@ namespace RincoModeling.Tools.CheckFold
             {
                 if (rlParam.StorageType == StorageType.String)
                 {
-                    rlParam.Set(isVaries ? "Varies" : valueMm.ToString("F0"));
+                    rlParam.Set(isVaries ? "VARIES" : valueMm.ToString("F0"));
                     anySuccess = true;
                 }
                 else if (rlParam.StorageType == StorageType.Double && !isVaries)
@@ -505,6 +508,11 @@ namespace RincoModeling.Tools.CheckFold
                 }
             }
 
+            double stepZMm = stepXY.Z * FeetToMm;
+
+            // Filter floors to only those within a reasonable vertical distance (e.g., 5000mm)
+            floorsAtLocation = floorsAtLocation.Where(f => Math.Abs(f.topElevation - stepZMm) < 5000.0).ToList();
+
             if (floorsAtLocation.Count < 2)
             {
                 item.FoldTypeName = floorsAtLocation.Count == 1
@@ -514,27 +522,24 @@ namespace RincoModeling.Tools.CheckFold
                 return item;
             }
 
-            // Sort by elevation descending
-            floorsAtLocation.Sort((a, b) => b.topElevation.CompareTo(a.topElevation));
+            // Group by TopElevation (rounding to 1mm to avoid floating point issues)
+            var groups = floorsAtLocation
+                .GroupBy(f => Math.Round(f.topElevation, 0))
+                .OrderBy(g => g.Key) // Sort by elevation ascending
+                .ToList();
 
-            // Find the two closest floors with DIFFERENT elevations (step pair)
-            Floor highSlab = null;
-            Floor lowSlab = null;
-            double minDiff = double.MaxValue;
-
-            for (int i = 0; i < floorsAtLocation.Count; i++)
+            if (groups.Count < 2)
             {
-                for (int j = i + 1; j < floorsAtLocation.Count; j++)
-                {
-                    double diff = Math.Abs(floorsAtLocation[i].topElevation - floorsAtLocation[j].topElevation);
-                    if (diff < minDiff) // Allow 0 difference to detect flush slabs
-                    {
-                        minDiff = diff;
-                        highSlab = floorsAtLocation[i].floor;
-                        lowSlab = floorsAtLocation[j].floor;
-                    }
-                }
+                item.FoldTypeName = "1 elevation only";
+                item.Status = "Sai";
+                return item;
             }
+
+            // Lowest elevation is the first group, Highest is the last group
+            Floor lowSlab = groups.First().First().floor;
+            Floor highSlab = groups.Last().First().floor;
+            double elev1 = groups.First().Key;
+            double elev2 = groups.Last().Key;
 
             if (highSlab != null && lowSlab != null)
             {
@@ -552,7 +557,7 @@ namespace RincoModeling.Tools.CheckFold
                     item.LowSlabInfo = $"{lowType?.Name} (Sloped)";
                     item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
 
-                    item.Status = currentRL.Equals("Varies", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
+                    item.Status = currentRL.Equals("VARIES", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
                 }
                 else
                 {
@@ -562,18 +567,13 @@ namespace RincoModeling.Tools.CheckFold
 
                     var highType = doc.GetElement(highSlab.GetTypeId()) as FloorType;
                     var lowType = doc.GetElement(lowSlab.GetTypeId()) as FloorType;
-                    var highOffParam = highSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
-                    var lowOffParam = lowSlab.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
-                    double highOffMm = highOffParam != null ? highOffParam.AsDouble() * FeetToMm : 0;
-                    double lowOffMm = lowOffParam != null ? lowOffParam.AsDouble() * FeetToMm : 0;
-
-                    item.HighSlabInfo = $"{highType?.Name} ({highOffMm:F0})";
-                    item.LowSlabInfo = $"{lowType?.Name} ({lowOffMm:F0})";
+                    item.HighSlabInfo = $"{highType?.Name} ({highTop:F0})";
+                    item.LowSlabInfo = $"{lowType?.Name} ({lowTop:F0})";
                     item.FoldTypeName = $"{floorsAtLocation.Count} slabs";
 
                     double currentNumeric = 0;
                     double.TryParse(currentRL, out currentNumeric);
-                    item.Status = Math.Abs(currentNumeric - item.CalculatedValue) < 1.0 && !currentRL.Equals("Varies", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
+                    item.Status = Math.Abs(currentNumeric - item.CalculatedValue) < 1.0 && !currentRL.Equals("VARIES", StringComparison.OrdinalIgnoreCase) ? "OK" : "Sai";
                 }
             }
             else
@@ -781,9 +781,9 @@ namespace RincoModeling.Tools.CheckFold
                                     {
                                         Id = idCounter++,
                                         HighSlabId = highFloor.Id,
-                                        HighSlabInfo = highType?.Name,
+                                        HighSlabInfo = $"{highType?.Name} ({highData.TopElev:F0})",
                                         LowSlabId = lowFloor.Id,
-                                        LowSlabInfo = lowType?.Name,
+                                        LowSlabInfo = $"{lowType?.Name} ({lowData.TopElev:F0})",
                                         StepHeight = diff * FeetToMm,
                                         StepEdge = seg
                                     });

@@ -358,7 +358,7 @@
                                     Command="{Binding CheckStepsCommand}" Margin="0,0,6,6"/>
                             <Button Content="📝 Update" Style="{StaticResource UpdateButton}" 
                                     Command="{Binding UpdateStepsCommand}" Margin="0,0,6,6"/>
-                            <Button Content="🔄 Reset" Style="{StaticResource ResetButton}" 
+                            <Button Content="🧹 Reset" Style="{StaticResource ResetButton}" 
                                     Command="{Binding ResetOverridesCommand}" Margin="0,0,6,6"/>
                         </WrapPanel>
 
@@ -409,8 +409,6 @@
                         <WrapPanel Margin="0,0,0,12">
                             <Button Content="🔍 Check Missing" Style="{StaticResource CheckButton}" 
                                     Command="{Binding CheckMissingStepsCommand}" Margin="0,0,6,6"/>
-                            <Button Content="🧹 Clear Highlights" Style="{StaticResource ResetButton}" 
-                                    Command="{Binding ClearHighlightsCommand}" Margin="0,0,6,6"/>
                         </WrapPanel>
                         
                         <!-- Notification banner -->
@@ -422,7 +420,7 @@
                                 <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap">
                                     <Run Text="Tìm thấy "/>
                                     <Run Text="{Binding MissingStepCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AccentOrange}"/>
-                                    <Run Text=" vị trí thiếu Step → đã tô đường line đỏ"/>
+                                    <Run Text=" vị trí thiếu Step"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
@@ -461,7 +459,17 @@
                     </Style>
                 </Grid.Style>
                 
-                <DataGrid ItemsSource="{Binding FoldItems}" SelectionChanged="DataGrid_SelectionChanged">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                        <Button Content="☑ Check/Uncheck All" Margin="0,0,8,0" Padding="8,4" FontSize="11" Style="{StaticResource ResetButton}" Command="{Binding SelectAllFoldCommand}"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding FoldItems}" SelectionChanged="DataGrid_SelectionChanged">
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
                                                  Width="35" Header="✓" ElementStyle="{x:Null}"/>
@@ -477,6 +485,7 @@
                         <DataGridTemplateColumn Header="Status" Width="90" CellTemplate="{StaticResource StatusCellTemplate}"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                </Grid>
             </Grid>
 
             <!-- 2D DATA -->
@@ -494,7 +503,8 @@
 
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="1.5*"/>
+                        <RowDefinition Height="1*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -513,6 +523,7 @@
                             </Border>
                             <TextBlock Text="{Binding WrongRLCount, StringFormat='({0} items)'}" 
                                        FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                            <Button Content="☑ Check/Uncheck All" Margin="12,0,0,0" Padding="8,2" FontSize="11" Style="{StaticResource ResetButton}" Command="{Binding ToggleSelectWrongRLCommand}"/>
                         </StackPanel>
 
                         <DataGrid Grid.Row="1" ItemsSource="{Binding WrongRLItems}" Margin="0,0,0,6" SelectionChanged="DataGrid_SelectionChanged">
@@ -530,8 +541,38 @@
                         </DataGrid>
                     </Grid>
 
+                    <!-- Correct RL List -->
+                    <Grid Grid.Row="1" Margin="0,6,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                            <Border Background="#FFDCFCE7" CornerRadius="3" Padding="8,3" Margin="0,0,8,0"
+                                    BorderBrush="#FFBBF7D0" BorderThickness="1">
+                                <TextBlock Text="🟢 Danh sách Đúng" FontSize="12" FontWeight="SemiBold" 
+                                           Foreground="{StaticResource AccentGreen}"/>
+                            </Border>
+                            <TextBlock Text="{Binding CorrectRLCount, StringFormat='({0} items)'}" 
+                                       FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding CorrectRLItems}" Margin="0,0,0,6" SelectionChanged="DataGrid_SelectionChanged">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding StepFamilyId}" Header="ID" Width="65"/>
+                                <DataGridTextColumn Binding="{Binding FoldTypeName}" Header="Info" Width="1.2*"/>
+                                <DataGridTextColumn Binding="{Binding HighSlabInfo}" Header="Sàn Cao" Width="1.5*"/>
+                                <DataGridTextColumn Binding="{Binding LowSlabInfo}" Header="Sàn Thấp" Width="1.5*"/>
+                                <DataGridTextColumn Binding="{Binding CurrentRLValue}" Header="RL STEP" Width="70"/>
+                                <DataGridTextColumn Binding="{Binding CalculatedValueStr}" Header="Tính toán" Width="70"/>
+                                <DataGridTemplateColumn Header="Status" Width="75" CellTemplate="{StaticResource StatusCellTemplate}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+
                     <!-- Updated RL List -->
-                    <Grid Grid.Row="1" Visibility="{Binding HasUpdated, Converter={StaticResource BoolToVis}}" MaxHeight="180">
+                    <Grid Grid.Row="2" Visibility="{Binding HasUpdated, Converter={StaticResource BoolToVis}}" MaxHeight="180">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
