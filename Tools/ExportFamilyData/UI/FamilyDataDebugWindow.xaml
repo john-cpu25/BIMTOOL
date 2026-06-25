@@ -97,6 +97,19 @@
                 </DataGrid>
             </TabItem>
             
+            <!-- Texts Tab -->
+            <TabItem Header="Texts (Labels)">
+                <DataGrid ItemsSource="{Binding Texts}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          AlternatingRowBackground="#F9F9F9" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAEAEA">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="80"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
+                        <DataGridTextColumn Header="Text Content" Binding="{Binding Text}" Width="250"/>
+                        <DataGridTextColumn Header="UniqueId" Binding="{Binding UniqueId}" Width="250"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            
         </TabControl>
         
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">

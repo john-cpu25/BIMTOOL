@@ -18,8 +18,9 @@ namespace RincoNhan.Tools.ExportFamilyData.ViewModels
 
         public ObservableCollection<ParameterModel> Parameters { get; }
         public ObservableCollection<ReferencePlaneModel> ReferencePlanes { get; }
-        public ObservableCollection<LineModel> Lines { get; }
-        public ObservableCollection<DimensionModel> Dimensions { get; }
+        public ObservableCollection<LineModel> Lines { get; set; }
+        public ObservableCollection<DimensionModel> Dimensions { get; set; }
+        public ObservableCollection<TextElementModel> Texts { get; set; }
 
         public Action ExecuteAction { get; set; }
         public Action CloseAction { get; set; }
@@ -34,6 +35,7 @@ namespace RincoNhan.Tools.ExportFamilyData.ViewModels
             ReferencePlanes = new ObservableCollection<ReferencePlaneModel>(data.ReferencePlanes ?? new System.Collections.Generic.List<ReferencePlaneModel>());
             Lines = new ObservableCollection<LineModel>(data.Lines ?? new System.Collections.Generic.List<LineModel>());
             Dimensions = new ObservableCollection<DimensionModel>(data.Dimensions ?? new System.Collections.Generic.List<DimensionModel>());
+            Texts = new ObservableCollection<TextElementModel>(data.Texts ?? new System.Collections.Generic.List<TextElementModel>());
         }
 
         [RelayCommand]

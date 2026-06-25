@@ -105,12 +105,22 @@ namespace RincoNhan.Tools.ExportFamilyData
         public FamilyGeometryModel Geometry { get; set; }
     }
 
+    public class TextElementModel
+    {
+        public int Id { get; set; }
+        public string UniqueId { get; set; }
+        public string Text { get; set; }
+        public string Name { get; set; }
+        public XYZModel Position { get; set; }
+    }
+
     public class FamilyGeometryModel
     {
         public List<SubcategoryModel> Subcategories { get; set; } = new List<SubcategoryModel>();
         public List<ReferencePlaneModel> ReferencePlanes { get; set; } = new List<ReferencePlaneModel>();
         public List<LineModel> Lines { get; set; } = new List<LineModel>();
         public List<DimensionModel> Dimensions { get; set; } = new List<DimensionModel>();
+        public List<TextElementModel> Texts { get; set; } = new List<TextElementModel>();
     }
 
     public class FamilyDataModel
@@ -120,5 +130,6 @@ namespace RincoNhan.Tools.ExportFamilyData
         public List<LineModel> Lines { get; set; } = new List<LineModel>();
         public List<ReferencePlaneModel> ReferencePlanes { get; set; } = new List<ReferencePlaneModel>();
         public List<DimensionModel> Dimensions { get; set; } = new List<DimensionModel>();
+        public List<TextElementModel> Texts { get; set; } = new List<TextElementModel>();
     }
 }

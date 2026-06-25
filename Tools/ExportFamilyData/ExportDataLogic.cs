@@ -108,8 +108,15 @@ namespace RincoNhan.Tools.ExportFamilyData
                     lineModel.Radius = arc.Radius;
                     
                     // The parameter bounds of an Arc are its Start and End angles
-                    lineModel.StartAngle = arc.GetEndParameter(0);
-                    lineModel.EndAngle = arc.GetEndParameter(1);
+                    try
+                    {
+                        if (arc.IsBound)
+                        {
+                            lineModel.StartAngle = arc.GetEndParameter(0);
+                            lineModel.EndAngle = arc.GetEndParameter(1);
+                        }
+                    }
+                    catch { }
                 }
 
                 data.Lines.Add(lineModel);
@@ -216,6 +223,33 @@ namespace RincoNhan.Tools.ExportFamilyData
                 catch { }
 
                 data.Dimensions.Add(dimModel);
+            }
+
+            // Extract TextElements (Labels and TextNotes)
+            var textElements = new FilteredElementCollector(doc)
+                .OfClass(typeof(TextElement))
+                .Cast<TextElement>();
+
+            foreach (var txt in textElements)
+            {
+                var txtModel = new TextElementModel
+                {
+                    Id = (int)txt.Id.GetIdValue(),
+                    UniqueId = txt.UniqueId,
+                    Text = txt.Text,
+                    Name = txt.Name
+                };
+
+                try
+                {
+                    if (txt.Coord != null)
+                    {
+                        txtModel.Position = ToXYZModel(txt.Coord);
+                    }
+                }
+                catch { }
+
+                data.Texts.Add(txtModel);
             }
 
             return data;

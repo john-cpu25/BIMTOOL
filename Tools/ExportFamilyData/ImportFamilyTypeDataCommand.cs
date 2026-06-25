@@ -187,45 +187,49 @@ namespace RincoNhan.Tools.ExportFamilyData
         {
             FamilyManager fm = doc.FamilyManager;
             
-            // Khởi tạo Type và Group mặc định nếu parse lỗi (fallback an toàn)
-            object groupTypeObj = null; // Có thể là BuiltInParameterGroup hoặc ForgeTypeId
-            object paramTypeObj = null; // Có thể là ParameterType hoặc ForgeTypeId
-            
-            // Cố gắng Parse Group
-            try
+            // Helper function to get BuiltInParameterGroup
+#if !REVIT2024_OR_GREATER
+            BuiltInParameterGroup GetBIPG()
             {
-#if REVIT2024_OR_GREATER
-                if (!string.IsNullOrEmpty(pModel.Group) && pModel.Group.Contains("autodesk."))
-                    groupTypeObj = new ForgeTypeId(pModel.Group);
-                else
-                    groupTypeObj = GroupTypeId.Data;
-#else
                 if (!string.IsNullOrEmpty(pModel.Group) && pModel.Group.StartsWith("PG_"))
-                    groupTypeObj = Enum.Parse(typeof(BuiltInParameterGroup), pModel.Group);
-                else
-                    groupTypeObj = BuiltInParameterGroup.PG_DATA;
-#endif
+                {
+                    try { return (BuiltInParameterGroup)Enum.Parse(typeof(BuiltInParameterGroup), pModel.Group); } catch { return BuiltInParameterGroup.PG_DATA; }
+                }
+                return BuiltInParameterGroup.PG_DATA;
             }
-            catch { groupTypeObj = null; }
+#endif
 
-            // Cố gắng Parse Type
-            try
+            // Helper function to get ParameterType
+#if !REVIT2022_OR_GREATER
+            ParameterType GetPT()
             {
-#if REVIT2022_OR_GREATER
-                if (!string.IsNullOrEmpty(pModel.Type) && pModel.Type.Contains("autodesk."))
-                    paramTypeObj = new ForgeTypeId(pModel.Type);
-                else
-                    paramTypeObj = SpecTypeId.String.Text;
-#else
-                if (!string.IsNullOrEmpty(pModel.Type) && Enum.TryParse(pModel.Type, out ParameterType pType))
-                    paramTypeObj = pType;
-                else
-                    paramTypeObj = ParameterType.Text;
-#endif
+                if (!string.IsNullOrEmpty(pModel.Type))
+                {
+                    try { return (ParameterType)Enum.Parse(typeof(ParameterType), pModel.Type); } catch { return ParameterType.Text; }
+                }
+                return ParameterType.Text;
             }
-            catch { paramTypeObj = null; }
+#endif
 
-            // 1. Thử tạo Shared Parameter bằng cách tạo file TXT ảo (Temp Shared Parameter File)
+#if REVIT2022_OR_GREATER
+            // Helper to get ForgeTypeId for Spec (Type)
+            ForgeTypeId GetSpecTypeId()
+            {
+                if (!string.IsNullOrEmpty(pModel.Type) && pModel.Type.Contains("autodesk."))
+                    return new ForgeTypeId(pModel.Type);
+                return SpecTypeId.String.Text;
+            }
+            
+            // Helper to get ForgeTypeId for Group
+            ForgeTypeId GetGroupTypeId()
+            {
+                if (!string.IsNullOrEmpty(pModel.Group) && pModel.Group.Contains("autodesk."))
+                    return new ForgeTypeId(pModel.Group);
+                return GroupTypeId.Data;
+            }
+#endif
+
+            // 1. Thử tạo Shared Parameter bằng cách tạo file TXT ảo
             if (pModel.IsShared && !string.IsNullOrEmpty(pModel.GUID))
             {
                 string tempFile = System.IO.Path.GetTempFileName() + ".txt";
@@ -234,7 +238,6 @@ namespace RincoNhan.Tools.ExportFamilyData
 
                 try
                 {
-                    // Tạo file trắng
                     System.IO.File.WriteAllText(tempFile, "");
                     app.SharedParametersFilename = tempFile;
 
@@ -244,9 +247,9 @@ namespace RincoNhan.Tools.ExportFamilyData
                         DefinitionGroup group = spFile.Groups.Create("TempGroup");
                         
 #if REVIT2022_OR_GREATER
-                        ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(pModel.Name, (ForgeTypeId)(paramTypeObj ?? SpecTypeId.String.Text));
+                        ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(pModel.Name, GetSpecTypeId());
 #else
-                        ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(pModel.Name, (ParameterType)(paramTypeObj ?? ParameterType.Text));
+                        ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(pModel.Name, GetPT());
 #endif
                         options.GUID = new Guid(pModel.GUID);
 
@@ -255,41 +258,28 @@ namespace RincoNhan.Tools.ExportFamilyData
                         if (def != null)
                         {
 #if REVIT2024_OR_GREATER
-                            FamilyParameter newParam = fm.AddParameter(def, (ForgeTypeId)(groupTypeObj ?? GroupTypeId.Data), pModel.IsInstance);
+                            return fm.AddParameter(def, GetGroupTypeId(), pModel.IsInstance);
 #else
-                            FamilyParameter newParam = fm.AddParameter(def, (BuiltInParameterGroup)(groupTypeObj ?? BuiltInParameterGroup.PG_DATA), pModel.IsInstance);
+                            return fm.AddParameter(def, GetBIPG(), pModel.IsInstance);
 #endif
-                            return newParam;
                         }
                     }
                 }
                 catch { }
                 finally
                 {
-                    // Trả lại SP file cũ và xóa file temp
-                    try 
-                    { 
-                        if (!string.IsNullOrEmpty(originalSpFile))
-                            app.SharedParametersFilename = originalSpFile; 
-                    } catch { }
+                    try { if (!string.IsNullOrEmpty(originalSpFile)) app.SharedParametersFilename = originalSpFile; } catch { }
                     try { System.IO.File.Delete(tempFile); } catch { }
                 }
-                
-                // Nếu lỗi khi tạo Shared Parameter (ví dụ GUID trùng lặp với một tham số đang ẩn), 
-                // thì sẽ fallback xuống tạo Non-shared Parameter bên dưới.
             }
 
             // 2. Tạo Non-shared (Local) Parameter
             try 
             {
 #if REVIT2022_OR_GREATER
-                ForgeTypeId groupT = (ForgeTypeId)(groupTypeObj ?? GroupTypeId.Data);
-                ForgeTypeId paramT = (ForgeTypeId)(paramTypeObj ?? SpecTypeId.String.Text);
-                return fm.AddParameter(pModel.Name, groupT, paramT, pModel.IsInstance);
+                return fm.AddParameter(pModel.Name, GetGroupTypeId(), GetSpecTypeId(), pModel.IsInstance);
 #else
-                BuiltInParameterGroup groupT = (BuiltInParameterGroup)(groupTypeObj ?? BuiltInParameterGroup.PG_DATA);
-                ParameterType paramT = (ParameterType)(paramTypeObj ?? ParameterType.Text);
-                return fm.AddParameter(pModel.Name, groupT, paramT, pModel.IsInstance);
+                return fm.AddParameter(pModel.Name, GetBIPG(), GetPT(), pModel.IsInstance);
 #endif
             }
             catch { return null; }

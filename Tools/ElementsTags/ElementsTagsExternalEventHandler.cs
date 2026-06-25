@@ -12,8 +12,10 @@ namespace RincoNhan.Tools.ElementsTags
         public List<ViewModels.CategoryItemViewModel> SelectedCategories { get; set; }
         public bool AddLeader { get; set; }
         public bool OnlyUntagged { get; set; }
+        public bool AutoRehostSection { get; set; }
         public Action<string> NotifyStatus { get; set; }
         public Action<List<ViewModels.ErrorItemViewModel>> ReportErrors { get; set; }
+        public List<ViewModels.ErrorItemViewModel> SelectedTagsToUpdate { get; set; }
         public ElementId ElementIdToShow { get; set; }
 
         // Session-level set: tracks tag IDs that had leaders auto-added by the tool (no leader originally)
@@ -41,6 +43,14 @@ namespace RincoNhan.Tools.ElementsTags
                     else if (Action == "ClashTag")
                     {
                         CheckClashTags(doc, view);
+                    }
+                    else if (Action == "CheckWallTagSection")
+                    {
+                        CheckWallTagSection(doc, view);
+                    }
+                    else if (Action == "UpdateWallTagSection")
+                    {
+                        UpdateWallTagSection(doc, view);
                     }
                     else if (Action == "ResetAll")
                     {
@@ -629,6 +639,344 @@ namespace RincoNhan.Tools.ElementsTags
 
             ReportErrors?.Invoke(errorList);
             NotifyStatus?.Invoke($"Found {warningCount} untagged 3D elements (Cyan).");
+        }
+
+        private void CheckWallTagSection(Document doc, View view)
+        {
+            var tagsArr = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(IndependentTag))
+                .Cast<IndependentTag>()
+                .ToList();
+
+            int warningCount = 0;
+            int rehostedCount = 0;
+            var errorList = new List<ViewModels.ErrorItemViewModel>();
+
+            var allWalls = new FilteredElementCollector(doc, view.Id)
+                .OfCategory(BuiltInCategory.OST_Walls)
+                .WhereElementIsNotElementType()
+                .ToList();
+
+            foreach (var tag in tagsArr)
+            {
+                // Only process Wall Tags
+                if (tag.Category == null || tag.Category.Id.GetIdValue() != (long)BuiltInCategory.OST_WallTags) 
+                {
+                    continue;
+                }
+
+                Element currentHost = null;
+                Transform linkTransform = Transform.Identity;
+                
+#if REVIT2022_OR_GREATER
+                var refs = tag.GetTaggedReferences();
+                if (refs.Any())
+                {
+                    Reference r = refs.First();
+                    Element localElem = doc.GetElement(r.ElementId);
+                    if (localElem is RevitLinkInstance linkInst)
+                    {
+                        Document linkDoc = linkInst.GetLinkDocument();
+                        if (linkDoc != null) 
+                        {
+                            currentHost = linkDoc.GetElement(r.LinkedElementId);
+                            linkTransform = linkInst.GetTotalTransform();
+                        }
+                    }
+                    else
+                    {
+                        currentHost = localElem;
+                    }
+                }
+#else
+                if (tag.TaggedLocalElementId != ElementId.InvalidElementId)
+                {
+                    Element localElem = doc.GetElement(tag.TaggedLocalElementId);
+                    if (localElem is RevitLinkInstance linkInst && tag.TaggedElementId.LinkedElementId != ElementId.InvalidElementId)
+                    {
+                        Document linkDoc = linkInst.GetLinkDocument();
+                        if (linkDoc != null) 
+                        {
+                            currentHost = linkDoc.GetElement(tag.TaggedElementId.LinkedElementId);
+                            linkTransform = linkInst.GetTotalTransform();
+                        }
+                    }
+                    else
+                    {
+                        currentHost = localElem;
+                    }
+                }
+#endif
+
+                bool originallyHadLeader = tag.HasLeader;
+
+                // Auto-add leader to check if it points to wall
+                if (!originallyHadLeader)
+                {
+                    tag.HasLeader = true;
+                    tag.LeaderEndCondition = LeaderEndCondition.Attached;
+                    tag.LeaderEndCondition = LeaderEndCondition.Free;
+                    _autoAddedLeaderTagIds.Add(tag.Id);
+                }
+
+                XYZ leaderEndPoint = null;
+                if (tag.HasLeader)
+                {
+                    try
+                    {
+#if REVIT2022_OR_GREATER
+                        var refsCol = tag.GetTaggedReferences();
+                        if (refsCol.Any()) leaderEndPoint = tag.GetLeaderEnd(refsCol.First());
+#else
+                        leaderEndPoint = tag.LeaderEnd;
+#endif
+                    }
+                    catch { }
+                }
+
+                bool isValid = true;
+                XYZ evalPoint = tag.HasLeader && leaderEndPoint != null ? 
+                    (linkTransform.IsIdentity ? leaderEndPoint : linkTransform.Inverse.OfPoint(leaderEndPoint)) : 
+                    (linkTransform.IsIdentity ? tag.TagHeadPosition : linkTransform.Inverse.OfPoint(tag.TagHeadPosition));
+
+                if (currentHost == null || currentHost.Category == null || currentHost.Category.Id.GetIdValue() != (long)BuiltInCategory.OST_Walls)
+                {
+                    isValid = false;
+                }
+                else
+                {
+                    double tol = 0.5;
+                    BoundingBoxXYZ bbox = currentHost.get_BoundingBox(null);
+                    if (bbox != null)
+                    {
+                        var min = bbox.Min - new XYZ(tol, tol, tol);
+                        var max = bbox.Max + new XYZ(tol, tol, tol);
+                        if (evalPoint.X < min.X || evalPoint.X > max.X ||
+                            evalPoint.Y < min.Y || evalPoint.Y > max.Y ||
+                            evalPoint.Z < min.Z || evalPoint.Z > max.Z)
+                        {
+                            isValid = false;
+                        }
+                    }
+                }
+
+                if (!isValid)
+                {
+                    bool rehosted = false;
+
+                    if (AutoRehostSection)
+                    {
+                        Element correctWall = null;
+                        foreach (var wall in allWalls)
+                        {
+                            BoundingBoxXYZ wBbox = wall.get_BoundingBox(null);
+                            if (wBbox != null)
+                            {
+                                var wMin = wBbox.Min - new XYZ(0.5, 0.5, 0.5);
+                                var wMax = wBbox.Max + new XYZ(0.5, 0.5, 0.5);
+                                if (evalPoint.X >= wMin.X && evalPoint.X <= wMax.X &&
+                                    evalPoint.Y >= wMin.Y && evalPoint.Y <= wMax.Y &&
+                                    evalPoint.Z >= wMin.Z && evalPoint.Z <= wMax.Z)
+                                {
+                                    correctWall = wall;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (correctWall != null)
+                        {
+                            // Re-host the tag (recreate it)
+                            ElementId symbolId = tag.GetTypeId();
+                            TagOrientation orientation = tag.TagOrientation;
+                            XYZ headPos = tag.TagHeadPosition;
+                            
+                            IndependentTag newTag = IndependentTag.Create(doc, symbolId, view.Id, new Reference(correctWall), originallyHadLeader, orientation, headPos);
+                            
+                            // Restore leader end and elbow if it had a free leader
+                            if (originallyHadLeader)
+                            {
+                                newTag.LeaderEndCondition = tag.LeaderEndCondition;
+                                if (tag.LeaderEndCondition == LeaderEndCondition.Free)
+                                {
+                                    try
+                                    {
+#if REVIT2022_OR_GREATER
+                                        var refsCol = tag.GetTaggedReferences();
+                                        var newRefsCol = newTag.GetTaggedReferences();
+                                        if (refsCol.Any() && newRefsCol.Any())
+                                        {
+                                            newTag.SetLeaderEnd(newRefsCol.First(), tag.GetLeaderEnd(refsCol.First()));
+                                            newTag.SetLeaderElbow(newRefsCol.First(), tag.GetLeaderElbow(refsCol.First()));
+                                        }
+#else
+                                        newTag.LeaderEnd = tag.LeaderEnd;
+                                        newTag.LeaderElbow = tag.LeaderElbow;
+#endif
+                                    }
+                                    catch { }
+                                }
+                            }
+                            
+                            // Force head position to exactly match original
+                            newTag.TagHeadPosition = headPos;
+                            newTag.HasLeader = originallyHadLeader;
+
+                            doc.Delete(tag.Id);
+                            rehosted = true;
+                            rehostedCount++;
+
+                            errorList.Add(new ViewModels.ErrorItemViewModel 
+                            {
+                                ElementId = newTag.Id,
+                                IdValue = correctWall.Id.GetIdValue().ToString(),
+                                Category = "Walls",
+                                ErrorType = "Re-Hosted (Updated)"
+                            });
+                        }
+                    }
+
+                    if (!rehosted)
+                    {
+                        Color highlightColor = new Color(255, 0, 0); // Red
+                        
+                        OverrideGraphicSettings settings = new OverrideGraphicSettings();
+                        settings.SetProjectionLineColor(highlightColor);
+
+                        view.SetElementOverrides(tag.Id, settings);
+                        warningCount++;
+
+                        errorList.Add(new ViewModels.ErrorItemViewModel 
+                        {
+                            ElementId = tag.Id,
+                            IdValue = currentHost?.Id.GetIdValue().ToString() ?? "N/A",
+                            Category = "Walls",
+                            ErrorType = "Misplaced Tag (Section)"
+                        });
+                    }
+                }
+                else
+                {
+                    view.SetElementOverrides(tag.Id, new OverrideGraphicSettings());
+                }
+            }
+
+            ReportErrors?.Invoke(errorList);
+            NotifyStatus?.Invoke($"Auto-Fixed {rehostedCount} tags. Found {warningCount} misplaced tags (Red).");
+        }
+
+        private void UpdateWallTagSection(Document doc, View view)
+        {
+            if (SelectedTagsToUpdate == null || !SelectedTagsToUpdate.Any()) return;
+
+            int updatedCount = 0;
+            var errorList = new List<ViewModels.ErrorItemViewModel>();
+
+            var allWalls = new FilteredElementCollector(doc, view.Id)
+                .OfCategory(BuiltInCategory.OST_Walls)
+                .WhereElementIsNotElementType()
+                .ToList();
+
+            foreach (var selectedTagInfo in SelectedTagsToUpdate)
+            {
+                IndependentTag tag = doc.GetElement(selectedTagInfo.ElementId) as IndependentTag;
+                if (tag == null) continue;
+
+                Transform linkTransform = Transform.Identity;
+                XYZ leaderEndPoint = null;
+                bool originallyHadLeader = tag.HasLeader;
+
+                if (tag.HasLeader)
+                {
+                    try
+                    {
+#if REVIT2022_OR_GREATER
+                        var refsCol = tag.GetTaggedReferences();
+                        if (refsCol.Any()) leaderEndPoint = tag.GetLeaderEnd(refsCol.First());
+#else
+                        leaderEndPoint = tag.LeaderEnd;
+#endif
+                    }
+                    catch { }
+                }
+
+                XYZ evalPoint = tag.HasLeader && leaderEndPoint != null ? 
+                    (linkTransform.IsIdentity ? leaderEndPoint : linkTransform.Inverse.OfPoint(leaderEndPoint)) : 
+                    (linkTransform.IsIdentity ? tag.TagHeadPosition : linkTransform.Inverse.OfPoint(tag.TagHeadPosition));
+
+                Element correctWall = null;
+                foreach (var wall in allWalls)
+                {
+                    BoundingBoxXYZ wBbox = wall.get_BoundingBox(null);
+                    if (wBbox != null)
+                    {
+                        var wMin = wBbox.Min - new XYZ(0.5, 0.5, 0.5);
+                        var wMax = wBbox.Max + new XYZ(0.5, 0.5, 0.5);
+                        if (evalPoint.X >= wMin.X && evalPoint.X <= wMax.X &&
+                            evalPoint.Y >= wMin.Y && evalPoint.Y <= wMax.Y &&
+                            evalPoint.Z >= wMin.Z && evalPoint.Z <= wMax.Z)
+                        {
+                            correctWall = wall;
+                            break;
+                        }
+                    }
+                }
+
+                if (correctWall != null)
+                {
+                    // Re-host the tag (recreate it)
+                    ElementId symbolId = tag.GetTypeId();
+                    TagOrientation orientation = tag.TagOrientation;
+                    XYZ headPos = tag.TagHeadPosition;
+                    
+                    IndependentTag newTag = IndependentTag.Create(doc, symbolId, view.Id, new Reference(correctWall), originallyHadLeader, orientation, headPos);
+                    
+                    if (originallyHadLeader)
+                    {
+                        newTag.LeaderEndCondition = tag.LeaderEndCondition;
+                        if (tag.LeaderEndCondition == LeaderEndCondition.Free)
+                        {
+                            try
+                            {
+#if REVIT2022_OR_GREATER
+                                var refsCol = tag.GetTaggedReferences();
+                                var newRefsCol = newTag.GetTaggedReferences();
+                                if (refsCol.Any() && newRefsCol.Any())
+                                {
+                                    newTag.SetLeaderEnd(newRefsCol.First(), tag.GetLeaderEnd(refsCol.First()));
+                                    newTag.SetLeaderElbow(newRefsCol.First(), tag.GetLeaderElbow(refsCol.First()));
+                                }
+#else
+                                newTag.LeaderEnd = tag.LeaderEnd;
+                                newTag.LeaderElbow = tag.LeaderElbow;
+#endif
+                            }
+                            catch { }
+                        }
+                    }
+
+                    // Force head position to exactly match original
+                    newTag.TagHeadPosition = headPos;
+                    newTag.HasLeader = originallyHadLeader;
+
+                    doc.Delete(tag.Id);
+                    
+                    // Highlight green for success
+                    OverrideGraphicSettings settings = new OverrideGraphicSettings();
+                    settings.SetProjectionLineColor(new Color(0, 128, 0)); // Green
+                    view.SetElementOverrides(newTag.Id, settings);
+
+                    updatedCount++;
+                }
+            }
+            
+            // Re-run CheckWallTagSection to refresh the list, but don't auto-rehost in that pass so we see the new state
+            bool oldAutoRehost = AutoRehostSection;
+            AutoRehostSection = false;
+            CheckWallTagSection(doc, view);
+            AutoRehostSection = oldAutoRehost;
+
+            NotifyStatus?.Invoke($"Đã update thành công {updatedCount} tag(s).");
         }
 
         private XYZ GetElementCenter(Element elem, View view)

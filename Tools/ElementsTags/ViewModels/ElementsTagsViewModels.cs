@@ -43,6 +43,9 @@ namespace RincoNhan.Tools.ElementsTags.ViewModels
 
     public partial class ErrorItemViewModel : ObservableObject
     {
+        [ObservableProperty]
+        private bool _isSelected;
+
         public ElementId ElementId { get; set; }
         public string IdValue { get; set; }
         public string Category { get; set; }
@@ -68,6 +71,9 @@ namespace RincoNhan.Tools.ElementsTags.ViewModels
 
         [ObservableProperty]
         private bool _onlyUntagged = true;
+
+        [ObservableProperty]
+        private bool _autoRehostSection = false;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(StatusVisible))]
@@ -111,6 +117,9 @@ namespace RincoNhan.Tools.ElementsTags.ViewModels
         private void ClashTag() => ExecuteAction("ClashTag");
 
         [RelayCommand]
+        private void CheckWallTagSection() => ExecuteAction("CheckWallTagSection");
+
+        [RelayCommand]
         private void Reset() => ExecuteAction("ResetAll");
 
         [RelayCommand]
@@ -132,6 +141,35 @@ namespace RincoNhan.Tools.ElementsTags.ViewModels
 
 
         [RelayCommand]
+        private void UpdateSelectedTags()
+        {
+            var selectedTags = ErrorResults.Where(x => x.IsSelected).ToList();
+            if (selectedTags.Count == 0)
+            {
+                StatusMessage = "Vui lòng chọn ít nhất 1 tag để update.";
+                return;
+            }
+
+            StatusMessage = "";
+            
+            _handler.Action = "UpdateWallTagSection";
+            _handler.SelectedTagsToUpdate = selectedTags;
+            _handler.NotifyStatus = msg => StatusMessage = msg;
+            
+            _externalEvent.Raise();
+        }
+
+        [RelayCommand]
+        private void UncheckAll()
+        {
+            if (ErrorResults == null) return;
+            foreach (var item in ErrorResults)
+            {
+                item.IsSelected = false;
+            }
+        }
+
+        [RelayCommand]
         private void ShowElement(ErrorItemViewModel item)
         {
             if (item == null) return;
@@ -148,6 +186,7 @@ namespace RincoNhan.Tools.ElementsTags.ViewModels
             _handler.SelectedCategories = Categories.Where(c => c.IsSelected).ToList();
             _handler.AddLeader = AddLeader;
             _handler.OnlyUntagged = OnlyUntagged;
+            _handler.AutoRehostSection = AutoRehostSection;
             _handler.NotifyStatus = msg => StatusMessage = msg;
 
             _externalEvent.Raise();

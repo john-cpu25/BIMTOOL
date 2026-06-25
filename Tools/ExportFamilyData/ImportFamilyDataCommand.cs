@@ -47,9 +47,47 @@ namespace RincoNhan.Tools.ExportFamilyData
 
                         viewModel.ExecuteAction = () =>
                         {
-                            using (Transaction tx = new Transaction(doc, "Import Family Data"))
+                            try
                             {
-                                tx.Start();
+                                using (Transaction tx = new Transaction(doc, "Import Family Data"))
+                                {
+                                    tx.Start();
+
+                                int paramCount = 0;
+                                if (data.Parameters != null)
+                                {
+                                    FamilyManager fm = doc.FamilyManager;
+                                    foreach (var pModel in data.Parameters)
+                                    {
+                                        FamilyParameter fp = fm.get_Parameter(pModel.Name);
+                                        if (fp == null)
+                                        {
+                                            fp = CreateMissingParameter(doc, commandData.Application.Application, pModel);
+                                        }
+                                        
+                                        if (fp != null && !fp.IsReadOnly)
+                                        {
+                                            paramCount++;
+                                            bool hasFormula = false;
+                                            if (!string.IsNullOrEmpty(pModel.Formula))
+                                            {
+                                                try { fm.SetFormula(fp, pModel.Formula); hasFormula = true; } catch { }
+                                            }
+                                            
+                                            if (!hasFormula)
+                                            {
+                                                try
+                                                {
+                                                    if (pModel.StorageType == "Double") fm.Set(fp, pModel.InternalValue);
+                                                    else if (pModel.StorageType == "Integer") fm.Set(fp, pModel.IntegerValue);
+                                                    else if (pModel.StorageType == "String" && pModel.ValueString != null) fm.Set(fp, pModel.ValueString);
+                                                    else if (!string.IsNullOrEmpty(pModel.ValueString)) fm.SetValueString(fp, pModel.ValueString);
+                                                }
+                                                catch { }
+                                            }
+                                        }
+                                    }
+                                }
 
                                 Dictionary<int, Element> importedElements = new Dictionary<int, Element>();
                             
@@ -163,31 +201,40 @@ namespace RincoNhan.Tools.ExportFamilyData
                             {
                                 // Tìm SketchPlane của view hiện tại, hoặc tạo mới nếu chưa có
                                 SketchPlane sketchPlane = doc.ActiveView.SketchPlane;
+                                
+                                XYZ viewNormal = doc.ActiveView.ViewDirection.Multiply(-1);
+                                Plane viewPlane = Plane.CreateByNormalAndOrigin(viewNormal, doc.ActiveView.Origin);
+                                
                                 if (sketchPlane == null)
                                 {
-                                    // Revit ViewDirection points away from viewer. Plane normal should point towards viewer.
-                                    XYZ viewNormal = doc.ActiveView.ViewDirection.Multiply(-1);
-                                    Plane plane = Plane.CreateByNormalAndOrigin(viewNormal, doc.ActiveView.Origin);
-                                    sketchPlane = SketchPlane.Create(doc, plane);
-                                    doc.ActiveView.SketchPlane = sketchPlane;
+                                    try
+                                    {
+                                        sketchPlane = SketchPlane.Create(doc, viewPlane);
+                                        doc.ActiveView.SketchPlane = sketchPlane;
+                                    }
+                                    catch
+                                    {
+                                        // Ignore sketch plane creation error in 2D families (e.g., Annotation Symbols)
+                                    }
                                 }
+                                
+                                Plane spPlane = sketchPlane != null ? sketchPlane.GetPlane() : viewPlane;
 
                                 foreach (var lineModel in data.Lines)
                                 {
-                                    if (lineModel.StartPoint == null || lineModel.EndPoint == null) continue;
+                                    XYZ start = null;
+                                    XYZ end = null;
                                     
-                                    // Flatten points to the sketch plane to prevent tiny precision errors that cause tilted arcs
-                                    Plane spPlane = sketchPlane.GetPlane();
-                                    
-                                    XYZ rawStart = new XYZ(lineModel.StartPoint.X, lineModel.StartPoint.Y, lineModel.StartPoint.Z);
-                                    XYZ rawEnd = new XYZ(lineModel.EndPoint.X, lineModel.EndPoint.Y, lineModel.EndPoint.Z);
-                                    
-                                    // Project points onto sketch plane
-                                    XYZ start = ProjectOntoPlane(rawStart, spPlane);
-                                    XYZ end = ProjectOntoPlane(rawEnd, spPlane);
-
-                                    // Bỏ qua nếu đường line có điểm đầu trùng điểm cuối
-                                    if (start.IsAlmostEqualTo(end)) continue;
+                                    if (lineModel.StartPoint != null && lineModel.EndPoint != null)
+                                    {
+                                        XYZ rawStart = new XYZ(lineModel.StartPoint.X, lineModel.StartPoint.Y, lineModel.StartPoint.Z);
+                                        XYZ rawEnd = new XYZ(lineModel.EndPoint.X, lineModel.EndPoint.Y, lineModel.EndPoint.Z);
+                                        start = ProjectOntoPlane(rawStart, spPlane);
+                                        end = ProjectOntoPlane(rawEnd, spPlane);
+                                        
+                                        // Bỏ qua nếu đường line có điểm đầu trùng điểm cuối
+                                        if (start.IsAlmostEqualTo(end)) continue;
+                                    }
 
                                     Curve geomCurve = null;
                                     
@@ -199,52 +246,64 @@ namespace RincoNhan.Tools.ExportFamilyData
                                             {
                                                 XYZ rawCenter = new XYZ(lineModel.Center.X, lineModel.Center.Y, lineModel.Center.Z);
                                                 XYZ rawNormal = new XYZ(lineModel.Normal.X, lineModel.Normal.Y, lineModel.Normal.Z);
-                                                
-                                                // Create a plane for the arc. We don't flatten the normal, we use it directly to preserve the arc's true orientation
-                                                // However, we project the center onto the sketch plane to avoid the "Curve must be in the plane" error
                                                 XYZ center = ProjectOntoPlane(rawCenter, spPlane);
-                                                Plane arcPlane = Plane.CreateByNormalAndOrigin(rawNormal, center);
                                                 
-                                                geomCurve = Arc.Create(arcPlane, lineModel.Radius, lineModel.StartAngle, lineModel.EndAngle);
-                                            }
-                                            catch
-                                            {
-                                                // If that fails, fallback to 3 points
-                                                if (lineModel.MidPoint != null)
+                                                // Guarantee perfectly parallel normal to sketch plane to avoid "Curve must be in the plane"
+                                                XYZ normalToUse = rawNormal.DotProduct(spPlane.Normal) >= 0 ? spPlane.Normal : spPlane.Normal.Negate();
+                                                Plane arcPlane = Plane.CreateByNormalAndOrigin(normalToUse, center);
+                                                
+                                                double sAngle = lineModel.StartAngle;
+                                                double eAngle = lineModel.EndAngle;
+                                                if (Math.Abs(eAngle - sAngle) < 1e-9)
                                                 {
-                                                    XYZ rawMid = new XYZ(lineModel.MidPoint.X, lineModel.MidPoint.Y, lineModel.MidPoint.Z);
-                                                    XYZ mid = ProjectOntoPlane(rawMid, spPlane);
-                                                    try { geomCurve = Arc.Create(start, end, mid); } catch { geomCurve = Line.CreateBound(start, end); }
+                                                    sAngle = 0;
+                                                    eAngle = 2 * Math.PI;
                                                 }
-                                                else
+                                                else if (sAngle > eAngle)
                                                 {
-                                                    geomCurve = Line.CreateBound(start, end);
+                                                    double temp = sAngle;
+                                                    sAngle = eAngle;
+                                                    eAngle = temp;
+                                                }
+                                                
+                                                geomCurve = Arc.Create(arcPlane, lineModel.Radius, sAngle, eAngle);
+                                            }
+                                            catch (Exception innerEx)
+                                            {
+                                                TaskDialog.Show("Arc Create Error", $"Arc.Create failed: {innerEx.Message}\nAngles: {lineModel.StartAngle} to {lineModel.EndAngle}");
+                                                if (start != null && end != null)
+                                                {
+                                                    if (lineModel.MidPoint != null)
+                                                    {
+                                                        XYZ rawMid = new XYZ(lineModel.MidPoint.X, lineModel.MidPoint.Y, lineModel.MidPoint.Z);
+                                                        XYZ mid = ProjectOntoPlane(rawMid, spPlane);
+                                                        try { geomCurve = Arc.Create(start, end, mid); } catch { geomCurve = Line.CreateBound(start, end); }
+                                                    }
+                                                    else
+                                                    {
+                                                        geomCurve = Line.CreateBound(start, end);
+                                                    }
                                                 }
                                             }
                                         }
-                                        else if (lineModel.MidPoint != null)
+                                        else if (lineModel.MidPoint != null && start != null && end != null)
                                         {
                                             XYZ rawMid = new XYZ(lineModel.MidPoint.X, lineModel.MidPoint.Y, lineModel.MidPoint.Z);
                                             XYZ mid = ProjectOntoPlane(rawMid, spPlane);
-                                            try
-                                            {
-                                                geomCurve = Arc.Create(start, end, mid);
-                                            }
-                                            catch
-                                            {
-                                                // Fallback to straight line if arc creation fails
-                                                geomCurve = Line.CreateBound(start, end);
-                                            }
+                                            try { geomCurve = Arc.Create(start, end, mid); } catch { geomCurve = Line.CreateBound(start, end); }
                                         }
-                                        else
+                                        else if (start != null && end != null)
                                         {
                                             geomCurve = Line.CreateBound(start, end);
                                         }
                                     }
                                     else
                                     {
-                                        geomCurve = Line.CreateBound(start, end);
+                                        if (start != null && end != null)
+                                            geomCurve = Line.CreateBound(start, end);
                                     }
+                                    
+                                    if (geomCurve == null) continue;
                                     
                                     CurveElement newCurve = null;
                                     try
@@ -278,10 +337,14 @@ namespace RincoNhan.Tools.ExportFamilyData
                                             // Fallback to SymbolicCurve if ModelCurve is not permitted in this family type
                                             newCurve = doc.FamilyCreate.NewSymbolicCurve(geomCurve, sketchPlane);
                                         }
-                                        catch
+                                        catch (Exception innerEx)
                                         {
                                             // Fallback to DetailCurve if all else fails
-                                            try { newCurve = doc.FamilyCreate.NewDetailCurve(doc.ActiveView, geomCurve); } catch { }
+                                            try { newCurve = doc.FamilyCreate.NewDetailCurve(doc.ActiveView, geomCurve); } 
+                                            catch (Exception finalEx)
+                                            {
+                                                TaskDialog.Show("Error Creating Curve", $"Failed to create curve. Inner: {innerEx.Message}, Final: {finalEx.Message}\nType: {lineModel.Type}\nShape: {lineModel.CurveShape}");
+                                            }
                                         }
                                     }
 
@@ -403,6 +466,29 @@ namespace RincoNhan.Tools.ExportFamilyData
                                 }
                             }
 
+                            // 3.5 Tạo Texts
+                            int textCount = 0;
+                            if (data.Texts != null && data.Texts.Count > 0)
+                            {
+                                ElementId defaultTextTypeId = new FilteredElementCollector(doc).OfClass(typeof(TextNoteType)).FirstElementId();
+                                if (defaultTextTypeId != null)
+                                {
+                                    foreach (var txtModel in data.Texts)
+                                    {
+                                        if (txtModel.Position != null && !string.IsNullOrEmpty(txtModel.Text))
+                                        {
+                                            try
+                                            {
+                                                XYZ pos = new XYZ(txtModel.Position.X, txtModel.Position.Y, txtModel.Position.Z);
+                                                TextNote.Create(doc, doc.ActiveView.Id, pos, txtModel.Text, defaultTextTypeId);
+                                                textCount++;
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                }
+                            }
+
                             tx.Commit();
                             
                             // 4. Áp dụng Label và Lock trong các Transaction riêng biệt để tránh Overconstrained
@@ -466,14 +552,23 @@ namespace RincoNhan.Tools.ExportFamilyData
                             int totalRp = data.ReferencePlanes?.Count ?? 0;
                             int totalLine = data.Lines?.Count ?? 0;
                             int totalDim = data.Dimensions?.Count ?? 0;
+                            int totalParam = data.Parameters?.Count ?? 0;
+                            int totalText = data.Texts?.Count ?? 0;
                             
                             TaskDialog.Show("Hoàn tất", $"Đã Import hoàn tất!\n" +
+                                                        $"- Parameters: {paramCount}/{totalParam}\n" +
                                                         $"- Reference Planes: {rpCount}/{totalRp}\n" +
                                                         $"- Lines: {lineCount}/{totalLine}\n" +
-                                                        $"- Dimensions: {dimCount}/{totalDim}\n\n" +
+                                                        $"- Dimensions: {dimCount}/{totalDim}\n" +
+                                                        $"- Texts: {textCount}/{totalText}\n\n" +
                                                         "(Các đối tượng không hợp lệ hoặc bị trùng lặp đã được tự động bỏ qua).");
                         }
-                    };
+                            }
+                            catch (Exception ex)
+                            {
+                                TaskDialog.Show("Lỗi ExecuteAction", "Chi tiết lỗi: " + ex.Message + "\n" + ex.StackTrace);
+                            }
+                        };
                     
                     window.ShowDialog();
                 }
@@ -487,6 +582,109 @@ namespace RincoNhan.Tools.ExportFamilyData
                 return Result.Failed;
             }
         }
+        
+        private FamilyParameter CreateMissingParameter(Document doc, Autodesk.Revit.ApplicationServices.Application app, ParameterModel pModel)
+        {
+            FamilyManager fm = doc.FamilyManager;
+            
+            // Helper function to get BuiltInParameterGroup
+#if !REVIT2024_OR_GREATER
+            BuiltInParameterGroup GetBIPG()
+            {
+                if (!string.IsNullOrEmpty(pModel.Group) && pModel.Group.StartsWith("PG_"))
+                {
+                    try { return (BuiltInParameterGroup)Enum.Parse(typeof(BuiltInParameterGroup), pModel.Group); } catch { return BuiltInParameterGroup.PG_DATA; }
+                }
+                return BuiltInParameterGroup.PG_DATA;
+            }
+#endif
+
+            // Helper function to get ParameterType
+#if !REVIT2022_OR_GREATER
+            ParameterType GetPT()
+            {
+                if (!string.IsNullOrEmpty(pModel.Type))
+                {
+                    try { return (ParameterType)Enum.Parse(typeof(ParameterType), pModel.Type); } catch { return ParameterType.Text; }
+                }
+                return ParameterType.Text;
+            }
+#endif
+
+#if REVIT2022_OR_GREATER
+            // Helper to get ForgeTypeId for Spec (Type)
+            ForgeTypeId GetSpecTypeId()
+            {
+                if (!string.IsNullOrEmpty(pModel.Type) && pModel.Type.Contains("autodesk."))
+                    return new ForgeTypeId(pModel.Type);
+                return SpecTypeId.String.Text;
+            }
+            
+            // Helper to get ForgeTypeId for Group
+            ForgeTypeId GetGroupTypeId()
+            {
+                if (!string.IsNullOrEmpty(pModel.Group) && pModel.Group.Contains("autodesk."))
+                    return new ForgeTypeId(pModel.Group);
+                return GroupTypeId.Data;
+            }
+#endif
+
+            // 1. Thử tạo Shared Parameter bằng cách tạo file TXT ảo
+            if (pModel.IsShared && !string.IsNullOrEmpty(pModel.GUID))
+            {
+                string tempFile = System.IO.Path.GetTempFileName() + ".txt";
+                string originalSpFile = "";
+                try { originalSpFile = app.SharedParametersFilename; } catch { }
+
+                try
+                {
+                    System.IO.File.WriteAllText(tempFile, "");
+                    app.SharedParametersFilename = tempFile;
+
+                    DefinitionFile spFile = app.OpenSharedParameterFile();
+                    if (spFile != null)
+                    {
+                        DefinitionGroup group = spFile.Groups.Create("TempGroup");
+                        
+#if REVIT2022_OR_GREATER
+                        ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(pModel.Name, GetSpecTypeId());
+#else
+                        ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(pModel.Name, GetPT());
+#endif
+                        options.GUID = new Guid(pModel.GUID);
+
+                        ExternalDefinition def = group.Definitions.Create(options) as ExternalDefinition;
+
+                        if (def != null)
+                        {
+#if REVIT2024_OR_GREATER
+                            return fm.AddParameter(def, GetGroupTypeId(), pModel.IsInstance);
+#else
+                            return fm.AddParameter(def, GetBIPG(), pModel.IsInstance);
+#endif
+                        }
+                    }
+                }
+                catch { }
+                finally
+                {
+                    try { if (!string.IsNullOrEmpty(originalSpFile)) app.SharedParametersFilename = originalSpFile; } catch { }
+                    try { System.IO.File.Delete(tempFile); } catch { }
+                }
+            }
+
+            // 2. Tạo Non-shared (Local) Parameter
+            try 
+            {
+#if REVIT2022_OR_GREATER
+                return fm.AddParameter(pModel.Name, GetGroupTypeId(), GetSpecTypeId(), pModel.IsInstance);
+#else
+                return fm.AddParameter(pModel.Name, GetBIPG(), GetPT(), pModel.IsInstance);
+#endif
+            }
+            catch { return null; }
+        }
+
         private XYZ ProjectOntoPlane(XYZ point, Plane plane)
         {
             double distance = plane.Normal.DotProduct(point - plane.Origin);

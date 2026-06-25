@@ -310,19 +310,29 @@ namespace RincoNhan.Tools.ExportFamilyData
             {
                 if (c.GeometryCurve is Line line)
                 {
-                    geom.Lines.Add(new LineModel
+                    var lModel = new LineModel
                     {
                         UniqueId = c.UniqueId,
                         LineStyle = c.LineStyle?.Name,
                         Type = c.GetType().Name,
-                        CurveShape = "Line",
-                        StartPoint = new XYZModel { X = line.GetEndPoint(0).X, Y = line.GetEndPoint(0).Y, Z = line.GetEndPoint(0).Z },
-                        EndPoint = new XYZModel { X = line.GetEndPoint(1).X, Y = line.GetEndPoint(1).Y, Z = line.GetEndPoint(1).Z }
-                    });
+                        CurveShape = "Line"
+                    };
+                    
+                    try
+                    {
+                        if (line.IsBound)
+                        {
+                            lModel.StartPoint = new XYZModel { X = line.GetEndPoint(0).X, Y = line.GetEndPoint(0).Y, Z = line.GetEndPoint(0).Z };
+                            lModel.EndPoint = new XYZModel { X = line.GetEndPoint(1).X, Y = line.GetEndPoint(1).Y, Z = line.GetEndPoint(1).Z };
+                        }
+                    }
+                    catch { }
+
+                    geom.Lines.Add(lModel);
                 }
                 else if (c.GeometryCurve is Arc arc)
                 {
-                    geom.Lines.Add(new LineModel
+                    var aModel = new LineModel
                     {
                         UniqueId = c.UniqueId,
                         LineStyle = c.LineStyle?.Name,
@@ -330,12 +340,22 @@ namespace RincoNhan.Tools.ExportFamilyData
                         CurveShape = "Arc",
                         Center = new XYZModel { X = arc.Center.X, Y = arc.Center.Y, Z = arc.Center.Z },
                         Normal = new XYZModel { X = arc.Normal.X, Y = arc.Normal.Y, Z = arc.Normal.Z },
-                        Radius = arc.Radius,
-                        StartAngle = arc.GetEndParameter(0),
-                        EndAngle = arc.GetEndParameter(1),
-                        StartPoint = new XYZModel { X = arc.GetEndPoint(0).X, Y = arc.GetEndPoint(0).Y, Z = arc.GetEndPoint(0).Z },
-                        EndPoint = new XYZModel { X = arc.GetEndPoint(1).X, Y = arc.GetEndPoint(1).Y, Z = arc.GetEndPoint(1).Z }
-                    });
+                        Radius = arc.Radius
+                    };
+
+                    try
+                    {
+                        if (arc.IsBound)
+                        {
+                            aModel.StartAngle = arc.GetEndParameter(0);
+                            aModel.EndAngle = arc.GetEndParameter(1);
+                            aModel.StartPoint = new XYZModel { X = arc.GetEndPoint(0).X, Y = arc.GetEndPoint(0).Y, Z = arc.GetEndPoint(0).Z };
+                            aModel.EndPoint = new XYZModel { X = arc.GetEndPoint(1).X, Y = arc.GetEndPoint(1).Y, Z = arc.GetEndPoint(1).Z };
+                        }
+                    }
+                    catch { }
+
+                    geom.Lines.Add(aModel);
                 }
             }
 
@@ -355,8 +375,11 @@ namespace RincoNhan.Tools.ExportFamilyData
                 {
                     if (dim.Curve is Line dLine)
                     {
-                        dModel.DimLineStart = new XYZModel { X = dLine.GetEndPoint(0).X, Y = dLine.GetEndPoint(0).Y, Z = dLine.GetEndPoint(0).Z };
-                        dModel.DimLineEnd = new XYZModel { X = dLine.GetEndPoint(1).X, Y = dLine.GetEndPoint(1).Y, Z = dLine.GetEndPoint(1).Z };
+                        if (dLine.IsBound)
+                        {
+                            dModel.DimLineStart = new XYZModel { X = dLine.GetEndPoint(0).X, Y = dLine.GetEndPoint(0).Y, Z = dLine.GetEndPoint(0).Z };
+                            dModel.DimLineEnd = new XYZModel { X = dLine.GetEndPoint(1).X, Y = dLine.GetEndPoint(1).Y, Z = dLine.GetEndPoint(1).Z };
+                        }
                     }
                 } catch { }
 
@@ -376,6 +399,29 @@ namespace RincoNhan.Tools.ExportFamilyData
                 } catch { }
 
                 geom.Dimensions.Add(dModel);
+            }
+
+            // 5. Texts / Labels
+            var texts = new FilteredElementCollector(doc).OfClass(typeof(TextElement)).Cast<TextElement>();
+            foreach (var txt in texts)
+            {
+                var tModel = new TextElementModel
+                {
+                    UniqueId = txt.UniqueId,
+                    Text = txt.Text,
+                    Name = txt.Name
+                };
+                
+                try
+                {
+                    if (txt.Coord != null)
+                    {
+                        tModel.Position = new XYZModel { X = txt.Coord.X, Y = txt.Coord.Y, Z = txt.Coord.Z };
+                    }
+                }
+                catch { }
+
+                geom.Texts.Add(tModel);
             }
 
             return geom;
