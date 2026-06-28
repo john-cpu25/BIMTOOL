@@ -62,11 +62,10 @@
   <ItemGroup>
     <Compile Remove="Tools\**\obj\**" />
     <Compile Remove="Tools\**\bin\**" />
-    <Compile Remove="Tools\StairDetail\**" />
+
     <Page Remove="Tools\**\obj\**" />
     <Page Remove="Tools\**\bin\**" />
-    <Page Remove="Tools\StairDetail\**" />
-    <EmbeddedResource Remove="Tools\StairDetail\**" />
+
     <!-- Exclude PyRevit UI files from WPF compilation -->
     <Page Remove="Tools\**\*.pushbutton\*.xaml" />
     <Page Remove="Tools\**\*.splitpushbutton\**\*.xaml" />
@@ -129,6 +128,6 @@
     
     <Copy SourceFiles="$(ProjectDir)PackageContents.xml" DestinationFolder="$(BundleFolder)" SkipUnchangedFiles="true" />
   </Target>
-  <!-- <ItemGroup><Reference Include="HuyAddin"><HintPath>ALL\HuyAddin.dll</HintPath></Reference></ItemGroup> -->
+
 </Project>
 

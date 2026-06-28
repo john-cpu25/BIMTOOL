@@ -1,4 +1,4 @@
-﻿namespace RincoNhan.Tools.StairDetail
+namespace RincoNhan.Tools.StairDetail
 {
     public static class Settings
     {

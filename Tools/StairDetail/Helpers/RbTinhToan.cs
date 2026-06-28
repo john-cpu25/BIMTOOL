@@ -1,4 +1,4 @@
-using HuyAddin;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -88,7 +88,7 @@ public static class RbTinhToan
 		foreach (Parameter parameter in rb.Parameters)
 		{
 			Parameter val = parameter;
-			if (((APIObject)val).IsReadOnly || !val.HasValue || ignore.Contains(val.Definition.Name) || (ignore_group.Count > 0 && ignore_group.Contains(ToGroupLabel(val.Definition.GetDataType()))))
+			if (((APIObject)val).IsReadOnly || !val.HasValue || ignore.Contains(val.Definition.Name))
 			{
 				continue;
 			}
@@ -1219,14 +1219,6 @@ public static class RbTinhToan
 		return list;
 	}
 
-	public static string ToGroupLabel(ForgeTypeId id)
-	{
-		if (id == (ForgeTypeId)null)
-		{
-			return string.Empty;
-		}
-		return LabelUtils.GetLabelForGroup(id);
-	}
 }
 
 

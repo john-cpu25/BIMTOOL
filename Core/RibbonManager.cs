@@ -79,6 +79,7 @@ namespace RincoNhan.Core
 
             // === REBAR Panel ===
             AddRebarColumnButton(rebarPanel);
+            AddStairDetailButton(rebarPanel);
 
             // === LINK Panel ===
             PushButtonData pbdOverrideCad = GetOverrideCadButtonData();
@@ -326,6 +327,21 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("RebarColumn.png");
             pb.Image = LoadIcon("RebarColumn.png", 16);
+        }
+
+        private static void AddStairDetailButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdStairDetail",
+                "Stair\nDetail",
+                _assemblyPath,
+                "RincoNhan.Tools.StairDetail.StairDetail"
+            );
+            btnData.ToolTip = "Automatically place rebar, dimensions, and tags for stair sections.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("StairDetail.png") ?? LoadIcon("RebarColumn.png");
+            pb.Image = LoadIcon("StairDetail.png", 16) ?? LoadIcon("RebarColumn.png", 16);
         }
 
         private static void AddCreateLevelButton(RibbonPanel panel)

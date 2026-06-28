@@ -1,4 +1,4 @@
-using HuyAddin;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +34,7 @@ public static partial class TinhToan
 			{
 				return false;
 			}
-			return x1.Value == x2.Value;
+			return x1 == x2;
 		}
 	}
 
@@ -55,7 +55,7 @@ public static partial class TinhToan
 			{
 				return false;
 			}
-			return x1.Id.Value == x2.Id.Value;
+			return x1.Id == x2.Id;
 		}
 	}
 
