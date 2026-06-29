@@ -189,7 +189,15 @@ namespace RincoNhan.Tools.MtoSmartTag
                 {
                     // Get dot position (the circle on the distribution symbol)
                     XYZ dotPos = GetDotPosition(item, doc, view);
-                    if (dotPos == null) continue;
+                    if (dotPos == null)
+                    {
+                        failedCount++;
+                        if (string.IsNullOrEmpty(debugInfo))
+                        {
+                            debugInfo += $"\n❌ Element {item.Id} has no location or bounding box.";
+                        }
+                        continue;
+                    }
 
                     // Build debug info for first item
                     if (string.IsNullOrEmpty(debugInfo))
@@ -226,14 +234,24 @@ namespace RincoNhan.Tools.MtoSmartTag
 
                     if (tag != null)
                     {
-                        // Force the tag head to the exact desired position
-                        tag.TagHeadPosition = tagPosition;
-
-                        // Now toggle leader based on user preference
-                        if (!AddLeader)
+                        // Toggle leader based on user preference BEFORE setting position
+                        if (AddLeader)
+                        {
+                            tag.HasLeader = true;
+                            tag.LeaderEndCondition = LeaderEndCondition.Free;
+                            try
+                            {
+                                tag.SetLeaderEnd(hostRef, dotPos);
+                            }
+                            catch { }
+                        }
+                        else
                         {
                             tag.HasLeader = false;
                         }
+
+                        // Force the tag head to the exact desired position AFTER modifying the leader state
+                        tag.TagHeadPosition = tagPosition;
 
                         taggedCount++;
 
@@ -252,7 +270,7 @@ namespace RincoNhan.Tools.MtoSmartTag
                 catch (Exception ex)
                 {
                     failedCount++;
-                    debugInfo += $"\n❌ Error: {ex.Message}";
+                    if (string.IsNullOrEmpty(debugInfo)) debugInfo += $"\n❌ Error on {item.Id}: {ex.Message}";
                 }
             }
 
@@ -476,6 +494,12 @@ namespace RincoNhan.Tools.MtoSmartTag
             if (item.Location is LocationPoint locPt)
             {
                 return locPt.Point;
+            }
+
+            // Fallback for line-based elements
+            if (item.Location is LocationCurve locCurve)
+            {
+                return locCurve.Curve.Evaluate(0.5, true); // Midpoint
             }
 
             // Last fallback: BoundingBox center

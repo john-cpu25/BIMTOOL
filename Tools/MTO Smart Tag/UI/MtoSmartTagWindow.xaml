@@ -96,16 +96,8 @@
             <TextBlock Text="{Binding ItemCountInfo}" FontSize="12" Foreground="#6B7280" Margin="0,4,0,0"/>
         </StackPanel>
 
-        <!-- Tab Control -->
-        <TabControl Grid.Row="1" Margin="0,0,0,10" BorderThickness="0,1,0,0" BorderBrush="#E5E7EB">
-            
-            <!-- ==================== TAB 1: SMART TAG ==================== -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="⚡ Smart Tag" FontSize="12" FontWeight="SemiBold" Padding="6,4"/>
-                </TabItem.Header>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
-                    <StackPanel Margin="0,14,0,0">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10" Margin="0,0,0,10">
+            <StackPanel Margin="0,4,0,0">
 
                         <!-- Target Family Selection -->
                         <StackPanel Margin="0,0,0,14">
@@ -286,115 +278,8 @@
                             </Button>
                         </Grid>
 
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- ==================== TAB 2: LAYER X/Y ==================== -->
-            <TabItem>
-                <TabItem.Header>
-                    <TextBlock Text="📐 Layer X/Y" FontSize="12" FontWeight="SemiBold" Padding="6,4"/>
-                </TabItem.Header>
-                <StackPanel Margin="10,14,10,0">
-
-                    <!-- Target Family for Layer -->
-                    <StackPanel Margin="0,0,0,18">
-                        <TextBlock Text="TARGET FAMILIES" Style="{StaticResource SectionHeader}"/>
-                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" MaxHeight="120">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding TargetFamilies}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Name}" Margin="10,6" Foreground="#374151" VerticalContentAlignment="Center"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- Layer X (Horizontal) -->
-                    <Border Background="#F0F9FF" CornerRadius="10" BorderBrush="#BAE6FD" BorderThickness="1" Padding="16" Margin="0,0,0,12">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Layer X — Horizontal" FontSize="14" FontWeight="Bold" Foreground="#0369A1"/>
-                                <TextBlock Text="Thép phương ngang (0° / 180°)" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
-                            </StackPanel>
-                            <Button Grid.Column="1" Command="{Binding ShowLayerXCommand}" Height="38" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#DBEAFE" CornerRadius="8" Padding="14,6" BorderBrush="#93C5FD" BorderThickness="1">
-                                            <TextBlock Text="👁 Show" FontSize="12" FontWeight="SemiBold" Foreground="#1E40AF" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                            <Button Grid.Column="3" Command="{Binding HideLayerXCommand}" Height="38" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#FEE2E2" CornerRadius="8" Padding="14,6" BorderBrush="#FECACA" BorderThickness="1">
-                                            <TextBlock Text="🚫 Hide" FontSize="12" FontWeight="SemiBold" Foreground="#991B1B" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </Grid>
-                    </Border>
-
-                    <!-- Layer Y (Vertical) -->
-                    <Border Background="#FFF7ED" CornerRadius="10" BorderBrush="#FED7AA" BorderThickness="1" Padding="16" Margin="0,0,0,12">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Layer Y — Vertical" FontSize="14" FontWeight="Bold" Foreground="#C2410C"/>
-                                <TextBlock Text="Thép phương đứng (90° / 270°)" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
-                            </StackPanel>
-                            <Button Grid.Column="1" Command="{Binding ShowLayerYCommand}" Height="38" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#FFEDD5" CornerRadius="8" Padding="14,6" BorderBrush="#FDBA74" BorderThickness="1">
-                                            <TextBlock Text="👁 Show" FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                            <Button Grid.Column="3" Command="{Binding HideLayerYCommand}" Height="38" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#FEE2E2" CornerRadius="8" Padding="14,6" BorderBrush="#FECACA" BorderThickness="1">
-                                            <TextBlock Text="🚫 Hide" FontSize="12" FontWeight="SemiBold" Foreground="#991B1B" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </Grid>
-                    </Border>
-
-                    <!-- Show All -->
-                    <Button Command="{Binding ShowAllLayersCommand}" Height="44" Cursor="Hand" Margin="0,6,0,0">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="#F0FDF4" CornerRadius="8" Padding="14,8" BorderBrush="#BBF7D0" BorderThickness="1">
-                                    <TextBlock Text="✅ Show All Layers" HorizontalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#166534" VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-
-                </StackPanel>
-            </TabItem>
-        </TabControl>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- Status (shared, outside tabs) -->
         <Border Grid.Row="2" Background="#F0FDF4" CornerRadius="8" Padding="14,8" Margin="10,0,10,10"

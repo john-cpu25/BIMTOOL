@@ -93,7 +93,7 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
 
         // Only tag items that already have a tag
         [ObservableProperty]
-        private bool _onlyAlreadyTagged = true;
+        private bool _onlyAlreadyTagged = false;
 
         // Color Override
         [ObservableProperty]
@@ -168,7 +168,7 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
                     var type = doc.GetElement(typeId) as FamilySymbol;
                     return type?.FamilyName;
                 })
-                .Where(name => !string.IsNullOrEmpty(name))
+                .Where(name => !string.IsNullOrEmpty(name) && !name.ToUpper().Contains("LAPSIGHN"))
                 .Distinct()
                 .OrderBy(n => n)
                 .ToList();

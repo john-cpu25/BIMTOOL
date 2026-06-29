@@ -469,17 +469,32 @@ namespace RincoNhan.Core
 
         private static void AddMtoGroupBarButton(RibbonPanel panel)
         {
-            PushButtonData btnData = new PushButtonData(
+            SplitButtonData sbData = new SplitButtonData("cmdMtoGroupBarSplit", "Group\nBar");
+            SplitButton sb = panel.AddItem(sbData) as SplitButton;
+
+            // Group Bar
+            PushButtonData btnGroupBar = new PushButtonData(
                 "cmdMtoGroupBar",
-                "MTO\nGroup Bar",
+                "Group\nBar",
                 _assemblyPath,
                 "RincoNhan.Tools.MtoGroupBar.Command"
             );
-            btnData.ToolTip = "Group lapped reinforcement bars automatically.";
+            btnGroupBar.ToolTip = "Group lapped reinforcement bars automatically.";
+            PushButton pbGroupBar = sb.AddPushButton(btnGroupBar);
+            pbGroupBar.LargeImage = LoadIcon("MtoGroupBar.png");
+            pbGroupBar.Image = LoadIcon("MtoGroupBar.png", 16);
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("MtoGroupBar.png");
-            pb.Image = LoadIcon("MtoGroupBar.png", 16);
+            // Align Dist
+            PushButtonData btnAlignDist = new PushButtonData(
+                "cmdAlignDistribution",
+                "Align\nDistribution",
+                _assemblyPath,
+                "RincoNhan.Tools.MtoGroupBar.AlignDistributionCommand"
+            );
+            btnAlignDist.ToolTip = "Align selected distribution symbols to a main rebar or lap sign.";
+            PushButton pbAlignDist = sb.AddPushButton(btnAlignDist);
+            pbAlignDist.LargeImage = LoadIcon("AlignTags.png") ?? LoadIcon("MtoGroupBar.png");
+            pbAlignDist.Image = LoadIcon("AlignTags.png", 16) ?? LoadIcon("MtoGroupBar.png", 16);
         }
 
         private static void AddFamilyDataSplitButton(RibbonPanel panel)
