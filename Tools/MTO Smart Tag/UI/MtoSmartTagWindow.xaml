@@ -88,6 +88,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -96,8 +97,32 @@
             <TextBlock Text="{Binding ItemCountInfo}" FontSize="12" Foreground="#6B7280" Margin="0,4,0,0"/>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10" Margin="0,0,0,10">
-            <StackPanel Margin="0,4,0,0">
+        <TabControl Grid.Row="1" Margin="0,0,0,10" Background="Transparent" BorderThickness="0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Padding" Value="12,8"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#4B5563"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="Margin" Value="0,0,4,0"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="#2563EB"/>
+                            <Setter Property="BorderBrush" Value="#2563EB"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="#2563EB"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
+
+            <TabItem Header="Smart tag">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                    <StackPanel Margin="0,4,0,0">
 
                         <!-- Target Family Selection -->
                         <StackPanel Margin="0,0,0,14">
@@ -232,6 +257,7 @@
                             <CheckBox IsChecked="{Binding OnlyAlreadyTagged}" Content="Only tag items already tagged" VerticalContentAlignment="Center" Foreground="#374151"/>
                         </StackPanel>
 
+
                         <!-- Color Override -->
                         <StackPanel Margin="0,0,0,14">
                             <CheckBox IsChecked="{Binding ApplyColorOverride}" Content="Override Color" Margin="0,0,0,8" FontWeight="SemiBold" Foreground="#374151"/>
@@ -256,6 +282,7 @@
                             </StackPanel>
                         </StackPanel>
 
+
                         <!-- Tag Action Buttons -->
                         <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>
@@ -278,11 +305,50 @@
                             </Button>
                         </Grid>
 
-            </StackPanel>
-        </ScrollViewer>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Check dot">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                    <StackPanel Margin="0,4,0,0">
+                        <!-- Untagged Items Settings -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="UNTAGGED ITEMS SETTINGS" Style="{StaticResource SectionHeader}"/>
+                            <!-- Tab 2: Check Dot Settings -->
+                            <Border Background="#F9FAFB" CornerRadius="8" Padding="14,14,14,14" BorderBrush="#E5E7EB" BorderThickness="1" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <TextBlock Text="Reo_ReinforcementDistributionAdjustable" FontSize="11" Foreground="#4B5563" Margin="0,0,0,6"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <CheckBox IsChecked="{Binding CenterDotAdjustable}" Content="Dời chấm tròn về giữa" Margin="0,0,16,0" VerticalContentAlignment="Center"/>
+                                        <CheckBox IsChecked="{Binding HideDotAdjustable}" Content="Tắt chấm tròn" VerticalContentAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Reo_ZBar" FontSize="11" Foreground="#4B5563" Margin="0,0,0,6"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <CheckBox IsChecked="{Binding CenterDotZBar}" Content="Dời chấm tròn về giữa" Margin="0,0,16,0" VerticalContentAlignment="Center"/>
+                                        <CheckBox IsChecked="{Binding HideDotZBar}" Content="Tắt chấm tròn" VerticalContentAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <Border BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Margin="0,4,0,10"/>
+                                    <TextBlock Text="Tùy chọn hiển thị &amp; xử lý" FontSize="11" Foreground="#4B5563" Margin="0,0,0,6"/>
+                                    <StackPanel Orientation="Vertical">
+                                        <CheckBox IsChecked="{Binding ColorUntaggedItems}" Content="Tô màu hồng (Magenta) lên các cây thép chưa Tag" VerticalContentAlignment="Center" Margin="0,0,0,6"/>
+                                        <CheckBox IsChecked="{Binding IgnoreTagCheck}" Content="Bỏ qua kiểm tra Tag (Bắt buộc xử lý mọi cây thép)" VerticalContentAlignment="Center" Foreground="#EF4444"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        
+                        <Button Command="{Binding CheckDotCommand}" Content="✅  CHECK DOT" Style="{StaticResource PrimaryButton}" Height="44" Margin="0,10,0,0"/>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
 
         <!-- Status (shared, outside tabs) -->
-        <Border Grid.Row="2" Background="#F0FDF4" CornerRadius="8" Padding="14,8" Margin="10,0,10,10"
+        <Border Grid.Row="3" Background="#F0FDF4" CornerRadius="8" Padding="14,8" Margin="10,0,10,10"
                 Visibility="{Binding StatusVisible, Converter={StaticResource BoolToVis}}"
                 BorderBrush="#BBF7D0" BorderThickness="1" MaxHeight="120">
             <ScrollViewer VerticalScrollBarVisibility="Auto">

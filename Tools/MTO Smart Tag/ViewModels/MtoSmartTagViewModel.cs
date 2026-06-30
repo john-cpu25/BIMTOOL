@@ -71,7 +71,7 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
 
         // Offset Distance (mm)
         [ObservableProperty]
-        private double _offsetDistance = 150;
+        private double _offsetDistance = 300;
 
         // Direct X/Y offset (mm)
         [ObservableProperty]
@@ -113,6 +113,25 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
 
         public System.Windows.Media.SolidColorBrush PreviewBrush =>
             new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(ColorR, ColorG, ColorB));
+
+        // Untagged Items Settings
+        [ObservableProperty]
+        private bool _centerDotAdjustable = true;
+
+        [ObservableProperty]
+        private bool _hideDotAdjustable = false;
+
+        [ObservableProperty]
+        private bool _centerDotZBar = true;
+
+        [ObservableProperty]
+        private bool _hideDotZBar = false;
+
+        [ObservableProperty]
+        private bool _colorUntaggedItems = true;
+
+        [ObservableProperty]
+        private bool _ignoreTagCheck = false;
 
         // Status
         [ObservableProperty]
@@ -264,6 +283,12 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
             _handler.ColorR = ColorR;
             _handler.ColorG = ColorG;
             _handler.ColorB = ColorB;
+            
+            _handler.CenterDotAdjustable = CenterDotAdjustable;
+            _handler.HideDotAdjustable = HideDotAdjustable;
+            _handler.CenterDotZBar = CenterDotZBar;
+            _handler.HideDotZBar = HideDotZBar;
+
             _handler.NotifyStatus = GetStatusNotifier();
 
             _externalEvent.Raise();
@@ -274,6 +299,23 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
         {
             _handler.Action = "ResetColor";
             _handler.TargetFamilyNames = TargetFamilies.Where(f => f.IsSelected).Select(f => f.Name).ToList();
+            _handler.NotifyStatus = GetStatusNotifier();
+            _externalEvent.Raise();
+        }
+
+        [RelayCommand]
+        private void CheckDot()
+        {
+            _handler.Action = "CheckDot";
+            _handler.TargetFamilyNames = TargetFamilies.Where(f => f.IsSelected).Select(f => f.Name).ToList();
+
+            _handler.CenterDotAdjustable = CenterDotAdjustable;
+            _handler.HideDotAdjustable = HideDotAdjustable;
+            _handler.CenterDotZBar = CenterDotZBar;
+            _handler.HideDotZBar = HideDotZBar;
+            _handler.ColorUntaggedItems = ColorUntaggedItems;
+            _handler.IgnoreTagCheck = IgnoreTagCheck;
+
             _handler.NotifyStatus = GetStatusNotifier();
             _externalEvent.Raise();
         }

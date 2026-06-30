@@ -26,7 +26,7 @@ namespace RincoNhan.Tools.MtoSmartTag
         public string Action { get; set; }
         public List<string> TargetFamilyNames { get; set; } = new List<string>();
         public OffsetDirection Direction { get; set; } = OffsetDirection.TopLeft;
-        public double OffsetDistanceMm { get; set; } = 150; // mm
+        public double OffsetDistanceMm { get; set; } = 300; // mm
         public double OffsetXMm { get; set; } = 0; // Direct X offset in mm
         public double OffsetYMm { get; set; } = 0; // Direct Y offset in mm
         public bool UseDirectOffset { get; set; } = false; // Use X/Y instead of direction
@@ -40,6 +40,14 @@ namespace RincoNhan.Tools.MtoSmartTag
         public string LayerDirection { get; set; } // "X" or "Y"
         public ElementId SelectedTagTypeId { get; set; }
         public Action<string> NotifyStatus { get; set; }
+
+        // Untagged Items Settings
+        public bool CenterDotAdjustable { get; set; } = true;
+        public bool HideDotAdjustable { get; set; } = false;
+        public bool CenterDotZBar { get; set; } = true;
+        public bool HideDotZBar { get; set; } = false;
+        public bool ColorUntaggedItems { get; set; } = true;
+        public bool IgnoreTagCheck { get; set; } = false;
 
         public void Execute(UIApplication app)
         {
@@ -59,6 +67,10 @@ namespace RincoNhan.Tools.MtoSmartTag
                     else if (Action == "ResetColor")
                     {
                         ResetColorOverrides(doc, view);
+                    }
+                    else if (Action == "CheckDot")
+                    {
+                        CheckDots(doc, view);
                     }
                     else if (Action == "HideLayer")
                     {
@@ -81,6 +93,73 @@ namespace RincoNhan.Tools.MtoSmartTag
                     NotifyStatus?.Invoke("Error: " + ex.Message);
                 }
             }
+        }
+
+        private void CheckDots(Document doc, View view)
+        {
+            var detailItems = new FilteredElementCollector(doc, view.Id)
+                .OfCategory(BuiltInCategory.OST_DetailComponents)
+                .WhereElementIsNotElementType()
+                .Where(e =>
+                {
+                    var typeId = e.GetTypeId();
+                    var type = doc.GetElement(typeId) as FamilySymbol;
+                    if (type == null || type.FamilyName == null) return false;
+                    return type.FamilyName.Contains("Reinforcement_Distribution") || type.FamilyName.Contains("ZBar");
+                })
+                .ToList();
+
+            if (!detailItems.Any())
+            {
+                NotifyStatus?.Invoke($"No Reo_Reinforcement_Distribution or Reo_ZBar items found in current view.");
+                return;
+            }
+
+            // Get already tagged element IDs
+            var existingTags = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(IndependentTag))
+                .Cast<IndependentTag>()
+                .ToList();
+
+            var taggedIds = new HashSet<ElementId>();
+            foreach (var tag in existingTags)
+            {
+#if REVIT2022_OR_GREATER
+                foreach (var id in tag.GetTaggedLocalElementIds())
+#else
+                foreach (var id in new List<ElementId> { tag.TaggedLocalElementId })
+#endif
+                {
+                    taggedIds.Add(id);
+                }
+            }
+
+            int processedCount = 0;
+            foreach (var item in detailItems)
+            {
+                bool alreadyTagged = taggedIds.Contains(item.Id);
+
+                if (IgnoreTagCheck || !alreadyTagged)
+                {
+                    ProcessUntaggedItem(item, doc, view);
+                    
+                    if (ColorUntaggedItems)
+                    {
+                        try
+                        {
+                            var overrideSettings = new OverrideGraphicSettings();
+                            var color = new Color(255, 0, 255); // Magenta to easily spot untagged
+                            overrideSettings.SetProjectionLineColor(color);
+                            view.SetElementOverrides(item.Id, overrideSettings);
+                        }
+                        catch { }
+                    }
+
+                    processedCount++;
+                }
+            }
+
+            NotifyStatus?.Invoke($"Checked and processed dots for {processedCount} untagged items.");
         }
 
         private void TagAllReinforcementDistributions(Document doc, View view)
@@ -182,6 +261,8 @@ namespace RincoNhan.Tools.MtoSmartTag
                 if (!OnlyAlreadyTagged && alreadyTagged && !ForceRetag)
                 {
                     skippedCount++;
+                    // We DO NOT process untagged settings for items that ARE already tagged
+                    // because they already have a tag. Untagged settings are for items WITHOUT a tag.
                     continue;
                 }
 
@@ -280,6 +361,123 @@ namespace RincoNhan.Tools.MtoSmartTag
             msg += $" (Total: {detailItems.Count})";
             msg += debugInfo;
             NotifyStatus?.Invoke(msg);
+        }
+
+        private void ProcessUntaggedItem(Element item, Document doc, View view)
+        {
+            if (!(item is FamilyInstance fi)) return;
+            
+            var typeId = fi.GetTypeId();
+            var type = doc.GetElement(typeId) as FamilySymbol;
+            if (type == null) return;
+            
+            var familyName = type.FamilyName;
+
+            bool isAdjustable = familyName.Contains("Reinforcement_Distribution");
+            bool isZBar = familyName.Contains("ZBar");
+
+            if (!isAdjustable && !isZBar) return;
+
+            bool centerDot = isAdjustable ? CenterDotAdjustable : CenterDotZBar;
+            bool hideDot = isAdjustable ? HideDotAdjustable : HideDotZBar;
+
+            if (hideDot)
+            {
+                // Hide dot via parameter
+                string paramName = isAdjustable ? "Dot Visibility" : "Arrow & Dot Visibility";
+                Parameter p = fi.LookupParameter(paramName);
+                if (p != null && !p.IsReadOnly)
+                {
+                    p.Set(0); // false
+                }
+            }
+            else if (centerDot)
+            {
+                // Ensure dot is visible
+                string paramName = isAdjustable ? "Dot Visibility" : "Arrow & Dot Visibility";
+                Parameter p = fi.LookupParameter(paramName);
+                if (p != null && !p.IsReadOnly)
+                {
+                    p.Set(1); // true
+                }
+
+                // Find dot position and move it to center
+                bool moved = false;
+                var subIds = fi.GetSubComponentIds();
+                if (subIds != null && subIds.Any())
+                {
+                    foreach (var subId in subIds)
+                    {
+                        Element subElem = doc.GetElement(subId);
+                        if (subElem != null)
+                        {
+                            string subName = subElem.Name.ToLower();
+                            if (subName.Contains("dot") || subName.Contains("point") || subName.Contains("circle") || 
+                                subName.Contains("chấm") || subName.Contains("nút") || subName.Contains("node") || 
+                                subName.Contains("sym") || subName.Contains("mark"))
+                            {
+                                if (subElem.Location is LocationPoint dotLoc)
+                                {
+                                    XYZ currentPos = dotLoc.Point;
+                                    XYZ targetPos = null;
+
+                                    if (fi.Location is LocationCurve locCurve)
+                                    {
+                                        targetPos = locCurve.Curve.Evaluate(0.5, true);
+                                    }
+                                    else
+                                    {
+                                        BoundingBoxXYZ bbox = fi.get_BoundingBox(view);
+                                        if (bbox != null)
+                                        {
+                                            targetPos = (bbox.Min + bbox.Max) / 2;
+                                        }
+                                    }
+
+                                    if (targetPos != null)
+                                    {
+                                        XYZ translation = targetPos - currentPos;
+                                        translation = new XYZ(translation.X, translation.Y, 0);
+
+                                        if (!translation.IsAlmostEqualTo(XYZ.Zero))
+                                        {
+                                            try
+                                            {
+                                                ElementTransformUtils.MoveElement(doc, subId, translation);
+                                                moved = true;
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // If not moved as subcomponent, try parameters
+                if (!moved)
+                {
+                    // Find length parameter
+                    double length = 0;
+                    Parameter lenParam = fi.LookupParameter("Length") ?? fi.LookupParameter("repp") ?? fi.LookupParameter("L");
+                    if (lenParam != null) length = lenParam.AsDouble();
+
+                    if (length > 0)
+                    {
+                        string[] possibleParams = { "Dot Position", "Dot Offset", "Dot Offset X", "Offset_Dot", "DotDistance", "Dot_Distance", "Khoảng cách chấm", "Vị trí chấm", "Dot Pos" };
+                        foreach (string pn in possibleParams)
+                        {
+                            Parameter pDot = fi.LookupParameter(pn);
+                            if (pDot != null && !pDot.IsReadOnly)
+                            {
+                                pDot.Set(length / 2.0);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
