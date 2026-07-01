@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:RincoNhan.Tools.MtoSmartTag.UI"
+        xml:lang="vi-VN"
         Title="MTO Smart Tag — Reinforcement Distribution" 
         Width="420" SizeToContent="Height"
         ResizeMode="NoResize"
@@ -86,8 +87,8 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -114,291 +115,189 @@
             </Button>
         </Grid>
 
-        <TabControl Grid.Row="1" Margin="0,0,0,10" Background="Transparent" BorderThickness="0">
-            <TabControl.Resources>
-                <Style TargetType="TabItem">
-                    <Setter Property="Padding" Value="12,8"/>
-                    <Setter Property="FontSize" Value="13"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="#4B5563"/>
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
-                    <Setter Property="BorderBrush" Value="Transparent"/>
-                    <Setter Property="Margin" Value="0,0,4,0"/>
-                    <Style.Triggers>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Foreground" Value="#2563EB"/>
-                            <Setter Property="BorderBrush" Value="#2563EB"/>
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="#2563EB"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </TabControl.Resources>
+        <!-- Shared: Target Families + Tag Type (always visible) -->
+        <StackPanel Grid.Row="1" Margin="10,0,10,4">
+            <!-- Target Family Selection -->
+            <StackPanel Margin="0,0,0,10">
+                <TextBlock Text="TARGET FAMILIES" Style="{StaticResource SectionHeader}"/>
+                <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" MaxHeight="120">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding TargetFamilies}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Name}" Margin="10,6" Foreground="#374151" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </StackPanel>
 
-            <TabItem Header="Smart tag">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
-                    <StackPanel Margin="0,4,0,0">
+            <!-- Tag Type Selection -->
+            <StackPanel Margin="0,0,0,4">
+                <TextBlock Text="TAG TYPE" Style="{StaticResource SectionHeader}"/>
+                <ComboBox ItemsSource="{Binding TagTypes}"
+                          SelectedItem="{Binding SelectedTagType}"
+                          DisplayMemberPath="DisplayName"
+                          Height="34"
+                          VerticalContentAlignment="Center"
+                          Padding="10,0"/>
+            </StackPanel>
+        </StackPanel>
 
-                        <!-- Target Family Selection -->
-                        <StackPanel Margin="0,0,0,14">
-                            <TextBlock Text="TARGET FAMILIES" Style="{StaticResource SectionHeader}"/>
-                            <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" MaxHeight="120">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <ItemsControl ItemsSource="{Binding TargetFamilies}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Name}" Margin="10,6" Foreground="#374151" VerticalContentAlignment="Center"/>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
+        <!-- Smart Tag Content (no tabs) -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="10,0,10,10">
+            <StackPanel Margin="0,4,0,0">
+
+                <!-- Direction Picker -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="OFFSET DIRECTION" Style="{StaticResource SectionHeader}"/>
+                    <Border Background="#F9FAFB" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1" Padding="16" HorizontalAlignment="Left">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <RadioButton Grid.Row="0" Grid.Column="0" GroupName="Direction"
+                                         DataContext="{Binding Directions[0]}" IsChecked="True"
+                                         Style="{StaticResource DirectionButton}" Margin="0,0,4,4"
+                                         Checked="Direction_Checked"/>
+                            <RadioButton Grid.Row="0" Grid.Column="1" GroupName="Direction"
+                                         DataContext="{Binding Directions[1]}"
+                                         Style="{StaticResource DirectionButton}" Margin="4,0,4,4"
+                                         Checked="Direction_Checked"/>
+                            <RadioButton Grid.Row="0" Grid.Column="2" GroupName="Direction"
+                                         DataContext="{Binding Directions[2]}"
+                                         Style="{StaticResource DirectionButton}" Margin="4,0,0,4"
+                                         Checked="Direction_Checked"/>
+
+                            <RadioButton Grid.Row="1" Grid.Column="0" GroupName="Direction"
+                                         DataContext="{Binding Directions[3]}"
+                                         Style="{StaticResource DirectionButton}" Margin="0,4,4,4"
+                                         Checked="Direction_Checked"/>
+                            <Border Grid.Row="1" Grid.Column="1" Width="44" Height="44" Margin="4" Background="Transparent">
+                                <Ellipse Width="14" Height="14" Fill="#1F2937" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
+                            <RadioButton Grid.Row="1" Grid.Column="2" GroupName="Direction"
+                                         DataContext="{Binding Directions[4]}"
+                                         Style="{StaticResource DirectionButton}" Margin="4,4,0,4"
+                                         Checked="Direction_Checked"/>
+
+                            <RadioButton Grid.Row="2" Grid.Column="0" GroupName="Direction"
+                                         DataContext="{Binding Directions[5]}"
+                                         Style="{StaticResource DirectionButton}" Margin="0,4,4,0"
+                                         Checked="Direction_Checked"/>
+                            <RadioButton Grid.Row="2" Grid.Column="1" GroupName="Direction"
+                                         DataContext="{Binding Directions[6]}"
+                                         Style="{StaticResource DirectionButton}" Margin="4,4,4,0"
+                                         Checked="Direction_Checked"/>
+                            <RadioButton Grid.Row="2" Grid.Column="2" GroupName="Direction"
+                                         DataContext="{Binding Directions[7]}"
+                                         Style="{StaticResource DirectionButton}" Margin="4,4,0,0"
+                                         Checked="Direction_Checked"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Offset Distance -->
+                <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="OFFSET DISTANCE (mm)" Style="{StaticResource SectionHeader}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding OffsetDistance, UpdateSourceTrigger=PropertyChanged}" 
+                                 Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"
+                                 IsEnabled="{Binding UseDirectXY, Converter={StaticResource InverseBoolConverter}}"/>
+                        <Slider Grid.Column="1" Value="{Binding OffsetDistance}" 
+                                Minimum="10" Maximum="500" TickFrequency="10" IsSnapToTickEnabled="True"
+                                Margin="12,0,0,0" VerticalAlignment="Center"
+                                IsEnabled="{Binding UseDirectXY, Converter={StaticResource InverseBoolConverter}}"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Direct X/Y Offset -->
+                <StackPanel Margin="0,0,0,14">
+                    <CheckBox IsChecked="{Binding UseDirectXY}" Content="Use Direct X / Y (mm)" Margin="0,0,0,8" FontWeight="SemiBold" Foreground="#374151"/>
+                    <Grid Visibility="{Binding UseDirectXY, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="X (mm)" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding OffsetX, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"/>
                         </StackPanel>
-
-                        <!-- Tag Type Selection -->
-                        <StackPanel Margin="0,0,0,14">
-                            <TextBlock Text="TAG TYPE" Style="{StaticResource SectionHeader}"/>
-                            <ComboBox ItemsSource="{Binding TagTypes}"
-                                      SelectedItem="{Binding SelectedTagType}"
-                                      DisplayMemberPath="DisplayName"
-                                      Height="34"
-                                      VerticalContentAlignment="Center"
-                                      Padding="10,0"/>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Y (mm)" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding OffsetY, UpdateSourceTrigger=PropertyChanged}" 
+                                     Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"/>
                         </StackPanel>
+                    </Grid>
+                </StackPanel>
 
-                        <!-- Direction Picker -->
-                        <StackPanel Margin="0,0,0,14">
-                            <TextBlock Text="OFFSET DIRECTION" Style="{StaticResource SectionHeader}"/>
-                            <Border Background="#F9FAFB" CornerRadius="10" BorderBrush="#E5E7EB" BorderThickness="1" Padding="16" HorizontalAlignment="Left">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                <!-- Options -->
+                <StackPanel Margin="0,0,0,14">
+                    <CheckBox IsChecked="{Binding AddLeader}" Content="Add Leader" VerticalContentAlignment="Center" Margin="0,0,0,6"/>
+                    <CheckBox IsChecked="{Binding OnlyAlreadyTagged}" Content="Only tag items already tagged (Tag rồi)" VerticalContentAlignment="Center" Foreground="#374151" Margin="0,0,0,6"/>
+                    <CheckBox IsChecked="{Binding OnlyUntagged}" Content="Only tag untagged items (Chưa tag)" VerticalContentAlignment="Center" Foreground="#374151"/>
+                </StackPanel>
 
-                                    <RadioButton Grid.Row="0" Grid.Column="0" GroupName="Direction"
-                                                 DataContext="{Binding Directions[0]}" IsChecked="True"
-                                                 Style="{StaticResource DirectionButton}" Margin="0,0,4,4"
-                                                 Checked="Direction_Checked"/>
-                                    <RadioButton Grid.Row="0" Grid.Column="1" GroupName="Direction"
-                                                 DataContext="{Binding Directions[1]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="4,0,4,4"
-                                                 Checked="Direction_Checked"/>
-                                    <RadioButton Grid.Row="0" Grid.Column="2" GroupName="Direction"
-                                                 DataContext="{Binding Directions[2]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="4,0,0,4"
-                                                 Checked="Direction_Checked"/>
-
-                                    <RadioButton Grid.Row="1" Grid.Column="0" GroupName="Direction"
-                                                 DataContext="{Binding Directions[3]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="0,4,4,4"
-                                                 Checked="Direction_Checked"/>
-                                    <Border Grid.Row="1" Grid.Column="1" Width="44" Height="44" Margin="4" Background="Transparent">
-                                        <Ellipse Width="14" Height="14" Fill="#1F2937" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Color Override (luôn bật) -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="OVERRIDE COLOR" Style="{StaticResource SectionHeader}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Click="PickColor_Click" Cursor="Hand" Margin="0,0,10,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Width="28" Height="28" CornerRadius="4" BorderBrush="#D1D5DB" BorderThickness="1.5">
+                                        <Border CornerRadius="3" Background="{Binding PreviewBrush}"/>
                                     </Border>
-                                    <RadioButton Grid.Row="1" Grid.Column="2" GroupName="Direction"
-                                                 DataContext="{Binding Directions[4]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="4,4,0,4"
-                                                 Checked="Direction_Checked"/>
-
-                                    <RadioButton Grid.Row="2" Grid.Column="0" GroupName="Direction"
-                                                 DataContext="{Binding Directions[5]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="0,4,4,0"
-                                                 Checked="Direction_Checked"/>
-                                    <RadioButton Grid.Row="2" Grid.Column="1" GroupName="Direction"
-                                                 DataContext="{Binding Directions[6]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="4,4,4,0"
-                                                 Checked="Direction_Checked"/>
-                                    <RadioButton Grid.Row="2" Grid.Column="2" GroupName="Direction"
-                                                 DataContext="{Binding Directions[7]}"
-                                                 Style="{StaticResource DirectionButton}" Margin="4,4,0,0"
-                                                 Checked="Direction_Checked"/>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Offset Distance -->
-                        <StackPanel Margin="0,0,0,10">
-                            <TextBlock Text="OFFSET DISTANCE (mm)" Style="{StaticResource SectionHeader}"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding OffsetDistance, UpdateSourceTrigger=PropertyChanged}" 
-                                         Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"
-                                         IsEnabled="{Binding UseDirectXY, Converter={StaticResource InverseBoolConverter}}"/>
-                                <Slider Grid.Column="1" Value="{Binding OffsetDistance}" 
-                                        Minimum="10" Maximum="500" TickFrequency="10" IsSnapToTickEnabled="True"
-                                        Margin="12,0,0,0" VerticalAlignment="Center"
-                                        IsEnabled="{Binding UseDirectXY, Converter={StaticResource InverseBoolConverter}}"/>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Direct X/Y Offset -->
-                        <StackPanel Margin="0,0,0,14">
-                            <CheckBox IsChecked="{Binding UseDirectXY}" Content="Use Direct X / Y (mm)" Margin="0,0,0,8" FontWeight="SemiBold" Foreground="#374151"/>
-                            <Grid Visibility="{Binding UseDirectXY, Converter={StaticResource BoolToVis}}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="12"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="X (mm)" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding OffsetX, UpdateSourceTrigger=PropertyChanged}" 
-                                             Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Y (mm)" FontSize="11" Foreground="#6B7280" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding OffsetY, UpdateSourceTrigger=PropertyChanged}" 
-                                             Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Options -->
-                        <StackPanel Margin="0,0,0,14">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <CheckBox IsChecked="{Binding AddLeader}" Content="Add Leader" VerticalContentAlignment="Center" Margin="0,0,20,0"/>
-                                <CheckBox IsChecked="{Binding ForceRetag}" Content="Force Re-tag" VerticalContentAlignment="Center"/>
-                            </StackPanel>
-                            <CheckBox IsChecked="{Binding OnlyAlreadyTagged}" Content="Only tag items already tagged" VerticalContentAlignment="Center" Foreground="#374151" Margin="0,0,0,6"/>
-                            <CheckBox IsChecked="{Binding OnlyUntagged}" Content="Only tag untagged items" VerticalContentAlignment="Center" Foreground="#374151"/>
-                        </StackPanel>
-
-
-                        <!-- Color Override -->
-                        <StackPanel Margin="0,0,0,14">
-                            <CheckBox IsChecked="{Binding ApplyColorOverride}" Content="Override Color" Margin="0,0,0,8" FontWeight="SemiBold" Foreground="#374151"/>
-                            <StackPanel Orientation="Horizontal" Visibility="{Binding ApplyColorOverride, Converter={StaticResource BoolToVis}}">
-                                <Button Click="PickColor_Click" Cursor="Hand" Margin="0,0,10,0">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Width="28" Height="28" CornerRadius="4" BorderBrush="#D1D5DB" BorderThickness="1.5">
-                                                <Border CornerRadius="3" Background="{Binding PreviewBrush}"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
-                                <TextBlock VerticalAlignment="Center" Margin="0,0,12,0" FontSize="12" Foreground="#6B7280" FontFamily="Consolas">
-                                    <Run Text="R:"/><Run Text="{Binding ColorR, Mode=OneWay}" FontWeight="Bold" Foreground="#EF4444"/>
-                                    <Run Text=" G:"/><Run Text="{Binding ColorG, Mode=OneWay}" FontWeight="Bold" Foreground="#22C55E"/>
-                                    <Run Text=" B:"/><Run Text="{Binding ColorB, Mode=OneWay}" FontWeight="Bold" Foreground="#3B82F6"/>
-                                </TextBlock>
-                            </StackPanel>
-                        </StackPanel>
-
-
-                        <!-- Tag Action Buttons -->
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Command="{Binding TagAllCommand}" 
-                                    Content="⚡  TAG ALL" Style="{StaticResource PrimaryButton}" Height="44"/>
-                            <Button Grid.Column="2" Command="{Binding ResetColorCommand}" 
-                                    Height="44" Width="110" Cursor="Hand" ToolTip="Reset color overrides">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#FEE2E2" CornerRadius="8" Padding="10,6" BorderBrush="#FECACA" BorderThickness="1">
-                                            <TextBlock Text="🔄 Reset" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                       Foreground="#991B1B" FontWeight="SemiBold" FontSize="12"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </Grid>
-
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <TextBlock VerticalAlignment="Center" Margin="0,0,12,0" FontSize="12" Foreground="#6B7280" FontFamily="Consolas">
+                            <Run Text="R:"/><Run Text="{Binding ColorR, Mode=OneWay}" FontWeight="Bold" Foreground="#EF4444"/>
+                            <Run Text=" G:"/><Run Text="{Binding ColorG, Mode=OneWay}" FontWeight="Bold" Foreground="#22C55E"/>
+                            <Run Text=" B:"/><Run Text="{Binding ColorB, Mode=OneWay}" FontWeight="Bold" Foreground="#3B82F6"/>
+                        </TextBlock>
                     </StackPanel>
-                </ScrollViewer>
-            </TabItem>
+                </StackPanel>
 
-            <TabItem Header="Check dot">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
-                    <StackPanel Margin="0,4,0,0">
-                        <!-- Untagged Items Settings -->
-                        <StackPanel Margin="0,0,0,14">
-                            <TextBlock Text="UNTAGGED ITEMS SETTINGS" Style="{StaticResource SectionHeader}"/>
-                            <!-- Tab 2: Check Dot Settings -->
-                            <Border Background="#F9FAFB" CornerRadius="8" Padding="14,14,14,14" BorderBrush="#E5E7EB" BorderThickness="1" Margin="0,0,0,14">
-                                <StackPanel>
-                                    <TextBlock Text="Reo_ReinforcementDistributionAdjustable" FontSize="11" Foreground="#4B5563" Margin="0,0,0,6"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <CheckBox IsChecked="{Binding CenterDotAdjustable}" Content="Dời chấm tròn về giữa" Margin="0,0,16,0" VerticalContentAlignment="Center"/>
-                                        <CheckBox IsChecked="{Binding ShowDotAdjustable}" Content="Bật chấm tròn" Margin="0,0,16,0" VerticalContentAlignment="Center"/>
-                                        <CheckBox IsChecked="{Binding HideDotAdjustable}" Content="Tắt chấm tròn" VerticalContentAlignment="Center"/>
-                                    </StackPanel>
+                <!-- Tag Action Buttons -->
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Command="{Binding TagAllCommand}" 
+                            Content="⚡  TAG ALL" Style="{StaticResource PrimaryButton}" Height="44"/>
+                    <Button Grid.Column="2" Command="{Binding ResetColorCommand}" 
+                            Height="44" Width="110" Cursor="Hand" ToolTip="Reset color overrides">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="#FEE2E2" CornerRadius="8" Padding="10,6" BorderBrush="#FECACA" BorderThickness="1">
+                                    <TextBlock Text="🔄 Reset" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="#991B1B" FontWeight="SemiBold" FontSize="12"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
 
-                                    <TextBlock Text="Reo_ZBar" FontSize="11" Foreground="#4B5563" Margin="0,0,0,6"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <CheckBox IsChecked="{Binding CenterDotZBar}" Content="Dời chấm tròn về giữa" Margin="0,0,16,0" VerticalContentAlignment="Center"/>
-                                        <CheckBox IsChecked="{Binding ShowDotZBar}" Content="Bật chấm tròn" Margin="0,0,16,0" VerticalContentAlignment="Center"/>
-                                        <CheckBox IsChecked="{Binding HideDotZBar}" Content="Tắt chấm tròn" VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-                                    
-                                    <Border BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Margin="0,4,0,10"/>
-                                    <TextBlock Text="Tùy chọn hiển thị &amp; xử lý" FontSize="11" Foreground="#4B5563" Margin="0,0,0,6"/>
-                                    <StackPanel Orientation="Vertical">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                            <CheckBox IsChecked="{Binding ColorUntaggedItems}" Content="Tô màu lên các cây thép chưa Tag" VerticalContentAlignment="Center" Margin="0,0,16,0"/>
-                                            <StackPanel Orientation="Horizontal" Visibility="{Binding ColorUntaggedItems, Converter={StaticResource BoolToVis}}">
-                                                <Button Click="PickUntaggedColor_Click" Cursor="Hand" Margin="0,0,8,0">
-                                                    <Button.Template>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border Width="24" Height="24" CornerRadius="4" BorderBrush="#D1D5DB" BorderThickness="1.5">
-                                                                <Border CornerRadius="3" Background="{Binding UntaggedPreviewBrush}"/>
-                                                            </Border>
-                                                        </ControlTemplate>
-                                                    </Button.Template>
-                                                </Button>
-                                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11" Foreground="#6B7280" FontFamily="Consolas">
-                                                    <Run Text="R:"/><Run Text="{Binding UntaggedColorR, Mode=OneWay}" FontWeight="Bold" Foreground="#EF4444"/>
-                                                    <Run Text=" G:"/><Run Text="{Binding UntaggedColorG, Mode=OneWay}" FontWeight="Bold" Foreground="#22C55E"/>
-                                                    <Run Text=" B:"/><Run Text="{Binding UntaggedColorB, Mode=OneWay}" FontWeight="Bold" Foreground="#3B82F6"/>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </StackPanel>
-                                        <CheckBox IsChecked="{Binding IgnoreTagCheck}" Content="Bỏ qua kiểm tra Tag (Bắt buộc xử lý mọi cây thép)" VerticalContentAlignment="Center" Foreground="#EF4444"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                        <Grid Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Command="{Binding CheckDotCommand}" 
-                                    Content="✅  CHECK DOT" Style="{StaticResource PrimaryButton}" Height="44"/>
-                            <Button Grid.Column="2" Command="{Binding ResetColorCommand}" 
-                                    Height="44" Width="110" Cursor="Hand" ToolTip="Reset color overrides">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#FEE2E2" CornerRadius="8" Padding="10,6" BorderBrush="#FECACA" BorderThickness="1">
-                                            <TextBlock Text="🔄 Reset" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                       Foreground="#991B1B" FontWeight="SemiBold" FontSize="12"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </Grid>
-
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- Status (shared, outside tabs) -->
         <Border Grid.Row="3" Background="#F0FDF4" CornerRadius="8" Padding="14,8" Margin="10,0,10,10"

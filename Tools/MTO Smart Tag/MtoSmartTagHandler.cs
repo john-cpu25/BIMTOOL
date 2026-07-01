@@ -31,7 +31,6 @@ namespace RincoNhan.Tools.MtoSmartTag
         public double OffsetYMm { get; set; } = 0; // Direct Y offset in mm
         public bool UseDirectOffset { get; set; } = false; // Use X/Y instead of direction
         public bool AddLeader { get; set; } = false;
-        public bool ForceRetag { get; set; } = false;
         public bool OnlyAlreadyTagged { get; set; } = false;
         public bool OnlyUntagged { get; set; } = false;
         public bool ApplyColorOverride { get; set; } = false;
@@ -270,26 +269,42 @@ namespace RincoNhan.Tools.MtoSmartTag
                     continue;
                 }
 
-                // Normal mode: skip items that already have a tag (unless ForceRetag)
-                if (!OnlyAlreadyTagged && alreadyTagged && !ForceRetag)
+                // Normal mode: skip items that already have a tag
+                if (!OnlyAlreadyTagged && alreadyTagged)
                 {
                     skippedCount++;
-                    // We DO NOT process untagged settings for items that ARE already tagged
-                    // because they already have a tag. Untagged settings are for items WITHOUT a tag.
                     continue;
                 }
 
                 try
                 {
-                    // Process dot settings (hide, show, center) BEFORE getting its position
-                    string dotDebug = ProcessUntaggedItem(item, doc, view);
-                    if (!string.IsNullOrEmpty(dotDebug) && string.IsNullOrEmpty(debugInfo))
+                    // Only modify family parameters if NOT in OnlyAlreadyTagged mode
+                    if (!OnlyAlreadyTagged)
                     {
-                        debugInfo += dotDebug;
-                    }
+                        // Process dot settings (hide, show, center) BEFORE getting its position
+                        string dotDebug = ProcessUntaggedItem(item, doc, view);
+                        if (!string.IsNullOrEmpty(dotDebug) && string.IsNullOrEmpty(debugInfo))
+                        {
+                            debugInfo += dotDebug;
+                        }
+
+                        // For ZBar: set Arrow Location to 15211.1mm
+                        if (item is FamilyInstance fiZBar)
+                        {
+                            var zType = doc.GetElement(fiZBar.GetTypeId()) as FamilySymbol;
+                            if (zType != null && zType.FamilyName.Contains("ZBar"))
+                            {
+                                Parameter pArrowLoc = fiZBar.LookupParameter("Arrow Location");
+                                if (pArrowLoc != null && !pArrowLoc.IsReadOnly)
+                                {
+                                    pArrowLoc.Set(15211.1 / 304.8); // mm to feet
+                                }
+                            }
+                        }
                     
-                    // Force Revit to update geometry so GetDotPosition gets the NEW center location
-                    doc.Regenerate();
+                        // Force Revit to update geometry so GetDotPosition gets the NEW center location
+                        doc.Regenerate();
+                    }
 
                     // Get dot position (the circle on the distribution symbol)
                     XYZ dotPos = GetDotPosition(item, doc, view);
@@ -359,8 +374,8 @@ namespace RincoNhan.Tools.MtoSmartTag
 
                         taggedCount++;
 
-                        // Tự động tắt chấm tròn sau khi đã tag xong
-                        if (item is FamilyInstance fi)
+                        // Tự động tắt chấm tròn sau khi đã tag xong (chỉ khi KHÔNG ở chế độ OnlyAlreadyTagged)
+                        if (!OnlyAlreadyTagged && item is FamilyInstance fi)
                         {
                             bool isAdj = fi.Symbol.FamilyName.Contains("Reinforcement_Distribution");
                             string pName = isAdj ? "Dot Visibility" : "Arrow & Dot Visibility";
@@ -371,15 +386,34 @@ namespace RincoNhan.Tools.MtoSmartTag
                             }
                         }
 
-                        // Apply color override to the detail item
+                        // Apply color override to the detail item AND the tag
                         if (ApplyColorOverride)
                         {
-                            var overrideSettings = new OverrideGraphicSettings();
                             var color = new Color(ColorR, ColorG, ColorB);
-                            overrideSettings.SetProjectionLineColor(color);
-                            overrideSettings.SetSurfaceForegroundPatternColor(color);
-                            overrideSettings.SetCutLineColor(color);
-                            view.SetElementOverrides(item.Id, overrideSettings);
+                            
+                            // Override cho thép
+                            var itemOverride = new OverrideGraphicSettings();
+                            itemOverride.SetProjectionLineColor(color);
+                            itemOverride.SetSurfaceForegroundPatternColor(color);
+                            itemOverride.SetCutLineColor(color);
+                            view.SetElementOverrides(item.Id, itemOverride);
+                            
+                            // Override cho tag (annotation)
+                            var tagOverride = new OverrideGraphicSettings();
+                            tagOverride.SetProjectionLineColor(color);
+                            tagOverride.SetSurfaceForegroundPatternColor(color);
+                            tagOverride.SetCutLineColor(color);
+                            // Tìm Solid Fill pattern để tô text/annotation
+                            var solidFill = new FilteredElementCollector(doc)
+                                .OfClass(typeof(FillPatternElement))
+                                .Cast<FillPatternElement>()
+                                .FirstOrDefault(fp => fp.GetFillPattern().IsSolidFill);
+                            if (solidFill != null)
+                            {
+                                tagOverride.SetSurfaceForegroundPatternId(solidFill.Id);
+                                tagOverride.SetSurfaceForegroundPatternColor(color);
+                            }
+                            view.SetElementOverrides(tag.Id, tagOverride);
                         }
                     }
                 }
@@ -581,14 +615,37 @@ namespace RincoNhan.Tools.MtoSmartTag
                 .ToList();
 
             int resetCount = 0;
+            var detailItemIds = new HashSet<ElementId>(detailItems.Select(d => d.Id));
+
             foreach (var item in detailItems)
             {
-                // Reset to default (empty override)
+                // Reset detail item color
                 view.SetElementOverrides(item.Id, new OverrideGraphicSettings());
                 resetCount++;
             }
 
-            NotifyStatus?.Invoke($"Reset color for {resetCount} items.");
+            // Reset color cho tất cả tags trỏ đến các detail items
+            var allTags = new FilteredElementCollector(doc, view.Id)
+                .OfClass(typeof(IndependentTag))
+                .Cast<IndependentTag>()
+                .ToList();
+
+            int tagResetCount = 0;
+            foreach (var tag in allTags)
+            {
+                try
+                {
+                    var refs = tag.GetTaggedLocalElements();
+                    if (refs != null && refs.Any(r => detailItemIds.Contains(r.Id)))
+                    {
+                        view.SetElementOverrides(tag.Id, new OverrideGraphicSettings());
+                        tagResetCount++;
+                    }
+                }
+                catch { }
+            }
+
+            NotifyStatus?.Invoke($"Reset color for {resetCount} items + {tagResetCount} tags.");
         }
 
         /// <summary>

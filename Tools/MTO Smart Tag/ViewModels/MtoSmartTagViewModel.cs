@@ -87,10 +87,6 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
         [ObservableProperty]
         private bool _addLeader = false;
 
-        // Force Re-tag (ignore already tagged check)
-        [ObservableProperty]
-        private bool _forceRetag = true;
-
         // Only tag items that already have a tag
         [ObservableProperty]
         private bool _onlyAlreadyTagged = false;
@@ -328,7 +324,6 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
             _handler.OffsetXMm = OffsetX;
             _handler.OffsetYMm = OffsetY;
             _handler.AddLeader = AddLeader;
-            _handler.ForceRetag = ForceRetag;
             _handler.OnlyAlreadyTagged = OnlyAlreadyTagged;
             _handler.OnlyUntagged = OnlyUntagged;
             _handler.ApplyColorOverride = ApplyColorOverride;
