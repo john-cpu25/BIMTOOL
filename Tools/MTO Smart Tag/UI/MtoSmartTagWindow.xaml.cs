@@ -83,5 +83,21 @@ namespace RincoNhan.Tools.MtoSmartTag.UI
                 _viewModel.ColorB = dialog.Color.B;
             }
         }
+
+        private void PickUntaggedColor_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new System.Windows.Forms.ColorDialog
+            {
+                FullOpen = true,
+                Color = System.Drawing.Color.FromArgb(_viewModel.UntaggedColorR, _viewModel.UntaggedColorG, _viewModel.UntaggedColorB)
+            };
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                _viewModel.UntaggedColorR = dialog.Color.R;
+                _viewModel.UntaggedColorG = dialog.Color.G;
+                _viewModel.UntaggedColorB = dialog.Color.B;
+            }
+        }
     }
 }

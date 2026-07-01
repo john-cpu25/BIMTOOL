@@ -33,6 +33,7 @@ namespace RincoNhan.Tools.MtoSmartTag
         public bool AddLeader { get; set; } = false;
         public bool ForceRetag { get; set; } = false;
         public bool OnlyAlreadyTagged { get; set; } = false;
+        public bool OnlyUntagged { get; set; } = false;
         public bool ApplyColorOverride { get; set; } = false;
         public byte ColorR { get; set; } = 255;
         public byte ColorG { get; set; } = 0;
@@ -44,9 +45,14 @@ namespace RincoNhan.Tools.MtoSmartTag
         // Untagged Items Settings
         public bool CenterDotAdjustable { get; set; } = true;
         public bool HideDotAdjustable { get; set; } = false;
+        public bool ShowDotAdjustable { get; set; } = false;
         public bool CenterDotZBar { get; set; } = true;
         public bool HideDotZBar { get; set; } = false;
+        public bool ShowDotZBar { get; set; } = false;
         public bool ColorUntaggedItems { get; set; } = true;
+        public byte UntaggedColorR { get; set; } = 255;
+        public byte UntaggedColorG { get; set; } = 0;
+        public byte UntaggedColorB { get; set; } = 255;
         public bool IgnoreTagCheck { get; set; } = false;
 
         public void Execute(UIApplication app)
@@ -148,7 +154,7 @@ namespace RincoNhan.Tools.MtoSmartTag
                         try
                         {
                             var overrideSettings = new OverrideGraphicSettings();
-                            var color = new Color(255, 0, 255); // Magenta to easily spot untagged
+                            var color = new Color(UntaggedColorR, UntaggedColorG, UntaggedColorB);
                             overrideSettings.SetProjectionLineColor(color);
                             view.SetElementOverrides(item.Id, overrideSettings);
                         }
@@ -257,6 +263,13 @@ namespace RincoNhan.Tools.MtoSmartTag
                     continue;
                 }
 
+                // OnlyUntagged: skip items that ALREADY have a tag
+                if (OnlyUntagged && alreadyTagged)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
                 // Normal mode: skip items that already have a tag (unless ForceRetag)
                 if (!OnlyAlreadyTagged && alreadyTagged && !ForceRetag)
                 {
@@ -268,6 +281,16 @@ namespace RincoNhan.Tools.MtoSmartTag
 
                 try
                 {
+                    // Process dot settings (hide, show, center) BEFORE getting its position
+                    string dotDebug = ProcessUntaggedItem(item, doc, view);
+                    if (!string.IsNullOrEmpty(dotDebug) && string.IsNullOrEmpty(debugInfo))
+                    {
+                        debugInfo += dotDebug;
+                    }
+                    
+                    // Force Revit to update geometry so GetDotPosition gets the NEW center location
+                    doc.Regenerate();
+
                     // Get dot position (the circle on the distribution symbol)
                     XYZ dotPos = GetDotPosition(item, doc, view);
                     if (dotPos == null)
@@ -336,6 +359,18 @@ namespace RincoNhan.Tools.MtoSmartTag
 
                         taggedCount++;
 
+                        // Tự động tắt chấm tròn sau khi đã tag xong
+                        if (item is FamilyInstance fi)
+                        {
+                            bool isAdj = fi.Symbol.FamilyName.Contains("Reinforcement_Distribution");
+                            string pName = isAdj ? "Dot Visibility" : "Arrow & Dot Visibility";
+                            Parameter visParam = fi.LookupParameter(pName);
+                            if (visParam != null && !visParam.IsReadOnly)
+                            {
+                                visParam.Set(0); // Tắt chấm tròn
+                            }
+                        }
+
                         // Apply color override to the detail item
                         if (ApplyColorOverride)
                         {
@@ -363,44 +398,90 @@ namespace RincoNhan.Tools.MtoSmartTag
             NotifyStatus?.Invoke(msg);
         }
 
-        private void ProcessUntaggedItem(Element item, Document doc, View view)
+        private string ProcessUntaggedItem(Element item, Document doc, View view)
         {
-            if (!(item is FamilyInstance fi)) return;
+            if (!(item is FamilyInstance fi)) return "";
+            
+            // Bỏ qua các đối tượng nằm trong Group vì Revit không cho phép sửa tham số
+            if (fi.GroupId != ElementId.InvalidElementId) return "\n⚠️ Element is in a Group (Skipped modifying parameters)";
             
             var typeId = fi.GetTypeId();
             var type = doc.GetElement(typeId) as FamilySymbol;
-            if (type == null) return;
+            if (type == null) return "";
             
             var familyName = type.FamilyName;
 
             bool isAdjustable = familyName.Contains("Reinforcement_Distribution");
             bool isZBar = familyName.Contains("ZBar");
 
-            if (!isAdjustable && !isZBar) return;
+            if (!isAdjustable && !isZBar) return "";
 
             bool centerDot = isAdjustable ? CenterDotAdjustable : CenterDotZBar;
             bool hideDot = isAdjustable ? HideDotAdjustable : HideDotZBar;
+            bool showDot = isAdjustable ? ShowDotAdjustable : ShowDotZBar;
+
+            string paramName = isAdjustable ? "Dot Visibility" : "Arrow & Dot Visibility";
+            Parameter pVis = fi.LookupParameter(paramName);
+            string debugMsg = "";
+            if (pVis == null) debugMsg += $"\n⚠️ Param '{paramName}' NOT FOUND!";
 
             if (hideDot)
             {
                 // Hide dot via parameter
-                string paramName = isAdjustable ? "Dot Visibility" : "Arrow & Dot Visibility";
-                Parameter p = fi.LookupParameter(paramName);
-                if (p != null && !p.IsReadOnly)
+                if (pVis != null && !pVis.IsReadOnly)
                 {
-                    p.Set(0); // false
+                    pVis.Set(0); // false
                 }
             }
-            else if (centerDot)
+            else if (showDot || centerDot)
             {
-                // Ensure dot is visible
-                string paramName = isAdjustable ? "Dot Visibility" : "Arrow & Dot Visibility";
-                Parameter p = fi.LookupParameter(paramName);
-                if (p != null && !p.IsReadOnly)
+                // Ensure dot is visible if explicitly shown or centered
+                if (pVis != null && !pVis.IsReadOnly)
                 {
-                    p.Set(1); // true
+                    pVis.Set(1); // true
                 }
+            }
 
+            // Always process centering if center is requested (even if dot is hidden)
+            if (centerDot)
+            {
+                if (isAdjustable)
+                {
+                    Parameter pArrow = fi.LookupParameter("Arrow 1 From Bar");
+                    if (pArrow != null && !pArrow.IsReadOnly)
+                    {
+                        Parameter pLength = fi.LookupParameter("Distribution_Length");
+                        if (pLength != null)
+                        {
+                            pArrow.Set(pLength.AsDouble() / 2.0);
+                        }
+                        else
+                        {
+                            pArrow.Set(13393.6 / 304.8);
+                        }
+                    }
+                    else
+                    {
+                        debugMsg += "\n⚠️ Param 'Arrow 1 From Bar' NOT FOUND!";
+                    }
+                }
+                else if (isZBar)
+                {
+                    Parameter pArrow = fi.LookupParameter("Arrow & Dot 1 From Bar");
+                    if (pArrow != null && !pArrow.IsReadOnly)
+                    {
+                        Parameter pHeight = fi.LookupParameter("Height");
+                        Parameter pBarD = fi.LookupParameter("Bar_Diameter");
+                        if (pHeight != null && pBarD != null)
+                        {
+                            double h = pHeight.AsDouble();
+                            double d = pBarD.AsDouble();
+                            double offset = (h / 2.0) + d;
+                            pArrow.Set(offset);
+                        }
+                    }
+                }
+                
                 // Find dot position and move it to center
                 bool moved = false;
                 var subIds = fi.GetSubComponentIds();
@@ -475,9 +556,12 @@ namespace RincoNhan.Tools.MtoSmartTag
                                 break;
                             }
                         }
+                        fi.Document.Regenerate();
                     }
                 }
             }
+            
+            return debugMsg;
         }
 
         /// <summary>

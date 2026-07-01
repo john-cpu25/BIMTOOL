@@ -94,6 +94,9 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
         // Only tag items that already have a tag
         [ObservableProperty]
         private bool _onlyAlreadyTagged = false;
+        
+        [ObservableProperty]
+        private bool _onlyUntagged = false;
 
         // Color Override
         [ObservableProperty]
@@ -122,10 +125,31 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
         private bool _hideDotAdjustable = false;
 
         [ObservableProperty]
+        private bool _showDotAdjustable = false;
+
+        [ObservableProperty]
         private bool _centerDotZBar = true;
 
         [ObservableProperty]
         private bool _hideDotZBar = false;
+
+        [ObservableProperty]
+        private bool _showDotZBar = false;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UntaggedPreviewBrush))]
+        private byte _untaggedColorR = 255;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UntaggedPreviewBrush))]
+        private byte _untaggedColorG = 0;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UntaggedPreviewBrush))]
+        private byte _untaggedColorB = 255;
+
+        public System.Windows.Media.SolidColorBrush UntaggedPreviewBrush =>
+            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(UntaggedColorR, UntaggedColorG, UntaggedColorB));
 
         [ObservableProperty]
         private bool _colorUntaggedItems = true;
@@ -144,8 +168,13 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
         [ObservableProperty]
         private string _itemCountInfo;
 
+        private readonly Document _doc;
+        private readonly View _activeView;
+
         public MtoSmartTagViewModel(Document doc, View activeView, MtoSmartTagHandler handler)
         {
+            _doc = doc;
+            _activeView = activeView;
             _handler = handler;
             _externalEvent = ExternalEvent.Create(_handler);
 
@@ -163,8 +192,13 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
             };
             SelectedDirection = Directions.First(); // Default: TopLeft
 
+            LoadData();
+        }
+
+        private void LoadData()
+        {
             // Find Detail Item Tag families
-            var tagFamilies = new FilteredElementCollector(doc)
+            var tagFamilies = new FilteredElementCollector(_doc)
                 .OfClass(typeof(FamilySymbol))
                 .Cast<FamilySymbol>()
                 .Where(fs => fs.Category != null &&
@@ -174,17 +208,24 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
                 .ThenBy(fs => fs.Name)
                 .ToList();
 
+            // Preserve selected tag type if possible
+            ElementId currentSelectedTagId = SelectedTagType?.Id;
+
             TagTypes = new ObservableCollection<TagTypeItem>(tagFamilies.Select(fs => new TagTypeItem(fs)));
-            SelectedTagType = TagTypes.FirstOrDefault();
+            
+            if (currentSelectedTagId != null)
+                SelectedTagType = TagTypes.FirstOrDefault(t => t.Id == currentSelectedTagId) ?? TagTypes.FirstOrDefault();
+            else
+                SelectedTagType = TagTypes.FirstOrDefault();
 
             // Find distinct Detail Item families in the view (for target family selection)
-            var detailFamilies = new FilteredElementCollector(doc, activeView.Id)
+            var detailFamilies = new FilteredElementCollector(_doc, _activeView.Id)
                 .OfCategory(BuiltInCategory.OST_DetailComponents)
                 .WhereElementIsNotElementType()
                 .Select(e =>
                 {
                     var typeId = e.GetTypeId();
-                    var type = doc.GetElement(typeId) as FamilySymbol;
+                    var type = _doc.GetElement(typeId) as FamilySymbol;
                     return type?.FamilyName;
                 })
                 .Where(name => !string.IsNullOrEmpty(name) && !name.ToUpper().Contains("LAPSIGHN"))
@@ -192,16 +233,19 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
                 .OrderBy(n => n)
                 .ToList();
 
+            // Preserve selections
+            var previouslySelected = TargetFamilies?.Where(f => f.IsSelected).Select(f => f.Name).ToList() ?? new List<string>();
+
             TargetFamilies = new ObservableCollection<TargetFamilyItem>(
                 detailFamilies.Select(f => 
                 {
-                    bool isDefaultSelected = f.Contains("Reinforcement_Distribution") || f.Contains("ZBar");
+                    bool isDefaultSelected = previouslySelected.Contains(f) || (previouslySelected.Count == 0 && (f.Contains("Reinforcement_Distribution") || f.Contains("ZBar")));
                     var item = new TargetFamilyItem(f, isDefaultSelected);
                     item.PropertyChanged += (s, e) => 
                     {
                         if (e.PropertyName == nameof(TargetFamilyItem.IsSelected))
                         {
-                            UpdateItemCount(doc, activeView);
+                            UpdateItemCount();
                         }
                     };
                     return item;
@@ -215,12 +259,19 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
             }
 
             // Count items in view (for selected families)
-            UpdateItemCount(doc, activeView);
+            UpdateItemCount();
         }
 
-        private void UpdateItemCount(Document doc, View view)
+        [RelayCommand]
+        private void ReloadView()
         {
-            var selectedFamilies = TargetFamilies.Where(f => f.IsSelected).Select(f => f.Name).ToList();
+            LoadData();
+            StatusMessage = "View reloaded. Data refreshed.";
+        }
+
+        private void UpdateItemCount()
+        {
+            var selectedFamilies = TargetFamilies?.Where(f => f.IsSelected).Select(f => f.Name).ToList() ?? new List<string>();
 
             if (!selectedFamilies.Any())
             {
@@ -228,13 +279,13 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
                 return;
             }
 
-            int count = new FilteredElementCollector(doc, view.Id)
+            int count = new FilteredElementCollector(_doc, _activeView.Id)
                 .OfCategory(BuiltInCategory.OST_DetailComponents)
                 .WhereElementIsNotElementType()
                 .Where(e =>
                 {
                     var typeId = e.GetTypeId();
-                    var type = doc.GetElement(typeId) as FamilySymbol;
+                    var type = _doc.GetElement(typeId) as FamilySymbol;
                     return type?.FamilyName != null && selectedFamilies.Contains(type.FamilyName);
                 })
                 .Count();
@@ -279,6 +330,7 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
             _handler.AddLeader = AddLeader;
             _handler.ForceRetag = ForceRetag;
             _handler.OnlyAlreadyTagged = OnlyAlreadyTagged;
+            _handler.OnlyUntagged = OnlyUntagged;
             _handler.ApplyColorOverride = ApplyColorOverride;
             _handler.ColorR = ColorR;
             _handler.ColorG = ColorG;
@@ -286,8 +338,10 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
             
             _handler.CenterDotAdjustable = CenterDotAdjustable;
             _handler.HideDotAdjustable = HideDotAdjustable;
+            _handler.ShowDotAdjustable = ShowDotAdjustable;
             _handler.CenterDotZBar = CenterDotZBar;
             _handler.HideDotZBar = HideDotZBar;
+            _handler.ShowDotZBar = ShowDotZBar;
 
             _handler.NotifyStatus = GetStatusNotifier();
 
@@ -311,9 +365,14 @@ namespace RincoNhan.Tools.MtoSmartTag.ViewModels
 
             _handler.CenterDotAdjustable = CenterDotAdjustable;
             _handler.HideDotAdjustable = HideDotAdjustable;
+            _handler.ShowDotAdjustable = ShowDotAdjustable;
             _handler.CenterDotZBar = CenterDotZBar;
             _handler.HideDotZBar = HideDotZBar;
+            _handler.ShowDotZBar = ShowDotZBar;
             _handler.ColorUntaggedItems = ColorUntaggedItems;
+            _handler.UntaggedColorR = UntaggedColorR;
+            _handler.UntaggedColorG = UntaggedColorG;
+            _handler.UntaggedColorB = UntaggedColorB;
             _handler.IgnoreTagCheck = IgnoreTagCheck;
 
             _handler.NotifyStatus = GetStatusNotifier();
