@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Autodesk.Revit.UI.Selection;
 using RincoModeling.Tools.CheckFold.Models;
 
 namespace RincoModeling.Tools.CheckFold
@@ -63,6 +64,9 @@ namespace RincoModeling.Tools.CheckFold
                         break;
                     case "CheckMissingSteps":
                         CheckMissingSteps(doc, view);
+                        break;
+                    case "CheckSingleStep":
+                        CheckSingleStep(app, doc);
                         break;
                 }
             }
@@ -313,6 +317,80 @@ namespace RincoModeling.Tools.CheckFold
             NotifyStatus?.Invoke(missingSteps.Count > 0
                 ? $"⚠ Tìm thấy {missingSteps.Count} vị trí thiếu Step (đã vẽ line đỏ)."
                 : "✓ Tuyệt vời! Không phát hiện vị trí nào thiếu Step.");
+        }
+
+        private void CheckSingleStep(UIApplication app, Document doc)
+        {
+            var uidoc = app.ActiveUIDocument;
+            try
+            {
+                // Chọn sàn 1
+                Reference refFloor1 = uidoc.Selection.PickObject(ObjectType.Element, new FloorSelectionFilter(), "Chọn SÀN 1 (Nhấn ESC để hủy)");
+                Floor floor1 = doc.GetElement(refFloor1) as Floor;
+
+                // Chọn sàn 2
+                Reference refFloor2 = uidoc.Selection.PickObject(ObjectType.Element, new FloorSelectionFilter(), "Chọn SÀN 2 (Nhấn ESC để hủy)");
+                Floor floor2 = doc.GetElement(refFloor2) as Floor;
+
+                // Chọn ký hiệu 2D Step
+                Reference refStep = uidoc.Selection.PickObject(ObjectType.Element, new GenericAnnotationSelectionFilter(), "Chọn Generic Annotation (Nhấn ESC để hủy)");
+                FamilyInstance stepFamily = doc.GetElement(refStep) as FamilyInstance;
+
+                if (floor1 == null || floor2 == null || stepFamily == null)
+                {
+                    NotifyStatus?.Invoke("❌ Chọn đối tượng không hợp lệ.");
+                    return;
+                }
+
+                // Tính toán
+                double elev1 = CheckFoldLogic.GetFloorTopElevation(doc, floor1);
+                double elev2 = CheckFoldLogic.GetFloorTopElevation(doc, floor2);
+                double delta = Math.Abs(elev1 - elev2);
+
+                // Update
+                using (Transaction tx = new Transaction(doc, "Check Step Đơn - Cập nhật RL STEP"))
+                {
+                    tx.Start();
+                    bool success = CheckFoldLogic.SetStepValues(stepFamily, delta, false);
+                    if (success)
+                    {
+                        // Đổi màu
+                        Color green = new Color(0, 200, 80);
+                        CheckFoldLogic.SetElementColorOverride(doc, doc.ActiveView, stepFamily.Id, green);
+                        _overriddenIds.Add(stepFamily.Id);
+                    }
+                    tx.Commit();
+                }
+
+                NotifyStatus?.Invoke($"✅ Đã cập nhật thành công (Chênh lệch: {delta:F0} mm).");
+            }
+            catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+            {
+                NotifyStatus?.Invoke("ℹ Đã hủy thao tác chọn.");
+            }
+            catch (Exception ex)
+            {
+                NotifyStatus?.Invoke("Lỗi: " + ex.Message);
+            }
+        }
+
+        private class FloorSelectionFilter : ISelectionFilter
+        {
+            public bool AllowElement(Element elem) => elem is Floor;
+            public bool AllowReference(Reference reference, XYZ position) => false;
+        }
+
+        private class GenericAnnotationSelectionFilter : ISelectionFilter
+        {
+            public bool AllowElement(Element elem)
+            {
+                if (elem is FamilyInstance fi)
+                {
+                    return fi.Category != null && fi.Category.Id == new ElementId((int)BuiltInCategory.OST_GenericAnnotation);
+                }
+                return false;
+            }
+            public bool AllowReference(Reference reference, XYZ position) => false;
         }
 
         public string GetName() => "CheckFoldHandler";

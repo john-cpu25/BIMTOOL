@@ -232,6 +232,14 @@ namespace RincoModeling.Tools.CheckFold.ViewModels
             _externalEvent.Raise();
         }
 
+        [RelayCommand]
+        private void CheckSingleStep()
+        {
+            StatusMessage = "Đang thao tác chọn trên view (Nhấn ESC để hủy)...";
+            _handler.Action = "CheckSingleStep";
+            _externalEvent.Raise();
+        }
+
         private void HandleMissingStepsChecked(List<MissingStepItem> items)
         {
             MissingStepItems.Clear();

@@ -145,14 +145,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Actions" Width="70">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="X" Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                CommandParameter="{Binding}" Foreground="Red" Background="Transparent" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -169,7 +162,7 @@
                               DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
                     <TextBlock Text="2. Sheet Series Parameter" Style="{StaticResource SectionLabel}"/>
-                    <ComboBox ItemsSource="{Binding SheetSeriesOptions}" SelectedItem="{Binding SelectedSheetSeries}" 
+                    <ComboBox ItemsSource="{Binding SheetSeriesOptions}" Text="{Binding SelectedSheetSeries, UpdateSourceTrigger=PropertyChanged}" 
                               IsEditable="True" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
                     <TextBlock Text="3. Viewport Title Type (Turn On Title)" Style="{StaticResource SectionLabel}"/>

@@ -426,6 +426,29 @@
                         </Border>
                     </StackPanel>
                 </TabItem>
+                <!-- ======== Tab 4: Check Step đơn ======== -->
+                <TabItem Header="🎯 Check Step đơn">
+                    <StackPanel Margin="0,8,0,0">
+                        <Border Background="White" CornerRadius="6" Padding="12,8" Margin="0,0,0,8"
+                                BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                            <TextBlock Foreground="{StaticResource TextSecondary}" FontSize="11" TextWrapping="Wrap">
+                                <Run Text="Thao tác thủ công:" FontWeight="Bold" Foreground="{StaticResource AccentBlue}"/>
+                                <LineBreak/>
+                                <Run Text="1. Chọn Sàn 1 (Sàn cao/thấp)"/>
+                                <LineBreak/>
+                                <Run Text="2. Chọn Sàn 2 (Sàn còn lại)"/>
+                                <LineBreak/>
+                                <Run Text="3. Chọn ký hiệu 2D Step (Generic Annotation)"/>
+                            </TextBlock>
+                        </Border>
+                        
+                        <!-- Action Buttons -->
+                        <WrapPanel Margin="0,0,0,12">
+                            <Button Content="🖱 Pick &amp; Update Step" Style="{StaticResource ActionButton}" 
+                                    Command="{Binding CheckSingleStepCommand}" Margin="0,0,6,6"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </TabItem>
             </TabControl>
 
             <!-- Bottom Status (Left only) -->
