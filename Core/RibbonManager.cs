@@ -39,6 +39,7 @@ namespace RincoNhan.Core
             RibbonPanel linkPanel = GetOrCreatePanel(application, tabName, "Link");
             RibbonPanel wallPanel = GetOrCreatePanel(application, tabName, "Wall");
             RibbonPanel dimPanel = GetOrCreatePanel(application, tabName, "Dim");
+            RibbonPanel revisionPanel = GetOrCreatePanel(application, tabName, "Revision");
 
             // === GENERAL Panel ===
             AddAddSharedParamButton(generalPanel);
@@ -55,6 +56,9 @@ namespace RincoNhan.Core
             // === LAYOUT Panel ===
             AddCreateViewSheetButton(layoutPanel);
             AddAutoViewSheetButton(layoutPanel);
+
+            // === REVISION Panel ===
+            AddCreateSheetSetButton(revisionPanel);
 
             // === EXCEL Panel ===
             AddExportExcelButton(excelPanel);
@@ -388,6 +392,21 @@ namespace RincoNhan.Core
             // Trying to use a generic icon like CreateLevel.png if specific one doesn't exist
             pb.LargeImage = LoadIcon("CreateLevel.png");
             pb.Image = LoadIcon("CreateLevel.png", 16);
+        }
+
+        private static void AddCreateSheetSetButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdCreateSheetSet",
+                "Create\nSheet Set",
+                _assemblyPath,
+                "RincoNhan.Tools.Create_Sheet_Set.CreateSheetSetCommand"
+            );
+            btnData.ToolTip = "Create a new Revision Sheet Set based on selected revisions.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("CreateSheetSet.png") ?? LoadIcon("CreateViewSheet.png");
+            pb.Image = LoadIcon("CreateSheetSet.png", 16) ?? LoadIcon("CreateViewSheet.png", 16);
         }
 
         private static PushButtonData GetSmartLinkCadButtonData()
