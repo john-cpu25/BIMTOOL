@@ -55,6 +55,7 @@ namespace RincoNhan.Core
             // === LAYOUT Panel ===
             AddCreateViewSheetButton(layoutPanel);
             AddAutoViewSheetButton(layoutPanel);
+            AddDuplicateSheetSplitButton(layoutPanel);
 
             // === EXCEL Panel ===
             AddExportExcelButton(excelPanel);
@@ -740,6 +741,36 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("ConvertHatch.png") ?? LoadIcon("ExportHatch.png");
             pb.Image = LoadIcon("ConvertHatch.png", 16) ?? LoadIcon("ExportHatch.png", 16);
+        }
+
+        private static void AddDuplicateSheetSplitButton(RibbonPanel panel)
+        {
+            SplitButtonData sbData = new SplitButtonData("cmdDuplicateSheetSplit", "Duplicate\nSheet");
+            SplitButton sb = panel.AddItem(sbData) as SplitButton;
+
+            // Empty Sheet
+            PushButtonData btnEmpty = new PushButtonData(
+                "cmdDuplicateEmptySheet",
+                "Duplicate Empty Sheet",
+                _assemblyPath,
+                "RincoNhan.Tools.DuplicateSheet.DuplicateEmptySheetCommand"
+            );
+            btnEmpty.ToolTip = "Duplicate selected sheets without their views.";
+            PushButton pbEmpty = sb.AddPushButton(btnEmpty);
+            pbEmpty.LargeImage = LoadIcon("Duplicate Sheet.png") ?? LoadIcon("CreateViewSheet.png");
+            pbEmpty.Image = LoadIcon("Duplicate Sheet.png", 16) ?? LoadIcon("CreateViewSheet.png", 16);
+
+            // With Detailing
+            PushButtonData btnWithDetailing = new PushButtonData(
+                "cmdDuplicateWithDetailing",
+                "Duplicate with Sheet Detailing",
+                _assemblyPath,
+                "RincoNhan.Tools.DuplicateSheet.DuplicateWithDetailingCommand"
+            );
+            btnWithDetailing.ToolTip = "Duplicate selected sheets along with their views.";
+            PushButton pbWithDetailing = sb.AddPushButton(btnWithDetailing);
+            pbWithDetailing.LargeImage = LoadIcon("Duplicate Sheet.png") ?? LoadIcon("CreateViewSheet.png");
+            pbWithDetailing.Image = LoadIcon("Duplicate Sheet.png", 16) ?? LoadIcon("CreateViewSheet.png", 16);
         }
     }
 }
