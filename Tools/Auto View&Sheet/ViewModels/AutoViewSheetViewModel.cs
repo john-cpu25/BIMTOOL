@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Data;
 using System.ComponentModel;
 using Autodesk.Revit.DB;
@@ -23,6 +24,28 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         public ObservableCollection<string> SheetSeriesOptions { get; set; } = new ObservableCollection<string>();
         [ObservableProperty] private string _selectedSheetSeries;
 
+        public ObservableCollection<string> SheetNamingTypes { get; set; } = new ObservableCollection<string> { "GA PLAN", "LP PLAN", "NORMAL" };
+        [ObservableProperty] private string _selectedSheetNamingType = "GA PLAN";
+
+        partial void OnSelectedSheetSeriesChanged(string value)
+        {
+            UpdateAllRows();
+        }
+
+        partial void OnSelectedSheetNamingTypeChanged(string value)
+        {
+            if (AutoRows.Any() || PartRows.Any())
+            {
+                var response = MessageBox.Show("Do you want to regenerate all rows to apply the new Sheet Naming Type?", 
+                    "Regenerate Rows", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (response == MessageBoxResult.Yes)
+                {
+                    AddAllLevels();
+                    AddAllLevelsForPart();
+                }
+            }
+        }
+
         public ObservableCollection<ViewportTitleItem> ViewportTitleTypes { get; set; } = new ObservableCollection<ViewportTitleItem>();
         [ObservableProperty] private ViewportTitleItem _selectedViewportTitle;
 
@@ -38,6 +61,9 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         public ObservableCollection<AutoViewSheetRow> AutoRows { get; set; } = new ObservableCollection<AutoViewSheetRow>();
         public ICollectionView AutoRowsView { get; private set; }
 
+        public ObservableCollection<AutoViewSheetRow> PartRows { get; set; } = new ObservableCollection<AutoViewSheetRow>();
+        public ICollectionView PartRowsView { get; private set; }
+
         private string _searchText;
         public string SearchText
         {
@@ -47,6 +73,19 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 if (SetProperty(ref _searchText, value))
                 {
                     AutoRowsView.Refresh();
+                }
+            }
+        }
+
+        private string _partSearchText;
+        public string PartSearchText
+        {
+            get => _partSearchText;
+            set
+            {
+                if (SetProperty(ref _partSearchText, value))
+                {
+                    PartRowsView.Refresh();
                 }
             }
         }
@@ -63,6 +102,13 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             AutoRowsView.Filter = FilterRows;
             AutoRowsView.SortDescriptions.Add(new SortDescription("SheetNumber", ListSortDirection.Ascending));
 
+            PartRowsView = CollectionViewSource.GetDefaultView(PartRows);
+            PartRowsView.Filter = FilterPartRows;
+            PartRowsView.GroupDescriptions.Add(new PropertyGroupDescription("SelectedLevel.Name"));
+            PartRowsView.GroupDescriptions.Add(new PropertyGroupDescription("GroupId"));
+            PartRowsView.SortDescriptions.Add(new SortDescription("SelectedLevel.Elevation", ListSortDirection.Ascending));
+            PartRowsView.SortDescriptions.Add(new SortDescription("SheetNumber", ListSortDirection.Ascending));
+
             LoadData(doc);
         }
 
@@ -78,6 +124,19 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             return false;
         }
 
+        private bool FilterPartRows(object obj)
+        {
+            if (string.IsNullOrWhiteSpace(PartSearchText)) return true;
+            if (obj is AutoViewSheetRow row)
+            {
+                return (row.SheetName != null && row.SheetName.IndexOf(PartSearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                       (row.SheetNumber != null && row.SheetNumber.IndexOf(PartSearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                       (row.SelectedLevel != null && row.SelectedLevel.Name.IndexOf(PartSearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                       (row.ZoneName != null && row.ZoneName.IndexOf(PartSearchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+            return false;
+        }
+
         private bool _sortAscending = true;
         [RelayCommand]
         private void ToggleSort()
@@ -87,6 +146,16 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             AutoRowsView.SortDescriptions.Add(new SortDescription("SheetNumber", _sortAscending ? ListSortDirection.Ascending : ListSortDirection.Descending));
         }
 
+        private bool _partSortAscending = true;
+        [RelayCommand]
+        private void TogglePartSort()
+        {
+            _partSortAscending = !_partSortAscending;
+            PartRowsView.SortDescriptions.Clear();
+            PartRowsView.SortDescriptions.Add(new SortDescription("SelectedLevel.Elevation", _partSortAscending ? ListSortDirection.Ascending : ListSortDirection.Descending));
+            PartRowsView.SortDescriptions.Add(new SortDescription("SheetNumber", ListSortDirection.Ascending));
+        }
+
         [RelayCommand]
         private void SelectAll(string action)
         {
@@ -94,6 +163,19 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             foreach (var row in AutoRows)
             {
                 row.IsGroupSelected = check;
+            }
+        }
+
+        [RelayCommand]
+        private void SelectAllPart(string action)
+        {
+            bool check = action == "True";
+            // Group the part rows by their Level + GroupId since checking the first row automatically checks the rest via callbacks
+            var grouped = PartRows.GroupBy(r => new { LevelId = r.SelectedLevel?.Id, r.GroupId });
+            foreach (var group in grouped)
+            {
+                var firstRow = group.First();
+                firstRow.IsGroupSelected = check;
             }
         }
 
@@ -165,6 +247,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
 
             // Auto-populate all levels
             AddAllLevels();
+            AddAllLevelsForPart();
         }
 
         private void LoadSheetSeries(Document doc)
@@ -237,6 +320,10 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             }
             if (matchedTemplate == null) matchedTemplate = ViewTemplates.FirstOrDefault();
 
+            string nameSuffix = "GENERAL ARRANGEMENT PLAN";
+            if (SelectedSheetNamingType == "LP PLAN") nameSuffix = "LOADING PLAN";
+            else if (SelectedSheetNamingType == "NORMAL") nameSuffix = "PLAN";
+
             var row = new AutoViewSheetRow
             {
                 SelectedLevel = level,
@@ -245,7 +332,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 SelectedViewTemplate = matchedTemplate,
                 SelectedScopeBox = ScopeBoxOptions.FirstOrDefault(),
                 SheetNumber = ComputeSheetNumber(baseSheetNum, offset),
-                SheetName = $"{level.Name} GENERAL ARRANGEMENT PLAN",
+                SheetName = $"{level.Name} {nameSuffix}",
                 GroupId = groupId
             };
 
@@ -257,7 +344,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 }
             };
 
-            row.LevelChangedCallback = (changedRow, newLevel) =>
+            row.LevelChangedCallback = (changedRow, oldLevel, newLevel) =>
             {
                 foreach (var r in AutoRows.Where(x => x.GroupId == changedRow.GroupId && x != changedRow))
                 {
@@ -308,28 +395,139 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             return $"{baseNum}.{offset}";
         }
 
+        private void UpdateAllRows()
+        {
+            if (AutoRows == null || !AutoRows.Any()) return;
+            
+            var levelGroups = AutoRows.GroupBy(r => r.GroupId).ToList();
+            HashSet<string> usedBaseNums = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            string nameSuffix = "GENERAL ARRANGEMENT PLAN";
+            string archTemplateName = "RINCO - GA - ARCH 1/100";
+            string overTemplateName = "RINCO - GA - OVER 1/100";
+            string underTemplateName = "RINCO - GA - UNDER 1/100";
+            string suffixAddition = "";
+
+            if (SelectedSheetNamingType == "LP PLAN") 
+            {
+                nameSuffix = "LOADING PLAN";
+                archTemplateName = "RINCO - LP - ARCH 1/100";
+                overTemplateName = "RINCO - LP - OVER 1/100";
+                suffixAddition = " - LOADING PLAN";
+            }
+            else if (SelectedSheetNamingType == "NORMAL") nameSuffix = "PLAN";
+
+            foreach (var group in levelGroups)
+            {
+                var firstRow = group.First();
+                var level = firstRow.SelectedLevel;
+                if (level == null) continue;
+                
+                string baseSheetNum = GenerateBaseSheetNumber(level, ProjectLevels);
+                
+                string uniqueBaseNum = baseSheetNum;
+                int suffixCount = 1;
+                while (usedBaseNums.Contains(uniqueBaseNum))
+                {
+                    uniqueBaseNum = $"{baseSheetNum}.{suffixCount}";
+                    suffixCount++;
+                }
+                usedBaseNums.Add(uniqueBaseNum);
+
+                firstRow.SheetNumber = uniqueBaseNum; // updates the whole group via callback
+                firstRow.SheetName = $"{level.Name} {nameSuffix}"; // updates the whole group via callback
+
+                var underRow = group.FirstOrDefault(r => r.Suffix != null && r.Suffix.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0);
+                
+                if (SelectedSheetNamingType == "LP PLAN")
+                {
+                    if (underRow != null)
+                    {
+                        AutoRows.Remove(underRow);
+                    }
+                }
+                else
+                {
+                    if (underRow == null)
+                    {
+                        underRow = new AutoViewSheetRow
+                        {
+                            SelectedLevel = level,
+                            Suffix = "- UNDER",
+                            SelectedViewType = ViewTypes.FirstOrDefault(vt => vt.Name.EndsWith("UNDER", StringComparison.OrdinalIgnoreCase) || vt.Name.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0) ?? ViewTypes.FirstOrDefault(),
+                            SelectedViewTemplate = ViewTemplates.FirstOrDefault(vt => vt.Name.Equals(underTemplateName, StringComparison.OrdinalIgnoreCase)) ?? ViewTemplates.FirstOrDefault(),
+                            SelectedScopeBox = ScopeBoxOptions.FirstOrDefault(),
+                            SheetNumber = uniqueBaseNum,
+                            SheetName = $"{level.Name} {nameSuffix}",
+                            GroupId = firstRow.GroupId,
+                            IsSelected = firstRow.IsGroupSelected
+                        };
+                        
+                        underRow.GroupSelectionChangedCallback = firstRow.GroupSelectionChangedCallback;
+                        underRow.LevelChangedCallback = firstRow.LevelChangedCallback;
+                        underRow.SheetNumberChangedCallback = firstRow.SheetNumberChangedCallback;
+                        underRow.SheetNameChangedCallback = firstRow.SheetNameChangedCallback;
+                        underRow.ScopeBoxChangedCallback = firstRow.ScopeBoxChangedCallback;
+
+                        AutoRows.Add(underRow);
+                    }
+                }
+
+                foreach (var row in AutoRows.Where(r => r.GroupId == firstRow.GroupId))
+                {
+                    string cleanSuffix = row.Suffix?.Replace(" - LOADING PLAN", "");
+                    
+                    if (cleanSuffix != null && cleanSuffix.IndexOf("ARCH", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        row.Suffix = cleanSuffix + suffixAddition;
+                        var tmpl = ViewTemplates.FirstOrDefault(vt => vt.Name.Equals(archTemplateName, StringComparison.OrdinalIgnoreCase));
+                        if (tmpl != null) row.SelectedViewTemplate = tmpl;
+                    }
+                    else if (cleanSuffix != null && cleanSuffix.IndexOf("OVER", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        row.Suffix = cleanSuffix + suffixAddition;
+                        var tmpl = ViewTemplates.FirstOrDefault(vt => vt.Name.Equals(overTemplateName, StringComparison.OrdinalIgnoreCase));
+                        if (tmpl != null) row.SelectedViewTemplate = tmpl;
+                    }
+                    else if (cleanSuffix != null && cleanSuffix.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        row.Suffix = cleanSuffix;
+                        var tmpl = ViewTemplates.FirstOrDefault(vt => vt.Name.Equals(underTemplateName, StringComparison.OrdinalIgnoreCase));
+                        if (tmpl != null) row.SelectedViewTemplate = tmpl;
+                    }
+                }
+            }
+        }
+
         private string GenerateBaseSheetNumber(LevelItem level, List<LevelItem> allLevels)
         {
             string name = level.Name.ToUpper().Trim();
+            string prefix = "S4"; // fallback
+            
+            if (!string.IsNullOrEmpty(SelectedSheetSeries))
+            {
+                var seriesMatch = Regex.Match(SelectedSheetSeries, @"^([A-Za-z0-9]{2})");
+                if (seriesMatch.Success) prefix = seriesMatch.Groups[1].Value;
+            }
 
-            // BASEMENT levels → S4099 (multiple basements count down)
+            // BASEMENT levels → prefix + 099 (multiple basements count down)
             if (name.Contains("BASEMENT"))
             {
                 var basements = allLevels.Where(l => l.Name.ToUpper().Contains("BASEMENT")).OrderBy(l => l.Elevation).ToList();
                 int basementCount = basements.Count;
                 int index = basements.IndexOf(level);
-                return $"S{4099 - (basementCount - 1 - index)}";
+                return $"{prefix}{99 - (basementCount - 1 - index):D3}";
             }
 
-            // GROUND level → S4100
-            if (name.Contains("GROUND")) return "S4100";
+            // GROUND level → prefix + 100
+            if (name.Contains("GROUND")) return $"{prefix}100";
 
-            // LEVEL X → S4100 + X
+            // LEVEL X → prefix + (100 + X)
             var match = Regex.Match(name, @"LEVEL\s*(\d+)");
             if (match.Success)
             {
                 int levelNum = int.Parse(match.Groups[1].Value);
-                return $"S{4100 + levelNum}";
+                return $"{prefix}{100 + levelNum}";
             }
 
             // Other levels
@@ -349,7 +547,7 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
                 .OrderBy(l => l.Elevation).ToList();
             int otherIndex = otherLevels.IndexOf(level);
 
-            return $"S{4100 + maxLevelNum + 1 + otherIndex}";
+            return $"{prefix}{100 + maxLevelNum + 1 + otherIndex}";
         }
 
         [RelayCommand]
@@ -360,9 +558,26 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             string groupId = Guid.NewGuid().ToString();
             string baseSheet = GenerateBaseSheetNumber(level, ProjectLevels);
 
-            AddGroupedViewRow(level, "- ARCH", "ARCH OVERLAY_PLANS", "RINCO - GA - ARCH 1/100", groupId, baseSheet, 0);
-            AddGroupedViewRow(level, "- UNDER", "UNDER_PLANS", "RINCO - GA - UNDER 1/100", groupId, baseSheet, 0);
-            AddGroupedViewRow(level, "- OVER", "OVER_PLANS", "RINCO - GA - OVER 1/100", groupId, baseSheet, 0);
+            string archTemplateName = "RINCO - GA - ARCH 1/100";
+            string overTemplateName = "RINCO - GA - OVER 1/100";
+            string underTemplateName = "RINCO - GA - UNDER 1/100";
+            string suffixAddition = "";
+
+            if (SelectedSheetNamingType == "LP PLAN") 
+            {
+                archTemplateName = "RINCO - LP - ARCH 1/100";
+                overTemplateName = "RINCO - LP - OVER 1/100";
+                suffixAddition = " - LOADING PLAN";
+            }
+
+            AddGroupedViewRow(level, "- ARCH" + suffixAddition, "ARCH OVERLAY_PLANS", archTemplateName, groupId, baseSheet, 0);
+            
+            if (SelectedSheetNamingType != "LP PLAN")
+            {
+                AddGroupedViewRow(level, "- UNDER", "UNDER_PLANS", underTemplateName, groupId, baseSheet, 0);
+            }
+            
+            AddGroupedViewRow(level, "- OVER" + suffixAddition, "OVER_PLANS", overTemplateName, groupId, baseSheet, 0);
         }
 
         [RelayCommand]
@@ -371,6 +586,18 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
             AutoRows.Clear();
             var levels = ProjectLevels;
             HashSet<string> usedBaseNums = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            string archTemplateName = "RINCO - GA - ARCH 1/100";
+            string overTemplateName = "RINCO - GA - OVER 1/100";
+            string underTemplateName = "RINCO - GA - UNDER 1/100";
+            string suffixAddition = "";
+
+            if (SelectedSheetNamingType == "LP PLAN") 
+            {
+                archTemplateName = "RINCO - LP - ARCH 1/100";
+                overTemplateName = "RINCO - LP - OVER 1/100";
+                suffixAddition = " - LOADING PLAN";
+            }
 
             foreach (var level in levels)
             {
@@ -387,9 +614,115 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
 
                 string groupId = level.Id.ToString();
 
-                AddGroupedViewRow(level, "- ARCH", "ARCH OVERLAY_PLANS", "RINCO - GA - ARCH 1/100", groupId, uniqueBaseNum, 0);
-                AddGroupedViewRow(level, "- UNDER", "UNDER_PLANS", "RINCO - GA - UNDER 1/100", groupId, uniqueBaseNum, 0);
-                AddGroupedViewRow(level, "- OVER", "OVER_PLANS", "RINCO - GA - OVER 1/100", groupId, uniqueBaseNum, 0);
+                AddGroupedViewRow(level, "- ARCH" + suffixAddition, "ARCH OVERLAY_PLANS", archTemplateName, groupId, uniqueBaseNum, 0);
+                
+                if (SelectedSheetNamingType != "LP PLAN")
+                {
+                    AddGroupedViewRow(level, "- UNDER", "UNDER_PLANS", underTemplateName, groupId, uniqueBaseNum, 0);
+                }
+                
+                AddGroupedViewRow(level, "- OVER" + suffixAddition, "OVER_PLANS", overTemplateName, groupId, uniqueBaseNum, 0);
+            }
+        }
+
+        private void AddAllLevelsForPart()
+        {
+            PartRows.Clear();
+            var levels = ProjectLevels;
+            HashSet<string> usedBaseNums = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            string archTemplateName = "RINCO - GA - ARCH 1/100";
+            string overTemplateName = "RINCO - GA - OVER 1/100";
+            string underTemplateName = "RINCO - GA - UNDER 1/100";
+            string suffixAddition = "";
+            string nameSuffix = "GENERAL ARRANGEMENT PLAN";
+
+            if (SelectedSheetNamingType == "LP PLAN") 
+            {
+                archTemplateName = "RINCO - LP - ARCH 1/100";
+                overTemplateName = "RINCO - LP - OVER 1/100";
+                suffixAddition = " - LOADING PLAN";
+                nameSuffix = "LOADING PLAN";
+            }
+            else if (SelectedSheetNamingType == "NORMAL")
+            {
+                nameSuffix = "PLAN";
+            }
+
+            foreach (var level in levels)
+            {
+                string baseSheetNum = GenerateBaseSheetNumber(level, levels);
+                
+                string uniqueBaseNum = baseSheetNum;
+                int suffixCount = 1;
+                while (usedBaseNums.Contains(uniqueBaseNum))
+                {
+                    uniqueBaseNum = $"{baseSheetNum}.{suffixCount}";
+                    suffixCount++;
+                }
+                usedBaseNums.Add(uniqueBaseNum);
+
+                string groupId = Guid.NewGuid().ToString();
+                string defaultZoneName = "ZONE 1";
+
+                AddGroupedPartRow(level, "- ARCH" + suffixAddition, "ARCH OVERLAY_PLANS", archTemplateName, groupId, uniqueBaseNum, defaultZoneName, nameSuffix);
+                
+                if (SelectedSheetNamingType != "LP PLAN")
+                {
+                    AddGroupedPartRow(level, "- UNDER", "UNDER_PLANS", underTemplateName, groupId, uniqueBaseNum, defaultZoneName, nameSuffix);
+                }
+                
+                AddGroupedPartRow(level, "- OVER" + suffixAddition, "OVER_PLANS", overTemplateName, groupId, uniqueBaseNum, defaultZoneName, nameSuffix);
+            }
+        }
+
+        [RelayCommand]
+        private void AddPartRowLevel()
+        {
+            var usedLevelIds = PartRows.Where(x => x.SelectedLevel != null).Select(x => x.SelectedLevel.Id).ToHashSet();
+            var level = ProjectLevels.FirstOrDefault(l => !usedLevelIds.Contains(l.Id)) ?? ProjectLevels.FirstOrDefault();
+            
+            if (level != null)
+            {
+                string archTemplateName = "RINCO - GA - ARCH 1/100";
+                string overTemplateName = "RINCO - GA - OVER 1/100";
+                string underTemplateName = "RINCO - GA - UNDER 1/100";
+                string suffixAddition = "";
+                string nameSuffix = "GENERAL ARRANGEMENT PLAN";
+
+                if (SelectedSheetNamingType == "LP PLAN") 
+                {
+                    archTemplateName = "RINCO - LP - ARCH 1/100";
+                    overTemplateName = "RINCO - LP - OVER 1/100";
+                    suffixAddition = " - LOADING PLAN";
+                    nameSuffix = "LOADING PLAN";
+                }
+                else if (SelectedSheetNamingType == "NORMAL")
+                {
+                    nameSuffix = "PLAN";
+                }
+
+                string baseSheetNum = GenerateBaseSheetNumber(level, ProjectLevels);
+                
+                string uniqueBaseNum = baseSheetNum;
+                int suffixCount = 1;
+                while (PartRows.Any(r => r.SheetNumber == uniqueBaseNum))
+                {
+                    uniqueBaseNum = $"{baseSheetNum}.{suffixCount}";
+                    suffixCount++;
+                }
+
+                string groupId = Guid.NewGuid().ToString();
+                string defaultZoneName = "ZONE 1";
+
+                AddGroupedPartRow(level, "- ARCH" + suffixAddition, "ARCH OVERLAY_PLANS", archTemplateName, groupId, uniqueBaseNum, defaultZoneName, nameSuffix);
+                
+                if (SelectedSheetNamingType != "LP PLAN")
+                {
+                    AddGroupedPartRow(level, "- UNDER", "UNDER_PLANS", underTemplateName, groupId, uniqueBaseNum, defaultZoneName, nameSuffix);
+                }
+                
+                AddGroupedPartRow(level, "- OVER" + suffixAddition, "OVER_PLANS", overTemplateName, groupId, uniqueBaseNum, defaultZoneName, nameSuffix);
             }
         }
 
@@ -405,6 +738,213 @@ namespace RincoNhan.Tools.AutoViewSheet.ViewModels
         private void RunAutoProcess()
         {
             StatusMessage = "Processing...";
+            _handler.Raise();
+        }
+
+        [RelayCommand]
+        private void AddZoneForLevel(AutoViewSheetRow rowGroup)
+        {
+            if (rowGroup == null) return;
+            var level = rowGroup.SelectedLevel;
+            if (level == null) return;
+
+            string groupId = Guid.NewGuid().ToString();
+
+            int maxZone = 0;
+            string lastSheetNumber = null;
+            foreach (var r in PartRows.Where(x => x.SelectedLevel?.Id == level.Id))
+            {
+                var match = Regex.Match(r.ZoneName ?? "", @"ZONE (\d+)");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int z))
+                {
+                    if (z > maxZone)
+                    {
+                        maxZone = z;
+                        lastSheetNumber = r.SheetNumber;
+                    }
+                }
+            }
+            string defaultZoneName = $"ZONE {maxZone + 1}";
+
+            string baseSheetNum = lastSheetNumber;
+            if (string.IsNullOrEmpty(baseSheetNum))
+            {
+                baseSheetNum = GenerateBaseSheetNumber(level, ProjectLevels);
+            }
+            else
+            {
+                // Increment trailing number
+                var numMatch = Regex.Match(baseSheetNum, @"(\d+)$");
+                if (numMatch.Success)
+                {
+                    string numStr = numMatch.Groups[1].Value;
+                    if (long.TryParse(numStr, out long num))
+                    {
+                        string newNumStr = (num + 1).ToString().PadLeft(numStr.Length, '0');
+                        baseSheetNum = baseSheetNum.Substring(0, numMatch.Index) + newNumStr;
+                    }
+                    else baseSheetNum += ".1";
+                }
+                else baseSheetNum += ".1";
+            }
+
+            string uniqueBaseNum = baseSheetNum;
+            int suffixCount = 1;
+            while (PartRows.Any(r => r.SheetNumber == uniqueBaseNum))
+            {
+                uniqueBaseNum = $"{baseSheetNum}.{suffixCount}";
+                suffixCount++;
+            }
+            baseSheetNum = uniqueBaseNum;
+            
+            string archTemplateName = "RINCO - GA - ARCH 1/100";
+            string overTemplateName = "RINCO - GA - OVER 1/100";
+            string underTemplateName = "RINCO - GA - UNDER 1/100";
+            string suffixAddition = "";
+            string nameSuffix = "GENERAL ARRANGEMENT PLAN";
+
+            if (SelectedSheetNamingType == "LP PLAN") 
+            {
+                archTemplateName = "RINCO - LP - ARCH 1/100";
+                overTemplateName = "RINCO - LP - OVER 1/100";
+                suffixAddition = " - LOADING PLAN";
+                nameSuffix = "LOADING PLAN";
+            }
+            else if (SelectedSheetNamingType == "NORMAL")
+            {
+                nameSuffix = "PLAN";
+            }
+
+            AddGroupedPartRow(level, "- ARCH" + suffixAddition, "ARCH OVERLAY_PLANS", archTemplateName, groupId, baseSheetNum, defaultZoneName, nameSuffix);
+            
+            if (SelectedSheetNamingType != "LP PLAN")
+            {
+                AddGroupedPartRow(level, "- UNDER", "UNDER_PLANS", underTemplateName, groupId, baseSheetNum, defaultZoneName, nameSuffix);
+            }
+            
+            AddGroupedPartRow(level, "- OVER" + suffixAddition, "OVER_PLANS", overTemplateName, groupId, baseSheetNum, defaultZoneName, nameSuffix);
+        }
+
+        private void AddGroupedPartRow(LevelItem level, string suffix, string viewTypeKey, string templateKey, string groupId, string sheetNum, string zoneName, string sheetNameStr)
+        {
+            // Fuzzy match view type based on suffix
+            var matchedViewType = ViewTypes.FirstOrDefault(vt => vt.Name.Equals(viewTypeKey, StringComparison.OrdinalIgnoreCase));
+            if (matchedViewType == null)
+            {
+                if (suffix.IndexOf("OVER", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    matchedViewType = ViewTypes.FirstOrDefault(vt => 
+                        vt.Name.EndsWith("OVER", StringComparison.OrdinalIgnoreCase) || 
+                        (vt.Name.IndexOf("OVER", StringComparison.OrdinalIgnoreCase) >= 0 && vt.Name.IndexOf("OVERLAY", StringComparison.OrdinalIgnoreCase) < 0));
+                }
+                else if (suffix.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    matchedViewType = ViewTypes.FirstOrDefault(vt => 
+                        vt.Name.EndsWith("UNDER", StringComparison.OrdinalIgnoreCase) || 
+                        vt.Name.IndexOf("UNDER", StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+                else if (suffix.IndexOf("ARCH", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    matchedViewType = ViewTypes.FirstOrDefault(vt => 
+                        vt.Name.IndexOf("ARCH", StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+            }
+            if (matchedViewType == null) matchedViewType = ViewTypes.FirstOrDefault();
+            
+            // Fuzzy match template
+            var matchedTemplate = ViewTemplates.FirstOrDefault(vt => vt.Name.Equals(templateKey, StringComparison.OrdinalIgnoreCase));
+            if (matchedTemplate == null)
+            {
+                if (suffix.Contains("OVER")) matchedTemplate = ViewTemplates.FirstOrDefault(vt => vt.Name.Contains("OVER 1/100"));
+                else if (suffix.Contains("UNDER")) matchedTemplate = ViewTemplates.FirstOrDefault(vt => vt.Name.Contains("UNDER 1/100"));
+                else if (suffix.Contains("ARCH")) matchedTemplate = ViewTemplates.FirstOrDefault(vt => vt.Name.Contains("ARCH 1/100"));
+            }
+            if (matchedTemplate == null) matchedTemplate = ViewTemplates.FirstOrDefault();
+            
+            var row = new AutoViewSheetRow
+            {
+                SelectedLevel = level,
+                Suffix = suffix,
+                SelectedViewType = matchedViewType,
+                SelectedViewTemplate = matchedTemplate,
+                SelectedScopeBox = ScopeBoxOptions.FirstOrDefault(),
+                SheetNumber = sheetNum,
+                SheetName = sheetNameStr,
+                GroupId = groupId,
+                IsGroupSelected = true,
+                ZoneName = zoneName
+            };
+
+            row.GroupSelectionChangedCallback = (r, isSelected) =>
+            {
+                foreach (var groupRow in PartRows.Where(gr => gr.GroupId == r.GroupId && gr != r))
+                    groupRow.IsSelected = isSelected;
+            };
+
+            row.LevelChangedCallback = (r, oldLvl, newLvl) =>
+            {
+                if (oldLvl == null || newLvl == null) return;
+                var rowsToChange = PartRows.Where(gr => gr.SelectedLevel?.Id == oldLvl.Id && gr != r).ToList();
+                foreach (var groupRow in rowsToChange)
+                {
+                    groupRow.SelectedLevel = newLvl;
+                }
+            };
+
+            row.SheetNumberChangedCallback = (r, val) =>
+            {
+                foreach (var groupRow in PartRows.Where(gr => gr.GroupId == r.GroupId && gr != r))
+                    groupRow.SheetNumber = val;
+            };
+
+            row.SheetNameChangedCallback = (r, val) =>
+            {
+                foreach (var groupRow in PartRows.Where(gr => gr.GroupId == r.GroupId && gr != r))
+                    groupRow.SheetName = val;
+            };
+
+            row.ZoneNameChangedCallback = (r, val) =>
+            {
+                foreach (var groupRow in PartRows.Where(gr => gr.GroupId == r.GroupId && gr != r))
+                    groupRow.ZoneName = val;
+            };
+
+            row.ScopeBoxChangedCallback = (r, val) =>
+            {
+                foreach (var groupRow in PartRows.Where(gr => gr.GroupId == r.GroupId && gr != r))
+                    groupRow.SelectedScopeBox = val;
+            };
+
+            row.LevelSelectionChangedCallback = (r, val) =>
+            {
+                if (r.SelectedLevel == null) return;
+                var levelId = r.SelectedLevel.Id;
+                foreach (var groupRow in PartRows.Where(gr => gr.SelectedLevel?.Id == levelId))
+                {
+                    if (groupRow != r) groupRow.IsLevelSelected = val;
+                }
+            };
+
+            PartRows.Add(row);
+        }
+
+        [RelayCommand]
+        private void RemovePartRowForLevel(AutoViewSheetRow rowGroup)
+        {
+            if (rowGroup == null || rowGroup.SelectedLevel == null) return;
+            var levelId = rowGroup.SelectedLevel.Id;
+            var rowsToRemove = PartRows.Where(r => r.SelectedLevel?.Id == levelId && (r.IsGroupSelected || r.IsSelected)).ToList();
+            foreach (var r in rowsToRemove)
+            {
+                PartRows.Remove(r);
+            }
+        }
+
+        [RelayCommand]
+        private void RunAutoProcessPart()
+        {
+            StatusMessage = "Processing Parts...";
+            _handler.IsPartMode = true;
             _handler.Raise();
         }
     }

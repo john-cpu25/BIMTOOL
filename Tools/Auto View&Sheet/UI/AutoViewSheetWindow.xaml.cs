@@ -43,5 +43,15 @@ namespace RincoNhan.Tools.AutoViewSheet.UI
         {
             SetExpandersState(MainDataGrid, false);
         }
+
+        private void BtnPartExpandAll_Click(object sender, RoutedEventArgs e)
+        {
+            SetExpandersState(PartDataGrid, true);
+        }
+
+        private void BtnPartCollapseAll_Click(object sender, RoutedEventArgs e)
+        {
+            SetExpandersState(PartDataGrid, false);
+        }
     }
 }

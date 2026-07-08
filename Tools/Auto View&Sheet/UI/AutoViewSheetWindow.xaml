@@ -123,7 +123,14 @@
                         </DataGrid.GroupStyle>
                         
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                            <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="160">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="5,0,0,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
                             <DataGridTemplateColumn Header="View Type" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -150,6 +157,137 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
+            <!-- TAB 1.5: AUTO PROCESS PART -->
+            <TabItem Header="Auto Process_Part">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="Search:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,5,0" Foreground="#2C3E50"/>
+                            <TextBox Text="{Binding PartSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" Height="26" VerticalContentAlignment="Center" Margin="0,0,15,0" ToolTip="Search by Sheet Name, Number, or Level"/>
+
+                            <Button Content="Sort A-Z/Z-A" Command="{Binding TogglePartSortCommand}" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,15,0" Cursor="Hand"/>
+
+                            <Button Content="Expand All" Click="BtnPartExpandAll_Click" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,5,0" Cursor="Hand"/>
+                            <Button Content="Collapse All" Click="BtnPartCollapseAll_Click" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,15,0" Cursor="Hand"/>
+                            
+                            <Button Content="Check All" Command="{Binding SelectAllPartCommand}" CommandParameter="True" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,5,0" Cursor="Hand"/>
+                            <Button Content="Uncheck All" Command="{Binding SelectAllPartCommand}" CommandParameter="False" Padding="8,4" Background="White" BorderBrush="#DCDDE1" Margin="0,0,15,0" Cursor="Hand"/>
+
+                            <Button Content="+ Add Level" Command="{Binding AddPartRowLevelCommand}" Width="120" Height="30" Margin="0,0,10,0" Background="#3498DB" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" ToolTip="Add another level group"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="Creates dependent views for each Zone." VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="#7F8C8D" FontStyle="Italic"/>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1" x:Name="PartDataGrid" ItemsSource="{Binding PartRowsView}" Style="{StaticResource DataGridStyle}" ColumnHeaderStyle="{StaticResource ColumnHeaderStyle}">
+                        <DataGrid.GroupStyle>
+                            <!-- LEVEL 1 GROUP (SelectedLevel.Name) -->
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Margin" Value="0,0,0,10"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <StackPanel>
+                                                        <Grid Background="#EAECEE" Margin="0,0,0,5">
+                                                            <StackPanel Orientation="Horizontal" Margin="5">
+                                                                <CheckBox IsChecked="{Binding Items[0].Items[0].IsLevelSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5,0,5,0"/>
+                                                                <ComboBox ItemsSource="{Binding DataContext.ProjectLevels, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Items[0].Items[0].SelectedLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Name" Width="140" Margin="5,0,15,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                                                                <Button Content="+ Add Zone" Command="{Binding DataContext.AddZoneForLevelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Items[0].Items[0]}" Margin="0,0,10,0" Padding="10,2" Background="#E8F8F5" BorderBrush="#1ABC9C" Foreground="#16A085" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center" ToolTip="Add another zone for this level"/>
+                                                                <Button Content="Remove Checked" Command="{Binding DataContext.RemovePartRowForLevelCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Items[0].Items[0]}" Padding="10,2" Background="#FDEBD0" BorderBrush="#E67E22" Foreground="#D35400" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center" ToolTip="Remove checked zones for this level"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                        <ItemsPresenter />
+                                                    </StackPanel>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+
+                            <!-- LEVEL 2 GROUP (GroupId - Zone) -->
+                            <GroupStyle>
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="{x:Type GroupItem}">
+                                        <Setter Property="Margin" Value="0,0,0,5"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                    <Expander IsExpanded="True" BorderBrush="#DCDDE1" BorderThickness="1" Background="#F8FAFC">
+                                                        <Expander.Header>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,5">
+                                                                <CheckBox IsChecked="{Binding Items[0].IsGroupSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Items[0].CanRemoveZone}" Margin="5,0,10,0" VerticalAlignment="Center"/>
+                                                                <ComboBox ItemsSource="{Binding DataContext.ProjectLevels, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Items[0].SelectedLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Name" Width="140" Margin="0,0,10,0" VerticalAlignment="Center" FontWeight="SemiBold" IsEnabled="False"/>
+                                                                <TextBox Text="{Binding Items[0].ZoneName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100" Margin="0,0,10,0" FontWeight="Bold" Background="White" BorderThickness="1" VerticalAlignment="Center" ToolTip="Zone Name (e.g. ZONE 1)"/>
+                                                                <TextBox Text="{Binding Items[0].SheetNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,5,0" FontWeight="Bold" Background="White" BorderThickness="1" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="-" Margin="5,0" VerticalAlignment="Center" Foreground="#2C3E50"/>
+                                                                <TextBox Text="{Binding Items[0].SheetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="250" FontWeight="Bold" Background="White" BorderThickness="1" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Expander.Header>
+                                                        <ItemsPresenter />
+                                                    </Expander>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Suffix" Binding="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" Width="160">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="5,0,0,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Header="View Type" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewTypes, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding SelectedViewType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="View Template" Width="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ViewTemplates, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding SelectedViewTemplate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Scope Box" Width="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.ScopeBoxOptions, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                  SelectedItem="{Binding SelectedScopeBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                  DisplayMemberPath="Name" Margin="2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
 
             <!-- TAB 2: GLOBAL SETTINGS -->
             <TabItem Header="Global Settings">
@@ -165,16 +303,20 @@
                     <ComboBox ItemsSource="{Binding SheetSeriesOptions}" Text="{Binding SelectedSheetSeries, UpdateSourceTrigger=PropertyChanged}" 
                               IsEditable="True" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="3. Viewport Title Type (Turn On Title)" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="3. Drawing Type (Sheet Name)" Style="{StaticResource SectionLabel}"/>
+                    <ComboBox ItemsSource="{Binding SheetNamingTypes}" SelectedItem="{Binding SelectedSheetNamingType, UpdateSourceTrigger=PropertyChanged}" 
+                              Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
+
+                    <TextBlock Text="4. Viewport Title Type (Turn On Title)" Style="{StaticResource SectionLabel}"/>
                     <ComboBox ItemsSource="{Binding ViewportTitleTypes}" SelectedItem="{Binding SelectedViewportTitle}" 
                               DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="4. Global Scope Box" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="5. Global Scope Box" Style="{StaticResource SectionLabel}"/>
                     <TextBlock Text="Apply this Scope Box to all created views." Foreground="#7F8C8D" FontSize="11" Margin="0,0,0,5"/>
                     <ComboBox ItemsSource="{Binding ScopeBoxOptions}" SelectedItem="{Binding SelectedGlobalScopeBox}" 
                               DisplayMemberPath="Name" Width="400" HorizontalAlignment="Left" Height="28" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="5. Stack Views (Place all views at the same center point)" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="6. Stack Views (Place all views at the same center point)" Style="{StaticResource SectionLabel}"/>
                     <CheckBox Content="Stack Views on Sheet" IsChecked="{Binding StackViews}" IsEnabled="False" Margin="0,0,0,15"/>
                 </StackPanel>
             </TabItem>
@@ -184,6 +326,7 @@
             <Grid>
                 <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="#34495E" FontWeight="SemiBold"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Run Auto Process Part" Command="{Binding RunAutoProcessPartCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="160" Background="#27AE60" Margin="0,0,10,0"/>
                     <Button Content="Run Auto Process" Command="{Binding RunAutoProcessCommand}" Style="{StaticResource PrimaryButtonStyle}" Width="150" Background="#E67E22"/>
                     <Button Content="Close" Click="CloseButton_Click" Style="{StaticResource PrimaryButtonStyle}" Background="#95A5A6" Margin="10,0,0,0" Width="80"/>
                 </StackPanel>

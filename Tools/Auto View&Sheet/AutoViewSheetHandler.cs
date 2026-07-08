@@ -20,6 +20,8 @@ namespace RincoNhan.Tools.AutoViewSheet
 
         public void Raise() => _externalEvent.Raise();
 
+        public bool IsPartMode { get; set; } = false;
+
         public void Execute(UIApplication app)
         {
             UIDocument uidoc = app.ActiveUIDocument;
@@ -27,7 +29,14 @@ namespace RincoNhan.Tools.AutoViewSheet
 
             try
             {
-                ExecuteAutoProcess(doc);
+                if (IsPartMode)
+                {
+                    ExecuteAutoProcessPart(doc);
+                }
+                else
+                {
+                    ExecuteAutoProcess(doc);
+                }
             }
             catch (Exception ex)
             {
@@ -297,6 +306,217 @@ namespace RincoNhan.Tools.AutoViewSheet
             return sheets.Any(s => s.SheetNumber.Equals(number, StringComparison.OrdinalIgnoreCase));
         }
 
-        public string GetName() => "AutoViewSheetHandler";
+        private void ExecuteAutoProcessPart(Document doc)
+        {
+            var rowsToProcess = ViewModel.PartRows.Where(r => r.IsSelected && r.IsLevelSelected && r.SelectedLevel != null).ToList();
+            if (!rowsToProcess.Any())
+            {
+                ViewModel.StatusMessage = "No valid part rows selected.";
+                return;
+            }
+
+            if (ViewModel.SelectedTitleBlock == null)
+            {
+                ViewModel.StatusMessage = "Please select a TitleBlock in Settings.";
+                return;
+            }
+
+            var existingSheets = new FilteredElementCollector(doc)
+                .OfClass(typeof(ViewSheet))
+                .Cast<ViewSheet>()
+                .Select(s => s.SheetNumber)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var duplicateNumbers = rowsToProcess.Select(r => r.SheetNumber)
+                .Where(sn => !string.IsNullOrEmpty(sn) && existingSheets.Contains(sn))
+                .Distinct()
+                .ToList();
+
+            if (duplicateNumbers.Any())
+            {
+                TaskDialog td = new TaskDialog("Duplicate Sheets");
+                td.MainInstruction = "Some Sheet Numbers already exist.";
+                td.MainContent = $"The following Sheet Numbers already exist in the project:\n\n{string.Join(", ", duplicateNumbers.Take(10))}{(duplicateNumbers.Count > 10 ? "\n..." : "")}\n\nDo you want to continue? (They will automatically be renamed with .1, .2, etc.)";
+                td.CommonButtons = TaskDialogCommonButtons.Yes | TaskDialogCommonButtons.No;
+                td.DefaultButton = TaskDialogResult.No;
+                if (td.Show() == TaskDialogResult.No)
+                {
+                    ViewModel.StatusMessage = "Process cancelled due to duplicate sheets.";
+                    return;
+                }
+            }
+
+            int successCount = 0;
+            int errorCount = 0;
+            _tempSheetCounter = 100000;
+
+            using (Transaction trans = new Transaction(doc, "Rinco - Auto Process Part"))
+            {
+                trans.Start();
+
+                Dictionary<string, ViewSheet> createdSheets = new Dictionary<string, ViewSheet>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, int> sheetViewCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var row in rowsToProcess)
+                {
+                    try
+                    {
+                        // 1. CREATE DEPENDENT VIEW
+                        View newView = CreateDependentView(doc, row);
+                        if (newView == null) throw new Exception("Failed to create Dependent View.");
+
+                        // 2. CREATE OR GET SHEET
+                        ViewSheet newSheet = null;
+                        if (!string.IsNullOrEmpty(row.SheetNumber) && createdSheets.ContainsKey(row.SheetNumber))
+                        {
+                            newSheet = createdSheets[row.SheetNumber];
+                        }
+                        else
+                        {
+                            newSheet = CreateSheet(doc, row, ViewModel.SelectedTitleBlock);
+                            if (newSheet == null) throw new Exception("Failed to create Sheet.");
+
+                            if (!string.IsNullOrEmpty(row.SheetNumber))
+                            {
+                                createdSheets[row.SheetNumber] = newSheet;
+                            }
+                        }
+
+                        // 3. ADD SCOPE BOX
+                        if (row.SelectedScopeBox != null && row.SelectedScopeBox.Id != ElementId.InvalidElementId)
+                        {
+                            var sbParam = newView.get_Parameter(BuiltInParameter.VIEWER_VOLUME_OF_INTEREST_CROP);
+                            if (sbParam != null && !sbParam.IsReadOnly)
+                            {
+                                sbParam.Set(row.SelectedScopeBox.Id);
+                            }
+                        }
+                        else if (ViewModel.SelectedGlobalScopeBox != null && ViewModel.SelectedGlobalScopeBox.Id != ElementId.InvalidElementId)
+                        {
+                            var sbParam = newView.get_Parameter(BuiltInParameter.VIEWER_VOLUME_OF_INTEREST_CROP);
+                            if (sbParam != null && !sbParam.IsReadOnly)
+                            {
+                                sbParam.Set(ViewModel.SelectedGlobalScopeBox.Id);
+                            }
+                        }
+
+                        // 4. ADD VIEW TO SHEET
+                        if (Viewport.CanAddViewToSheet(doc, newSheet.Id, newView.Id))
+                        {
+                            int count = sheetViewCount.ContainsKey(newSheet.SheetNumber) ? sheetViewCount[newSheet.SheetNumber] : 0;
+                            
+                            doc.Regenerate(); 
+                            
+                            XYZ centerPt = new XYZ(1.38, 0.975, 0);
+                            var titleBlock = new FilteredElementCollector(doc, newSheet.Id)
+                                .OfCategory(BuiltInCategory.OST_TitleBlocks)
+                                .OfClass(typeof(FamilyInstance))
+                                .Cast<FamilyInstance>()
+                                .FirstOrDefault();
+                                
+                            if (titleBlock != null)
+                            {
+                                BoundingBoxXYZ bbox = titleBlock.get_BoundingBox(newSheet);
+                                if (bbox != null)
+                                {
+                                    centerPt = (bbox.Max + bbox.Min) / 2.0;
+                                }
+                            }
+
+                            double offset = ViewModel.StackViews ? 0 : count * 2.0;
+                            XYZ placementPt = new XYZ(centerPt.X + offset, centerPt.Y, 0);
+                            
+                            Viewport newViewport = Viewport.Create(doc, newSheet.Id, newView.Id, placementPt);
+                            
+                            sheetViewCount[newSheet.SheetNumber] = count + 1;
+
+                            // 5. TURN ON TITLE
+                            if (row.Suffix != null && row.Suffix.IndexOf("OVER", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                if (ViewModel.SelectedViewportTitle != null && ViewModel.SelectedViewportTitle.Id != ElementId.InvalidElementId)
+                                {
+                                    try { newViewport.ChangeTypeId(ViewModel.SelectedViewportTitle.Id); } catch { }
+                                }
+                            }
+                        }
+
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                    }
+                }
+
+                trans.Commit();
+            }
+
+            ViewModel.StatusMessage = $"✓ Successfully processed {successCount} part rows. ({errorCount} errors)";
+        }
+
+        private View CreateDependentView(Document doc, AutoViewSheetRow row)
+        {
+            if (row.SelectedViewType == null) return null;
+
+            string s = string.IsNullOrWhiteSpace(row.Suffix) ? "" : $" {row.Suffix}";
+            string primaryViewName = $"{row.SelectedLevel.Name}{s}";
+
+            var primaryView = new FilteredElementCollector(doc)
+                .OfClass(typeof(ViewPlan))
+                .Cast<ViewPlan>()
+                .FirstOrDefault(v => !v.IsTemplate
+                    && v.Name.Equals(primaryViewName, StringComparison.OrdinalIgnoreCase));
+
+            if (primaryView == null)
+            {
+                var existingView = new FilteredElementCollector(doc)
+                    .OfClass(typeof(ViewPlan))
+                    .Cast<ViewPlan>()
+                    .FirstOrDefault(v => !v.IsTemplate
+                        && v.GenLevel != null
+                        && v.GenLevel.Id == row.SelectedLevel.Id
+                        && v.GetTypeId() == row.SelectedViewType.Id);
+
+                if (existingView != null)
+                {
+                    ElementId newViewId = existingView.Duplicate(ViewDuplicateOption.Duplicate);
+                    primaryView = doc.GetElement(newViewId) as ViewPlan;
+                }
+                else
+                {
+                    primaryView = ViewPlan.Create(doc, row.SelectedViewType.Id, row.SelectedLevel.Id);
+                }
+
+                if (primaryView != null)
+                {
+                    string uniquePrimaryName = GetUniqueViewName(doc, primaryViewName);
+                    try { primaryView.Name = uniquePrimaryName; } catch { }
+
+                    if (row.SelectedViewTemplate != null && row.SelectedViewTemplate.Id != ElementId.InvalidElementId)
+                    {
+                        try { primaryView.ViewTemplateId = row.SelectedViewTemplate.Id; } catch { }
+                    }
+                }
+            }
+
+            if (primaryView != null)
+            {
+                ElementId dependentViewId = primaryView.Duplicate(ViewDuplicateOption.AsDependent);
+                View dependentView = doc.GetElement(dependentViewId) as View;
+                if (dependentView != null)
+                {
+                    string newName = GetUniqueViewName(doc, row.ViewName);
+                    try { dependentView.Name = newName; } catch { }
+                    return dependentView;
+                }
+            }
+
+            return null;
+        }
+
+        public string GetName()
+        {
+            return "AutoViewSheetHandler";
+        }
     }
 }

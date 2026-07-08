@@ -84,6 +84,21 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
             }
         }
 
+        private bool _isLevelSelected = true;
+        public bool IsLevelSelected
+        {
+            get => _isLevelSelected;
+            set
+            {
+                if (_isLevelSelected != value)
+                {
+                    _isLevelSelected = value;
+                    OnPropertyChanged(nameof(IsLevelSelected));
+                    LevelSelectionChangedCallback?.Invoke(this, value);
+                }
+            }
+        }
+
         public string SheetNumberAndName => $"{SheetNumber} - {SheetName}";
 
         private LevelItem _selectedLevel;
@@ -92,10 +107,14 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
             get => _selectedLevel;
             set
             {
-                _selectedLevel = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ViewName));
-                LevelChangedCallback?.Invoke(this, value);
+                if (_selectedLevel != value)
+                {
+                    var oldLevel = _selectedLevel;
+                    _selectedLevel = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ViewName));
+                    LevelChangedCallback?.Invoke(this, oldLevel, value);
+                }
             }
         }
 
@@ -111,13 +130,33 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
             }
         }
 
+        private string _zoneName;
+        public string ZoneName
+        {
+            get => _zoneName;
+            set
+            {
+                if (_zoneName != value)
+                {
+                    _zoneName = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ViewName));
+                    OnPropertyChanged(nameof(CanRemoveZone));
+                    ZoneNameChangedCallback?.Invoke(this, value);
+                }
+            }
+        }
+
+        public bool CanRemoveZone => ZoneName != "ZONE 1";
+
         public string ViewName
         {
             get
             {
                 if (SelectedLevel == null) return "";
                 string s = string.IsNullOrWhiteSpace(Suffix) ? "" : $" {Suffix}";
-                return $"{SelectedLevel.Name}{s}";
+                string z = string.IsNullOrWhiteSpace(ZoneName) ? "" : $" - {ZoneName}";
+                return $"{SelectedLevel.Name}{s}{z}";
             }
         }
 
@@ -183,10 +222,12 @@ namespace RincoNhan.Tools.AutoViewSheet.Models
         }
 
         public string GroupId { get; set; }
-        public Action<AutoViewSheetRow, LevelItem> LevelChangedCallback { get; set; }
+        public Action<AutoViewSheetRow, LevelItem, LevelItem> LevelChangedCallback { get; set; }
         public Action<AutoViewSheetRow, string> SheetNumberChangedCallback { get; set; }
         public Action<AutoViewSheetRow, string> SheetNameChangedCallback { get; set; }
         public Action<AutoViewSheetRow, ScopeBoxItem> ScopeBoxChangedCallback { get; set; }
         public Action<AutoViewSheetRow, bool> GroupSelectionChangedCallback { get; set; }
+        public Action<AutoViewSheetRow, string> ZoneNameChangedCallback { get; set; }
+        public Action<AutoViewSheetRow, bool> LevelSelectionChangedCallback { get; set; }
     }
 }
