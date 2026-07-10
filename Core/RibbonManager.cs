@@ -48,6 +48,7 @@ namespace RincoNhan.Core
             AddCreateLevelButton(generalPanel);
             AddConnectionButton(generalPanel);
             AddJoinElementsButton(generalPanel);
+            AddOpeningFillRegionButton(generalPanel);
 
             // === DIM Panel ===
             AddAlignDimButton(dimPanel);
@@ -790,6 +791,21 @@ namespace RincoNhan.Core
             PushButton pbWithDetailing = sb.AddPushButton(btnWithDetailing);
             pbWithDetailing.LargeImage = LoadIcon("Duplicate Sheet.png") ?? LoadIcon("CreateViewSheet.png");
             pbWithDetailing.Image = LoadIcon("Duplicate Sheet.png", 16) ?? LoadIcon("CreateViewSheet.png", 16);
+        }
+
+        private static void AddOpeningFillRegionButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdOpeningFillRegion",
+                "Opening\nFill Region",
+                _assemblyPath,
+                "RincoNhan.Tools.OpeningFillRegion.Command"
+            );
+            btnData.ToolTip = "Đục lỗ trên Filled Region theo hình dạng Shaft Opening.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("OpeningFillRegion.png");
+            pb.Image = LoadIcon("OpeningFillRegion.png", 16);
         }
     }
 }
