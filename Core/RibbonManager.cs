@@ -40,6 +40,7 @@ namespace RincoNhan.Core
             RibbonPanel wallPanel = GetOrCreatePanel(application, tabName, "Wall");
             RibbonPanel dimPanel = GetOrCreatePanel(application, tabName, "Dim");
             RibbonPanel revisionPanel = GetOrCreatePanel(application, tabName, "Revision");
+            RibbonPanel detailPanel = GetOrCreatePanel(application, tabName, "Detail");
 
             // === GENERAL Panel ===
             AddAddSharedParamButton(generalPanel);
@@ -67,6 +68,10 @@ namespace RincoNhan.Core
             AddImportEXtoLegendButton(excelPanel);
             // === FAMILY Panel ===
             AddFamilyDataSplitButton(familyPanel);
+
+            // === DETAIL Panel ===
+            Add2DFamilyManagerButton(detailPanel);
+
             // === LOADING Panel ===
             AddLoadingHatchButton(loadingPanel);
             AddLoadingScheduleButton(loadingPanel);
@@ -582,6 +587,21 @@ namespace RincoNhan.Core
             PushButton pbExportSharedParam = sb.AddPushButton(btnExportSharedParam);
             pbExportSharedParam.LargeImage = LoadIcon("ExportSharedParam.png");
             pbExportSharedParam.Image = LoadIcon("ExportSharedParam.png", 16);
+        }
+
+        private static void Add2DFamilyManagerButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmd2DFamilyManager",
+                "2D Family\nManager",
+                _assemblyPath,
+                "RincoNhan.Tools.TwoDFamilyManager.Command"
+            );
+            btnData.ToolTip = "Manage and place 2D families directly from the UI.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("2DFamilyManager.png") ?? LoadIcon("AddSharedParam.png");
+            pb.Image = LoadIcon("2DFamilyManager.png", 16) ?? LoadIcon("AddSharedParam.png", 16);
         }
 
         private static void AddAddSharedParamButton(RibbonPanel panel)
