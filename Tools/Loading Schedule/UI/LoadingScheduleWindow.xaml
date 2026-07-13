@@ -228,7 +228,7 @@
             </TabItem>
 
             <!-- Second Tab: Duplicate Legend -->
-            <TabItem Header="Duplicate Legend" x:Name="tabDuplicateLegend">
+            <TabItem Header="Duplicate Legend" x:Name="tabDuplicateLegend" IsSelected="True">
                 <Grid Margin="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

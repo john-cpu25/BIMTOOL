@@ -435,10 +435,16 @@ namespace RincoNhan.Tools.ExportFamilyData
                                         try
                                         {
                                             Line dimLine = null;
+                                            Plane viewPlane = Plane.CreateByNormalAndOrigin(doc.ActiveView.ViewDirection, doc.ActiveView.Origin);
+                                            
                                             if (dimModel.DimLineStart != null && dimModel.DimLineEnd != null)
                                             {
                                                 XYZ pt1 = new XYZ(dimModel.DimLineStart.X, dimModel.DimLineStart.Y, dimModel.DimLineStart.Z);
                                                 XYZ pt2 = new XYZ(dimModel.DimLineEnd.X, dimModel.DimLineEnd.Y, dimModel.DimLineEnd.Z);
+                                                
+                                                pt1 = ProjectOntoPlane(pt1, viewPlane);
+                                                pt2 = ProjectOntoPlane(pt2, viewPlane);
+                                                
                                                 if (!pt1.IsAlmostEqualTo(pt2))
                                                 {
                                                     dimLine = Line.CreateBound(pt1, pt2);
@@ -447,7 +453,10 @@ namespace RincoNhan.Tools.ExportFamilyData
                                             
                                             if (dimLine == null)
                                             {
-                                                dimLine = Line.CreateBound(XYZ.Zero, new XYZ(10, 10, 0));
+                                                XYZ defaultPt1 = ProjectOntoPlane(XYZ.Zero, viewPlane);
+                                                XYZ defaultPt2 = ProjectOntoPlane(doc.ActiveView.RightDirection * 10, viewPlane);
+                                                if (!defaultPt1.IsAlmostEqualTo(defaultPt2))
+                                                    dimLine = Line.CreateBound(defaultPt1, defaultPt2);
                                             }
                                             
                                             Dimension newDim = doc.FamilyCreate.NewDimension(doc.ActiveView, dimLine, refArray);
@@ -480,6 +489,8 @@ namespace RincoNhan.Tools.ExportFamilyData
                                             try
                                             {
                                                 XYZ pos = new XYZ(txtModel.Position.X, txtModel.Position.Y, txtModel.Position.Z);
+                                                Plane viewPlane = Plane.CreateByNormalAndOrigin(doc.ActiveView.ViewDirection, doc.ActiveView.Origin);
+                                                pos = ProjectOntoPlane(pos, viewPlane);
                                                 TextNote.Create(doc, doc.ActiveView.Id, pos, txtModel.Text, defaultTextTypeId);
                                                 textCount++;
                                             }
