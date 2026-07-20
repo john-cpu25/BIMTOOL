@@ -25,6 +25,7 @@ namespace RincoNhan.Tools.ConvertHatch.UI
             {
                 _handler.SelectedPath = sfd.FileName;
                 _handler.ActionToRun = ConvertHatchAction.ExportJson;
+                this.Hide(); // Ẩn form để người dùng quét chuột
                 _exEvent.Raise();
             }
         }
@@ -38,6 +39,7 @@ namespace RincoNhan.Tools.ConvertHatch.UI
             {
                 _handler.SelectedPath = ofd.FileName;
                 _handler.ActionToRun = ConvertHatchAction.ImportJson;
+                this.Hide(); // Ẩn form để người dùng quét chuột
                 _exEvent.Raise();
             }
         }
@@ -51,6 +53,7 @@ namespace RincoNhan.Tools.ConvertHatch.UI
                 {
                     _handler.SelectedPath = fbd.SelectedPath;
                     _handler.ActionToRun = ConvertHatchAction.ExportPat;
+                    this.Hide(); // Ẩn form
                     _exEvent.Raise();
                 }
             }

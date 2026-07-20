@@ -55,6 +55,18 @@ namespace RincoNhan.Tools.ConvertHatch
             finally
             {
                 ActionToRun = ConvertHatchAction.None;
+                try
+                {
+                    if (ConvertHatchCommand.WindowInstance != null)
+                    {
+                        ConvertHatchCommand.WindowInstance.Dispatcher.Invoke(() => 
+                        {
+                            ConvertHatchCommand.WindowInstance.Show();
+                            ConvertHatchCommand.WindowInstance.Activate();
+                        });
+                    }
+                }
+                catch { }
             }
         }
 

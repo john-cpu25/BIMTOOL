@@ -53,10 +53,10 @@
   <PropertyGroup>
     <!-- Define constants for Revit versions -->
     <DefineConstants>$(DefineConstants);REVIT$(RevitVersion)</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' >= '2021'">$(DefineConstants);REVIT2021_OR_GREATER</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' >= '2022'">$(DefineConstants);REVIT2022_OR_GREATER</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' >= '2024'">$(DefineConstants);REVIT2024_OR_GREATER</DefineConstants>
-    <DefineConstants Condition="'$(RevitVersion)' >= '2025'">$(DefineConstants);REVIT2025_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2021'">$(DefineConstants);REVIT2021_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2022'">$(DefineConstants);REVIT2022_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2024'">$(DefineConstants);REVIT2024_OR_GREATER</DefineConstants>
+    <DefineConstants Condition="'$(RevitVersion)' &gt;= '2025'">$(DefineConstants);REVIT2025_OR_GREATER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -75,6 +75,7 @@
 
   <!-- Revit API references using dynamic versions -->
   <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.AdWindows" Version="$(RevitVersion).*" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitVersion).*" />
     <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitVersion).*" />
   </ItemGroup>

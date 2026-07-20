@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Linq;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
 
@@ -33,7 +34,7 @@ namespace RincoNhan.Core
             RibbonPanel excelPanel = GetOrCreatePanel(application, tabName, "Excel");
             RibbonPanel familyPanel = GetOrCreatePanel(application, tabName, "Family");
             RibbonPanel loadingPanel = GetOrCreatePanel(application, tabName, "Loading");
-            RibbonPanel mtoPanel = GetOrCreatePanel(application, tabName, "MTO");
+
             RibbonPanel checkPanel = GetOrCreatePanel(application, tabName, "Check");
             RibbonPanel rebarPanel = GetOrCreatePanel(application, tabName, "Rebar");
             RibbonPanel linkPanel = GetOrCreatePanel(application, tabName, "Link");
@@ -44,10 +45,8 @@ namespace RincoNhan.Core
 
             // === GENERAL Panel ===
             AddAddSharedParamButton(generalPanel);
-            AddClashDetectionButton(generalPanel);
             AddFilterButton(generalPanel);
             AddCreateLevelButton(generalPanel);
-            AddConnectionButton(generalPanel);
             AddJoinElementsButton(generalPanel);
             AddOpeningFillRegionButton(generalPanel);
 
@@ -68,29 +67,26 @@ namespace RincoNhan.Core
             AddImportEXtoLegendButton(excelPanel);
             // === FAMILY Panel ===
             AddFamilyDataSplitButton(familyPanel);
+            Add2DFamilyManagerButton(familyPanel);
 
             // === DETAIL Panel ===
-            Add2DFamilyManagerButton(detailPanel);
 
             // === LOADING Panel ===
             AddLoadingHatchButton(loadingPanel);
             AddLoadingScheduleButton(loadingPanel);
             AddConvertHatchButton(loadingPanel);
 
-            // === MTO Panel ===
-            AddMtoGroupBarButton(mtoPanel);
-            AddMtoQueryButton(mtoPanel);
-            AddMtoSmartTagButton(mtoPanel);
+
 
             // === CHECK Panel ===
+            AddFillRegionManagerButton(checkPanel);
             AddQueryElementButton(checkPanel);
             AddAlignTagsButton(checkPanel);
             AddElementsTagsButton(checkPanel);
             AddCheckFoldButton(checkPanel);
 
             // === REBAR Panel ===
-            AddRebarColumnButton(rebarPanel);
-            AddStairDetailButton(rebarPanel);
+            // Tools removed as requested
 
             // === LINK Panel ===
             PushButtonData pbdOverrideCad = GetOverrideCadButtonData();
@@ -98,8 +94,8 @@ namespace RincoNhan.Core
             PushButtonData pbdSmartLinkCad = GetSmartLinkCadButtonData();
             PushButtonData pbdSmartLinkRevit = GetSmartLinkRevitButtonData();
 
-            linkPanel.AddStackedItems(pbdOverrideCad, pbdReloadCAD);
-            linkPanel.AddStackedItems(pbdSmartLinkCad, pbdSmartLinkRevit);
+            IList<RibbonItem> linkItems1 = linkPanel.AddStackedItems(pbdOverrideCad, pbdReloadCAD);
+            IList<RibbonItem> linkItems2 = linkPanel.AddStackedItems(pbdSmartLinkCad, pbdSmartLinkRevit);
 
             // === WALL Panel ===
             AddViewRefButton(wallPanel);
@@ -107,6 +103,12 @@ namespace RincoNhan.Core
             AddCreateSectionWallButton(wallPanel);
             AddInterlockingWallButton(wallPanel);
             AddElevationViewButton(wallPanel);
+
+            // Fix the stacked buttons UI to be square like native Revit buttons
+            Autodesk.Windows.ComponentManager.ItemInitialized += (s, e) => 
+            {
+                FixStackedButtonsWidth(tabName, "Link", new[] { "cmdOverrideCad", "cmdReloadCADLinks", "cmdSmartLinkCad", "cmdSmartLinkRevit" });
+            };
         }
         private static RibbonPanel GetOrCreatePanel(UIControlledApplication application, string tabName, string panelName)
         {
@@ -115,6 +117,37 @@ namespace RincoNhan.Core
                 if (panel.Name == panelName) return panel;
             }
             return application.CreateRibbonPanel(tabName, panelName);
+        }
+
+        private static void FixStackedButtonsWidth(string tabName, string panelName, string[] buttonNames)
+        {
+            var ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
+            if (ribbonControl == null) return;
+
+            var tab = ribbonControl.Tabs.FirstOrDefault(t => t.Id == tabName);
+            if (tab == null) return;
+
+            var panel = tab.Panels.FirstOrDefault(p => p.Source.Title == panelName);
+            if (panel == null) return;
+
+            foreach (var item in panel.Source.Items)
+            {
+                if (item is Autodesk.Windows.RibbonRowPanel rowPanel)
+                {
+                    foreach (var subItem in rowPanel.Items)
+                    {
+                        if (subItem is Autodesk.Windows.RibbonButton button)
+                        {
+                            if (buttonNames.Any(name => button.Id.EndsWith(name)))
+                            {
+                                button.ShowText = false;
+                                button.Size = Autodesk.Windows.RibbonItemSize.Standard;
+                                button.Width = 20; // Set standard width for 16x16 icon buttons to make them square with 20x20 keyline
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private static void AddFilterButton(RibbonPanel panel)
@@ -167,7 +200,7 @@ namespace RincoNhan.Core
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdReloadCADLinks",
-                "\u2800\u2800",
+                "Reload CAD",
                 _assemblyPath,
                 "RincoNhan.Tools.ReloadCADLinks.ReloadCADCommand"
             );
@@ -325,35 +358,7 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("ViewRef.png", 16);
         }
 
-        private static void AddRebarColumnButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdRebarColumn",
-                "Rebar\nColumn",
-                _assemblyPath,
-                "RincoNhan.Tools.RebarColumn.Command"
-            );
-            btnData.ToolTip = "Generate column reinforcement with dynamic preview.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("RebarColumn.png");
-            pb.Image = LoadIcon("RebarColumn.png", 16);
-        }
-
-        private static void AddStairDetailButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdStairDetail",
-                "Stair\nDetail",
-                _assemblyPath,
-                "RincoNhan.Tools.StairDetail.StairDetail"
-            );
-            btnData.ToolTip = "Automatically place rebar, dimensions, and tags for stair sections.";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("StairDetail.png") ?? LoadIcon("RebarColumn.png");
-            pb.Image = LoadIcon("StairDetail.png", 16) ?? LoadIcon("RebarColumn.png", 16);
-        }
 
         private static void AddCreateLevelButton(RibbonPanel panel)
         {
@@ -420,7 +425,7 @@ namespace RincoNhan.Core
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdSmartLinkCad",
-                "\u2800\u2800\u2800",
+                "Smart Link Cad",
                 _assemblyPath,
                 "RincoNhan.Tools.SmartLinkCad.SmartLinkCadCommand"
             );
@@ -436,7 +441,7 @@ namespace RincoNhan.Core
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdSmartLinkRevit",
-                "\u2800\u2800\u2800\u2800",
+                "Smart Link Revit",
                 _assemblyPath,
                 "RincoNhan.Tools.SmartLinkRevit.SmartLinkRevitCommand"
             );
@@ -463,65 +468,7 @@ namespace RincoNhan.Core
             pb.Image = LoadIcon("Query Element.png", 16);
         }
 
-        private static void AddMtoSmartTagButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdMtoSmartTag",
-                "MTO\nSmart Tag",
-                _assemblyPath,
-                "RincoNhan.Tools.MtoSmartTag.Command"
-            );
-            btnData.ToolTip = "Tag Reinforcement Distribution detail items near their insertion point.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("MtoSmartTag.png");
-            pb.Image = LoadIcon("MtoSmartTag.png", 16);
-        }
-
-        private static void AddMtoQueryButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdMtoQuery",
-                "MTO\nQuery",
-                _assemblyPath,
-                "RincoNhan.Tools.MTOQuery.Command"
-            );
-            btnData.ToolTip = "Query and summarize Reinforcement Distribution and ZBar detail items in the current view.";
-
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("MtoQuery.png");
-            pb.Image = LoadIcon("MtoQuery.png", 16);
-        }
-
-        private static void AddMtoGroupBarButton(RibbonPanel panel)
-        {
-            SplitButtonData sbData = new SplitButtonData("cmdMtoGroupBarSplit", "Group\nBar");
-            SplitButton sb = panel.AddItem(sbData) as SplitButton;
-
-            // Group Bar
-            PushButtonData btnGroupBar = new PushButtonData(
-                "cmdMtoGroupBar",
-                "Group\nBar",
-                _assemblyPath,
-                "RincoNhan.Tools.MtoGroupBar.Command"
-            );
-            btnGroupBar.ToolTip = "Group lapped reinforcement bars automatically.";
-            PushButton pbGroupBar = sb.AddPushButton(btnGroupBar);
-            pbGroupBar.LargeImage = LoadIcon("MtoGroupBar.png");
-            pbGroupBar.Image = LoadIcon("MtoGroupBar.png", 16);
-
-            // Align Dist
-            PushButtonData btnAlignDist = new PushButtonData(
-                "cmdAlignDistribution",
-                "Align\nDistribution",
-                _assemblyPath,
-                "RincoNhan.Tools.MtoGroupBar.AlignDistributionCommand"
-            );
-            btnAlignDist.ToolTip = "Align selected distribution symbols to a main rebar or lap sign.";
-            PushButton pbAlignDist = sb.AddPushButton(btnAlignDist);
-            pbAlignDist.LargeImage = LoadIcon("AlignTags.png") ?? LoadIcon("MtoGroupBar.png");
-            pbAlignDist.Image = LoadIcon("AlignTags.png", 16) ?? LoadIcon("MtoGroupBar.png", 16);
-        }
 
         private static void AddFamilyDataSplitButton(RibbonPanel panel)
         {
@@ -679,41 +626,15 @@ namespace RincoNhan.Core
             pb.LargeImage = LoadIcon("Loading Schedule.png");
             pb.Image = LoadIcon("Loading Schedule.png", 16);
         }
-        private static void AddConnectionButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdSteelConnection",
-                "Steel\nConnection",
-                _assemblyPath,
-                "RincoNhan.Tools.Connection.Command"
-            );
-            btnData.ToolTip = "Create Steel Connections (Beam to Beam).";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("SteelConnection.png");
-            pb.Image = LoadIcon("SteelConnection.png", 16);
-        }
 
-        private static void AddClashDetectionButton(RibbonPanel panel)
-        {
-            PushButtonData btnData = new PushButtonData(
-                "cmdClashDetection",
-                "Clash\nDetection",
-                _assemblyPath,
-                "RincoNhan.Tools.ClashDetection.Command"
-            );
-            btnData.ToolTip = "Detect clashes between elements in the model.";
 
-            PushButton pb = panel.AddItem(btnData) as PushButton;
-            pb.LargeImage = LoadIcon("ClashDetection.png");
-            pb.Image = LoadIcon("ClashDetection.png", 16);
-        }
 
         private static PushButtonData GetOverrideCadButtonData()
         {
             PushButtonData btnData = new PushButtonData(
                 "cmdOverrideCad",
-                "\u2800",
+                "Override CAD",
                 _assemblyPath,
                 "RincoNhan.Tools.OverrideCad.Command"
             );
@@ -826,6 +747,21 @@ namespace RincoNhan.Core
             PushButton pb = panel.AddItem(btnData) as PushButton;
             pb.LargeImage = LoadIcon("OpeningFillRegion.png");
             pb.Image = LoadIcon("OpeningFillRegion.png", 16);
+        }
+
+        private static void AddFillRegionManagerButton(RibbonPanel panel)
+        {
+            PushButtonData btnData = new PushButtonData(
+                "cmdFillRegionManager",
+                "Fill Region\nManager",
+                _assemblyPath,
+                "RincoNhan.Tools.FillRegionManager.FillRegionManagerCommand"
+            );
+            btnData.ToolTip = "Quản lý và tra cứu thông tin Fill Region (Hatch) trong dự án.";
+
+            PushButton pb = panel.AddItem(btnData) as PushButton;
+            pb.LargeImage = LoadIcon("LoadingHatch.png"); // Fallback icon
+            pb.Image = LoadIcon("LoadingHatch.png", 16);
         }
     }
 }
